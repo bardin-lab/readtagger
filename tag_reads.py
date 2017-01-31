@@ -36,7 +36,16 @@ class SamTagProcessor(object):
         return not r.is_qcfail and not r.is_secondary and not r.is_supplementary and not r.is_unmapped
 
     def process_source(self):
-        return {r.query_name: {'r1' if r.is_read1 else 'r2': self.compute_tag(r)} for r in self.source_alignment if self.is_taggable(r)}
+        tag_d = {}
+        for r in self.source_alignment:
+            if self.is_taggable(r):
+                fw_rev = 'r1' if r.is_read1 else 'r2'
+                tag = self.compute_tag(r)
+                if r.query_name in tag_d:
+                    tag_d[query_name][fw_rev] = self.compute_tag(r)
+                else:
+                    tag_d[query_name] = {fw_rev: self.compute_tag(r)}
+        return tag_d
 
     def add_mate(self):
         for qname, tag_d in self.result.items():
