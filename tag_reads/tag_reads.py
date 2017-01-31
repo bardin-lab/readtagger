@@ -65,8 +65,8 @@ class SamTagProcessor(object):
                 tag_d['r1'].append((detail_tag, tag_d['r2'][0][1]), (ref_tag, tag_d['r2'][1][1]))
                 tag_d['r2'].append((detail_tag, tag_d['r1'][0][1]), (ref_tag, tag_d['r1'][1][1]))
             elif len(tag_d) == 1:
-                # Only one of the mates mapped, so we fill the MA tag
-                # of the mate that didn't get tagged
+                # Only one of the mates mapped, so we fill the
+                # mate with its mate tag
                 if 'r1' in tag_d:
                     tag_d['r2'] = [(detail_tag, tag_d['r1'][0][1]), (ref_tag, tag_d['r1'][1][1])]
                 else:
@@ -115,10 +115,11 @@ class SamAnnotator(object):
         self.output.close()
 
 def parse_args():
-    p = argparse.ArgumentParser(description="Tag reads in an alignment file based on other alignment files")
+    p = argparse.ArgumentParser(description="Tag reads in an alignment file based on other alignment files",
+                                formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     p.add_argument('-t', '--tag_file', help="Tag reads in this file", required=True)
-    p.add_argument('-ps', '--tag_prefix_self', help="Use this letter as prefix (default is 'A') for the same read", default='A')
-    p.add_argument('-pm', '--tag_prefix_mate', help="Use this letter as prefix (default is 'A') for the mate read", default='M')
+    p.add_argument('-ps', '--tag_prefix_self', help="Use this letter as prefix for the same read", default='A')
+    p.add_argument('-pm', '--tag_prefix_mate', help="Use this letter as prefix for the mate read", default='M')
     p.add_argument('-a', '--annotate_with', help="Tag reads in readfile if reads are aligned in these files", required=True)
     p.add_argument('-o', '--output_file', help="Write bam file to this path", required=True)
     return p.parse_args()
