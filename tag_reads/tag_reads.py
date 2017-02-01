@@ -120,7 +120,8 @@ class SamAnnotator(object):
         for read in self.annotate_file:
             for samtag in self.samtags:
                 annotated_tag = samtag.get_tag(read)
-                read.tags = annotated_tag + read.tags
+                if annotated_tag:
+                    read.tags = annotated_tag + read.tags
             self.output.write(read)
         self.output.close()
 
