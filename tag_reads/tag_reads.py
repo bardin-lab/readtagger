@@ -29,11 +29,11 @@ class SamTagProcessor(object):
         """
         tags = dict(ref=self.source_alignment.get_reference_name(r.tid),
                     pos=r.reference_start,
-                    md=r.get_tag('MD'),
+                    cigar=r.cigarstring,
                     sense='AS' if r.is_reverse else 'S')
-        detail_tag_value = "R:{ref},POS:{pos},MD:{md},S:{sense}".format(**tags)
+        detail_tag_value = "R:{ref},POS:{pos},CIGAR:{cigar},S:{sense}".format(**tags)
         ref_tag_value = tags['ref']
-        detail_tag = "%sA" % self.tag_prefix_self
+        detail_tag = "%sD" % self.tag_prefix_self
         ref_tag = "%sR" % self.tag_prefix_self
         return [(detail_tag, detail_tag_value), (ref_tag, ref_tag_value)]
 
@@ -57,16 +57,15 @@ class SamTagProcessor(object):
         return tag_d
 
     def add_mate(self):
-        detail_tag = "%sA" % self.tag_prefix_mate
+        detail_tag = "%sD" % self.tag_prefix_mate
         ref_tag = "%sR" % self.tag_prefix_mate
         for qname, tag_d in six.iteritems(self.result):
             if len(tag_d) == 2:
                 # Both mates aligned, add mate tag
-                tag_d['r1'].append((detail_tag, tag_d['r2'][0][1]), (ref_tag, tag_d['r2'][1][1]))
-                tag_d['r2'].append((detail_tag, tag_d['r1'][0][1]), (ref_tag, tag_d['r1'][1][1]))
+                tag_d['r1'].extend([(detail_tag, tag_d['r2'][0][1]), (ref_tag, tag_d['r2'][1][1])])
+                tag_d['r2'].extend([(detail_tag, tag_d['r1'][0][1]), (ref_tag, tag_d['r1'][1][1])])
             elif len(tag_d) == 1:
-                # Only one of the mates mapped, so we fill the
-                # mate with its mate tag
+                # Only one of the mates mapped, so we fill the mate with its mate tag
                 if 'r1' in tag_d:
                     tag_d['r2'] = [(detail_tag, tag_d['r1'][0][1]), (ref_tag, tag_d['r1'][1][1])]
                 else:
@@ -94,13 +93,16 @@ class SamAnnotator(object):
         Produces a new alignment file at output_path.
         :param annotate_file: 'Path to bam/sam file'
         :type annotate_file: str
-        :param samtags: SamTagProcessor instance
-        :type samtags: SamTagProcessor
+        :param samtags: SamTagProcessor instance or list of SamTagProcessor instances
+        :type samtags: SamTagProcessor or List[SamTagProcessor]
         """
         self.annotate_file = pysam.AlignmentFile(annotate_file)
         self.output = pysam.AlignmentFile(output_path, 'wb', template=self.annotate_file)
         self.samtags = samtags
-        self.process()
+        if isinstance(self.samtags, list):
+            self.process_samtag_list()
+        else:
+            self.process()
 
     def process(self):
         """
@@ -114,19 +116,60 @@ class SamAnnotator(object):
             self.output.write(read)
         self.output.close()
 
+    def process_samtag_list(self):
+        for read in self.annotate_file:
+            for samtag in self.samtags:
+                annotated_tag = samtag.get_tag(read)
+                read.tags = annotated_tag + read.tags
+            self.output.write(read)
+        self.output.close()
+
+
+def parse_file_tags(filetags):
+    """
+    :param filetags: string with filepath.
+                     optionally appended by the first letter that should be used for read and mate
+    :return: annotate_with, tag_prefix, tag_prefix_mate
+
+    >>> filetags = ['file_a:A:B', 'file_b:C:D', 'file_c']
+    >>> annotate_with, tag_prefix, tag_prefix_mate = parse_file_tags(filetags)
+    >>> annotate_with == ['file_a', 'file_b', 'file_c'] and tag_prefix == ['A', 'C', 'R'] and tag_prefix_mate == ['B', 'D', 'M']
+    True
+    >>>
+    """
+    annotate_with = []
+    tag_prefix = []
+    tag_prefix_mate = []
+    for filetag in filetags:
+        if ':' in filetag:
+            filepath, tag, tag_mate = filetag.split(':')
+            annotate_with.append(filepath)
+            tag_prefix.append(tag.upper())
+            tag_prefix_mate.append(tag_mate.upper())
+        else:
+            annotate_with.append(filetag)
+            tag_prefix.append('R')  # Default is R for read, M for mate
+            tag_prefix_mate.append('M')
+    return annotate_with, tag_prefix, tag_prefix_mate
+
+
+
 def parse_args():
     p = argparse.ArgumentParser(description="Tag reads in an alignment file based on other alignment files",
                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    p.add_argument('-t', '--tag_file', help="Tag reads in this file", required=True)
-    p.add_argument('-ps', '--tag_prefix_self', help="Use this letter as prefix for the same read", default='A')
-    p.add_argument('-pm', '--tag_prefix_mate', help="Use this letter as prefix for the mate read", default='M')
-    p.add_argument('-a', '--annotate_with', help="Tag reads in readfile if reads are aligned in these files", required=True)
+    p.add_argument('-t', '--tag_file', help="Tag reads in this file.", required=True)
+    p.add_argument('-a', '--annotate_with', help="Tag reads in readfile if reads are aligned in these files."
+                                                 "Append `:A:B` to tag first letter of tag describing read as A, "
+                                                 "and first letter of tag describing the mate as B",
+                   nargs = "+",
+                   required=True)
     p.add_argument('-o', '--output_file', help="Write bam file to this path", required=True)
     return p.parse_args()
 
 def main():
     args = parse_args()
-    samtags = SamTagProcessor(args.annotate_with, tag_prefix_self=args.tag_prefix_self, tag_prefix_mate=args.tag_prefix_mate)
+    files_tags = zip(*parse_file_tags(args.annotate_with))
+    samtags = [SamTagProcessor(filepath, tag_prefix_self=tag, tag_prefix_mate=tag_mate) for (filepath, tag, tag_mate) in files_tags ]
     SamAnnotator(annotate_file=args.tag_file, samtags=samtags, output_path=args.output_file)
 
 if __name__ == "__main__":
