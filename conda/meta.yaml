@@ -1,17 +1,17 @@
 package:
   name: tag_reads
-  version: "0.1.0"
+  version: "0.1.2"
 
 source:
-  fn: tag_reads-0.1.0.tar.gz
-  url: https://pypi.python.org/packages/2f/5b/62c084707abff1c7dbedd2a900166b4a67b68283300877b99e0f9bd4bd5b/tag_reads-0.1.0.tar.gz
-  md5: 5fb5b59f756693aaac9090a0952e2bf3
+  fn: tag_reads-0.1.2.tar.gz
+  url: https://pypi.python.org/packages/43/f6/6e0d0e006f8d71d7e5ec1c12fcad6b8e22343f0c835889270ce522b71f98/tag_reads-0.1.2.tar.gz
+  md5: cc5d8370cab883b232d5bd7b77601832
 
 build:
   conda_preserve_egg_dir: False
   entry_points:
     - tag_reads=tag_reads.tag_reads:main
-  number: 0
+  number: 1
 
 requirements:
   build:

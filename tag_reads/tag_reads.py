@@ -142,8 +142,8 @@ def parse_file_tags(filetags):
     tag_prefix = []
     tag_prefix_mate = []
     for filetag in filetags:
-        if six.PY3:
-            filetag = filetag.decode()  # py3 bytestring to unicode
+        #if six.PY3 and not isinstance(filetag, str):
+        #    filetag = filetag.decode()  # py3 bytestring to unicode
         if ':' in filetag:
             filepath, tag, tag_mate = filetag.split(':')
             annotate_with.append(filepath)

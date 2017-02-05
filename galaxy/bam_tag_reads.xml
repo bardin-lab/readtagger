@@ -1,10 +1,10 @@
-<tool id="bam_tag_reads" name="Tag alignment files" version="0.1.0">
+<tool id="bam_tag_reads" name="Tag alignment files" version="0.1.2">
     <description>from multiple bam files</description>
     <macros>
         <import>macros.xml</import>
     </macros>
     <requirements>
-        <requirement type="package" version="0.1.0">tag_reads</requirement>
+        <requirement type="package" version="0.1.2">tag_reads</requirement>
     </requirements>
     <command detect_errors="aggressive"><![CDATA[
         tag_reads -t '$tag_file' -a
@@ -14,21 +14,31 @@
         -o '$tagged_file'
     ]]></command>
     <inputs>
-        <param argument="--tag_file" type="data" format="bam" />
+        <param name="tag_file" argument="--tag_file" type="data" format="bam"/>
         <repeat name="alignment_series" title="Alignments">
-            <param argument="--annotate_with" type="data" format="bam" />
+            <param name="annotate_with" argument="--annotate_with" type="data" format="bam"/>
             <param type="select" name="r_tag" label="First letter to use for read tag" value="A">
                 <expand macro="tag_options"/>
             </param>
             <param type="select" name="m_tag" label="First letter to use for mate tag" value="B">
-                 <expand macro="tag_options"/>
+                <expand macro="tag_options"/>
             </param>
         </repeat>
-
     </inputs>
     <outputs>
-        <data name="tagged_file" format_source="tag_file" />
+        <data name="tagged_file" format="bam"/>
     </outputs>
+    <tests>
+        <test>
+            <param name="tag_file" value="dm6_a_pasteurianus.bam" ftype="bam"/>
+            <repeat name="alignment_series">
+                <param name="annotate_with" value="dm6_a_pasteurianus.bam" ftype="bam"/>
+                <param name="r_tag" value="A"/>
+                <param name="m_tag" value="B"/>
+            </repeat>
+            <output name="tagged_file" file="out.bam" ftype="bam"/>
+        </test>
+    </tests>
     <help><![CDATA[
         usage: tag_reads [-h] -t TAG_FILE -a ANNOTATE_WITH [ANNOTATE_WITH ...] -o
                  OUTPUT_FILE
