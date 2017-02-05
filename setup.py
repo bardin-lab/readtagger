@@ -12,7 +12,7 @@ ENTRY_POINTS = '''
 
 setup(
     name='tag_reads',
-    version='0.1.0',
+    version='0.1.1',
     packages=['tag_reads'],
     install_requires=requirements,
     entry_points=ENTRY_POINTS,
