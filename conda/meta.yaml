@@ -1,0 +1,41 @@
+package:
+  name: tag_reads
+  version: "0.1.0"
+
+source:
+  fn: tag_reads-0.1.0.tar.gz
+  url: https://pypi.python.org/packages/2f/5b/62c084707abff1c7dbedd2a900166b4a67b68283300877b99e0f9bd4bd5b/tag_reads-0.1.0.tar.gz
+  md5: 5fb5b59f756693aaac9090a0952e2bf3
+
+build:
+  conda_preserve_egg_dir: False
+  entry_points:
+    - tag_reads=tag_reads.tag_reads:main
+  number: 0
+
+requirements:
+  build:
+    - python
+    - setuptools
+    - pysam
+    - six
+
+  run:
+    - python
+    - setuptools
+    - pysam
+    - six
+
+test:
+  # Python imports
+  imports:
+    - tag_reads
+
+  commands:
+    - tag_reads --help
+
+about:
+  home: https://github.com/bardin-lab/tag_reads
+  license: MIT
+  summary: 'Tags reads in BAM files based on alignments in additional BAM files.'
+  license_family: MIT
