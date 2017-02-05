@@ -1,0 +1,13 @@
+categories:
+- SAM
+- Variant Analysis
+description: Tags reads in a BAM file based on other BAM files.
+long_description: |
+  Tags reads in a BAM file based on other BAM files.
+  Useful when inspecting reads that may originate from different sources
+  with different degrees of uncertainty.
+name: bam_tag_reads
+owner: mvdbeek
+homepage_url: https://github.com/bardin-lab/tag_reads
+remote_repository_url: https://github.com/bardin-lab/tag_reads/tree/master/galaxy
+type: unrestricted
