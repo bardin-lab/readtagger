@@ -1,0 +1,51 @@
+<tool id="bam_tag_reads" name="Tag alignment files" version="0.1.0">
+    <description>from multiple bam files</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
+    <requirements>
+        <requirement type="package" version="0.1.0">tag_reads</requirement>
+    </requirements>
+    <command detect_errors="aggressive"><![CDATA[
+        tag_reads -t '$tag_file' -a
+        #for $element in $alignment_series
+            '$element.annotate_with':$element.r_tag:$element.m_tag
+        #end for
+        -o '$tagged_file'
+    ]]></command>
+    <inputs>
+        <param argument="--tag_file" type="data" format="bam" />
+        <repeat name="alignment_series" title="Alignments">
+            <param argument="--annotate_with" type="data" format="bam" />
+            <param type="select" name="r_tag" label="First letter to use for read tag" value="A">
+                <expand macro="tag_options"/>
+            </param>
+            <param type="select" name="m_tag" label="First letter to use for mate tag" value="B">
+                 <expand macro="tag_options"/>
+            </param>
+        </repeat>
+
+    </inputs>
+    <outputs>
+        <data name="output1" format_source="tagged_file" />
+    </outputs>
+    <help><![CDATA[
+        usage: tag_reads [-h] -t TAG_FILE -a ANNOTATE_WITH [ANNOTATE_WITH ...] -o
+                 OUTPUT_FILE
+
+Tag reads in an alignment file based on other alignment files
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -t TAG_FILE, --tag_file TAG_FILE
+                        Tag reads in this file. (default: None)
+  -a ANNOTATE_WITH [ANNOTATE_WITH ...], --annotate_with ANNOTATE_WITH [ANNOTATE_WITH ...]
+                        Tag reads in readfile if reads are aligned in these
+                        files.Append `:A:B` to tag first letter of tag
+                        describing read as A, and first letter of tag
+                        describing the mate as B (default: None)
+  -o OUTPUT_FILE, --output_file OUTPUT_FILE
+                        Write bam file to this path (default: None)
+
+    ]]></help>
+</tool>
