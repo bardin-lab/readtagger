@@ -1,6 +1,6 @@
 import argparse
 import pysam
-from tag_reads import SamAnnotator
+from .tag_reads import SamAnnotator
 
 
 def main():
@@ -16,6 +16,7 @@ def parse_args():
     parser.add_argument('-i', '--input_path', help="Input alignment file to manipulate", required=True)
     parser.add_argument('-o', '--output_path', help="Output alignment file", required=True)
     parser.parse_args()
+
 
 if __name__ == '__main__':
     main()

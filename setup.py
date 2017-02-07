@@ -8,7 +8,7 @@ requirements = ['pysam','six']
 ENTRY_POINTS = '''
         [console_scripts]
         tag_reads=tag_reads.tag_reads:main
-        allow_dovetailing = tag_reads.allow_dovetailing:main
+        allow_dovetailing=tag_reads.allow_dovetailing:main
 '''
 
 setup(
