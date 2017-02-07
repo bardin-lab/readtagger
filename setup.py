@@ -8,11 +8,12 @@ requirements = ['pysam','six']
 ENTRY_POINTS = '''
         [console_scripts]
         tag_reads=tag_reads.tag_reads:main
+        allow_dovetailing = tag_reads.allow_dovetailing:main
 '''
 
 setup(
     name='tag_reads',
-    version='0.1.2',
+    version='0.1.3',
     packages=['tag_reads'],
     install_requires=requirements,
     entry_points=ENTRY_POINTS,
