@@ -4,7 +4,7 @@
         <import>macros.xml</import>
     </macros>
     <requirements>
-        <requirement type="package" version="0.1.2">tag_reads</requirement>
+        <requirement type="package" version="0.1.3">tag_reads</requirement>
     </requirements>
     <command detect_errors="aggressive"><![CDATA[
         tag_reads -t '$tag_file' -a
