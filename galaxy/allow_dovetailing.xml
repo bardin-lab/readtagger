@@ -1,0 +1,34 @@
+<tool id="allow_dovetailing" name="Allow dovetailing" version="0.1.3">
+    <description>modifies proper_pair flag in bam files</description>
+    <requirements>
+        <requirement type="package" version="0.1.3">tag_reads</requirement>
+    </requirements>
+    <command detect_errors="aggressive"><![CDATA[
+        allow_dovetailing -i '$input' -o '$output'
+    ]]></command>
+    <inputs>
+        <param name="input" argument="--input_path" type="data" format="bam"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="bam"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="input" value="dm6_a_pasteurianus.bam" ftype="bam"/>
+            <output name="output" file="dm6_a_pasteurianus.bam" ftype="bam"/>
+        </test>
+    </tests>
+    <help><![CDATA[
+::
+usage: allow_dovetailing [-h] -i INPUT_PATH -o OUTPUT_PATH
+
+Allow dovetailing.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -i INPUT_PATH, --input_path INPUT_PATH
+                        Input alignment file to manipulate
+  -o OUTPUT_PATH, --output_path OUTPUT_PATH
+                        Output alignment file
+    ]]></help>
+</tool>
