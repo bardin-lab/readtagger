@@ -87,43 +87,67 @@ class SamTagProcessor(object):
             return None
 
 class SamAnnotator(object):
-    def __init__(self, annotate_file, samtags, output_path="test.bam"):
+    def __init__(self, annotate_file, samtags, output_path="test.bam", allow_dovetailing=False):
         """
-        Compare `readtags` with `annotate_file`.
+        Compare `samtags` with `annotate_file`.
         Produces a new alignment file at output_path.
         :param annotate_file: 'Path to bam/sam file'
         :type annotate_file: str
-        :param samtags: SamTagProcessor instance or list of SamTagProcessor instances
-        :type samtags: SamTagProcessor or List[SamTagProcessor]
+        :param samtags: list of SamTagProcessor instances
+        :type samtags: List[SamTagProcessor]
+        :param allow_dovetailing: Controls whether or not dovetailing should be allowed
+        :type allow_dovetailing: bool
         """
         self.annotate_file = pysam.AlignmentFile(annotate_file)
         self.output = pysam.AlignmentFile(output_path, 'wb', template=self.annotate_file)
         self.samtags = samtags
-        if isinstance(self.samtags, list):
-            self.process_samtag_list()
-        else:
-            self.process()
+        self.process(allow_dovetailing)
 
-    def process(self):
-        """
-        Walk along reads in self.annotate_file, add tags if read is stored in self.samtags
-        and write out alignment
-        """
-        for read in self.annotate_file:
-            annotated_tag = self.samtags.get_tag(read)
-            if annotated_tag:
-                read.tags = annotated_tag + read.tags
-            self.output.write(read)
-        self.output.close()
-
-    def process_samtag_list(self):
+    def process(self, allow_dovetailing=False):
+        if allow_dovetailing:
+            max_proper_size = self.get_max_proper_pair_size(self.annotate_file)
         for read in self.annotate_file:
             for samtag in self.samtags:
                 annotated_tag = samtag.get_tag(read)
                 if annotated_tag:
                     read.tags = annotated_tag + read.tags
+            if allow_dovetailing:
+                read = self.allow_dovetailing(read, max_proper_size)
             self.output.write(read)
         self.output.close()
+
+    @classmethod
+    def get_max_proper_pair_size(cls, alignment_file):
+        """
+        iterate over the first 1000 properly paired records in alignment_file
+        and get the maximum valid isize for a proper pair.
+        :param alignment_file: pysam.AlignmentFile
+        :type alignment_file: pysam.AlignmentFile
+        :rtype int
+        """
+        isize = []
+        for r in alignment_file:
+            if r.is_proper_pair and not r.is_secondary and not r.is_supplementary:
+                isize.append(abs(r.isize))
+            if len(isize) == 1000:
+                alignment_file.reset()
+                return max(isize)
+        alignment_file.reset()
+        return max(isize)
+
+    @classmethod
+    def allow_dovetailing(cls, read, max_proper_size=351):
+        """
+        Manipulates is_proper_pair tag to allow dovetailing of reads.
+        Precondition is read and mate have the same reference id, are within the maximum proper pair distance
+        and are either in FR or RF orientation.
+        :param read: aligned segment of pysam.AlignmentFile
+        :type read: pysam.AlignedSegment
+        :rtype pysam.AlignedSegment
+        """
+        if not read.is_proper_pair and not read.is_reverse == read.mate_is_reverse and read.reference_id == read.mrnm and abs(read.isize) <= max_proper_size:
+            read.is_proper_pair = True
+        return read
 
 
 def parse_file_tags(filetags):
@@ -142,8 +166,6 @@ def parse_file_tags(filetags):
     tag_prefix = []
     tag_prefix_mate = []
     for filetag in filetags:
-        #if six.PY3 and not isinstance(filetag, str):
-        #    filetag = filetag.decode()  # py3 bytestring to unicode
         if ':' in filetag:
             filepath, tag, tag_mate = filetag.split(':')
             annotate_with.append(filepath)
@@ -161,12 +183,16 @@ def parse_args():
     p = argparse.ArgumentParser(description="Tag reads in an alignment file based on other alignment files",
                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     p.add_argument('-t', '--tag_file', help="Tag reads in this file.", required=True)
-    p.add_argument('-a', '--annotate_with', help="Tag reads in readfile if reads are aligned in these files."
-                                                 "Append `:A:B` to tag first letter of tag describing read as A, "
-                                                 "and first letter of tag describing the mate as B",
+    p.add_argument('-a', '--annotate_with',
+                   help="Tag reads in readfile if reads are aligned in these files."
+                        "Append `:A:B` to tag first letter of tag describing read as A, "
+                        "and first letter of tag describing the mate as B",
                    nargs = "+",
                    required=True)
     p.add_argument('-o', '--output_file', help="Write bam file to this path", required=True)
+    p.add_argument('-d', '--allow_dovetailing',
+                   action='store_true',
+                   help="Sets the proper pair flag (0x0002) to true if reads dovetail [reads reach into or surpass the mate sequence].")
     return p.parse_args()
 
 def main():
