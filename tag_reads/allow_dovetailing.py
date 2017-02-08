@@ -15,8 +15,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Allow dovetailing.")
     parser.add_argument('-i', '--input_path', help="Input alignment file to manipulate", required=True)
     parser.add_argument('-o', '--output_path', help="Output alignment file", required=True)
-    parser.parse_args()
-
+    args = parser.parse_args()
+    return args
 
 if __name__ == '__main__':
     main()

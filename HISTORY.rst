@@ -6,6 +6,11 @@ History
 .. to_doc
 
 ---------------------
+0.1.3.2 (2017-02-08)
+---------------------
+* Fix dovetailing script
+
+---------------------
 0.1.3 (2017-02-07)
 ---------------------
 * Add option to allow dovetailing in alignment files when tagging reads

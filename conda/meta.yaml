@@ -8,10 +8,11 @@ source:
   md5: 2984186052d6dceb0583bb6be506016f
 
 build:
-  conda_preserve_egg_dir: False
+  conda_preserve_egg_dir: True
   entry_points:
     - tag_reads=tag_reads.tag_reads:main
-  number: 0
+    - tag_reads=tag_reads.allow_dovetailing:main
+  number: 1
 
 requirements:
   build:
@@ -33,6 +34,7 @@ test:
 
   commands:
     - tag_reads --help
+    - allow_dovetailing --help
 
 about:
   home: https://github.com/bardin-lab/tag_reads
