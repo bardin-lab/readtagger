@@ -1,9 +1,17 @@
 import argparse
+import parse
 import pysam
 import six
 
 
+TAG_TEMPLATE = "R:{ref},POS:{pos:d},QSTART:{qstart:d},QEND:{qend:d},CIGAR:{cigar},S:{sense},MQ:{mq:d}"
+TAG_TEMPLATE_COMPILED = parse.compile(TAG_TEMPLATE)
+
+
 class SamTagProcessor(object):
+
+    tag_template = TAG_TEMPLATE
+
     def __init__(self, source_path, tag_prefix_self, tag_prefix_mate, tag_mate=True):
         self.tag_mate = tag_mate
         self.tag_prefix_self = tag_prefix_self
@@ -30,8 +38,11 @@ class SamTagProcessor(object):
         tags = dict(ref=self.source_alignment.get_reference_name(r.tid),
                     pos=r.reference_start,
                     cigar=r.cigarstring,
-                    sense='AS' if r.is_reverse else 'S')
-        detail_tag_value = "R:{ref},POS:{pos},CIGAR:{cigar},S:{sense}".format(**tags)
+                    sense='AS' if r.is_reverse else 'S',
+                    mq=r.mapping_quality,
+                    qstart=r.qstart,
+                    qend=r.qend)
+        detail_tag_value = self.tag_template.format(**tags)
         ref_tag_value = tags['ref']
         detail_tag = "%sD" % self.tag_prefix_self
         ref_tag = "%sR" % self.tag_prefix_self
@@ -74,7 +85,7 @@ class SamTagProcessor(object):
                 continue
             self.result[qname] = tag_d
 
-    def get_tag(self, other_r):
+    def get_other_tag(self, other_r):
         """
         convinience method that takes a read object `other_r` and fetches the
         annotation tag that has been processed in the instance
@@ -87,6 +98,9 @@ class SamTagProcessor(object):
             return None
 
 class SamAnnotator(object):
+
+    tag_template_compiled = TAG_TEMPLATE_COMPILED
+
     def __init__(self, annotate_file, samtags, output_path="test.bam", allow_dovetailing=False):
         """
         Compare `samtags` with `annotate_file`.
@@ -108,7 +122,7 @@ class SamAnnotator(object):
             max_proper_size = self.get_max_proper_pair_size(self.annotate_file)
         for read in self.annotate_file:
             for samtag in self.samtags:
-                annotated_tag = samtag.get_tag(read)
+                annotated_tag = samtag.get_other_tag(read)
                 if annotated_tag:
                     read.tags = annotated_tag + read.tags
             if allow_dovetailing:
@@ -148,6 +162,13 @@ class SamAnnotator(object):
         if not read.is_proper_pair and not read.is_reverse == read.mate_is_reverse and read.reference_id == read.mrnm and abs(read.isize) <= max_proper_size:
             read.is_proper_pair = True
         return read
+
+    @ classmethod
+    def compare_tags(cls, read, tag_prefix, tag_prefix_mate):
+        if read.has_tag(tag_prefix):
+            tag = cls.tag_template_compiled.parse(read.get_tag(tag_prefix))
+        if read.has_tag(tag_prefix_mate):
+            mate_tag = cls.tag_template_compiled.parse(read.get_tag(tag_prefix))
 
 
 def parse_file_tags(filetags):

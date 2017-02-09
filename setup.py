@@ -3,7 +3,7 @@ try:
 except ImportError:
     from distutils.core import setup
 
-requirements = ['pysam','six']
+requirements = ['parse','pysam','six']
 
 ENTRY_POINTS = '''
         [console_scripts]
