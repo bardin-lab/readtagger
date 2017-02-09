@@ -16,6 +16,10 @@ class SamTagProcessor(object):
         self.tag_mate = tag_mate
         self.tag_prefix_self = tag_prefix_self
         self.tag_prefix_mate = tag_prefix_mate
+        self.detail_tag_self = tag_prefix_self + 'D'
+        self.detail_tag_mate = tag_prefix_mate + 'D'
+        self.reference_tag_self = tag_prefix_self + 'R'
+        self.reference_tag_mate = tag_prefix_mate + 'R'
         self.source_alignment = pysam.AlignmentFile(source_path)
         self.result = self.process_source()
         if self.tag_mate:
@@ -35,18 +39,14 @@ class SamTagProcessor(object):
         'MA' stands for mate alignment.
         :param r: AlignedSegment
         """
-        tags = dict(ref=self.source_alignment.get_reference_name(r.tid),
-                    pos=r.reference_start,
-                    cigar=r.cigarstring,
-                    sense='AS' if r.is_reverse else 'S',
-                    mq=r.mapping_quality,
-                    qstart=r.qstart,
-                    qend=r.qend)
-        detail_tag_value = self.tag_template.format(**tags)
-        ref_tag_value = tags['ref']
-        detail_tag = "%sD" % self.tag_prefix_self
-        ref_tag = "%sR" % self.tag_prefix_self
-        return [(detail_tag, detail_tag_value), (ref_tag, ref_tag_value)]
+        tags = (self.source_alignment.get_reference_name(r.tid),
+                r.reference_start,
+                r.cigarstring,
+                'AS' if r.is_reverse else 'S',
+                r.mapping_quality,
+                r.qstart,
+                r.qend)
+        return tags
 
     def is_taggable(self, r):
         """
@@ -62,28 +62,39 @@ class SamTagProcessor(object):
             if self.is_taggable(r):
                 fw_rev = 'r1' if r.is_read1 else 'r2'
                 if r.query_name in tag_d:
-                    tag_d[r.query_name][fw_rev] = self.compute_tag(r)
+                    tag_d[r.query_name][fw_rev] = {'s': self.compute_tag(r)}
                 else:
-                    tag_d[r.query_name] = {fw_rev: self.compute_tag(r)}
+                    tag_d[r.query_name] = {fw_rev: {'s': self.compute_tag(r)}}
         return tag_d
 
     def add_mate(self):
-        detail_tag = "%sD" % self.tag_prefix_mate
-        ref_tag = "%sR" % self.tag_prefix_mate
         for qname, tag_d in six.iteritems(self.result):
             if len(tag_d) == 2:
                 # Both mates aligned, add mate tag
-                tag_d['r1'].extend([(detail_tag, tag_d['r2'][0][1]), (ref_tag, tag_d['r2'][1][1])])
-                tag_d['r2'].extend([(detail_tag, tag_d['r1'][0][1]), (ref_tag, tag_d['r1'][1][1])])
+                tag_d['r1']['m'] = tag_d['r2']['s']
+                tag_d['r2']['m'] = tag_d['r1']['s']
             elif len(tag_d) == 1:
                 # Only one of the mates mapped, so we fill the mate with its mate tag
                 if 'r1' in tag_d:
-                    tag_d['r2'] = [(detail_tag, tag_d['r1'][0][1]), (ref_tag, tag_d['r1'][1][1])]
+                    tag_d['r2'] = {'m': tag_d['r1']}
                 else:
-                    tag_d['r1'] = [(detail_tag, tag_d['r2'][0][1]), (ref_tag, tag_d['r2'][1][1])]
+                    tag_d['r1'] = {'m': tag_d['r2']}
             else:
                 continue
             self.result[qname] = tag_d
+
+    def format_tag_value(self, t):
+        "R:{ref},POS:{pos:d},QSTART:{qstart:d},QEND:{qend:d},CIGAR:{cigar},S:{sense},MQ:{mq:d}"
+        tags = dict(ref=t[0], pos=t[1], cigar=t[2], sense=t[3], mq=t[4], qstart=t[5], qend=t[6])
+        return self.tag_template.format(**tags)
+
+    def format_tags(self, tags):
+        formatted_tags = []
+        if 'm' in tags:
+            formatted_tags.append((self.detail_tag_mate, self.format_tag_value(tags['m']), (self.reference_tag_mate, tags['m'][0])))
+        if 's' in tags:
+            formatted_tags.append(
+                (self.detail_tag_self, self.format_tag_value(tags['s']), (self.reference_tag_self, tags['s'][0])))
 
     def get_other_tag(self, other_r):
         """
@@ -93,7 +104,7 @@ class SamTagProcessor(object):
         other_r_reverse = 'r1' if other_r.is_read1 else 'r2'
         tagged_mates = self.result.get(other_r.query_name)
         if tagged_mates:
-            return tagged_mates[other_r_reverse]
+            return self.format_tags(tagged_mates[other_r_reverse])
         else:
             return None
 
