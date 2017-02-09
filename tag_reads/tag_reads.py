@@ -130,6 +130,8 @@ class SamAnnotator(object):
     def process(self, allow_dovetailing=False):
         if allow_dovetailing:
             max_proper_size = self.get_max_proper_pair_size(self.annotate_file)
+            if not max_proper_size:
+                allow_dovetailing = False
         for read in self.annotate_file:
             for samtag in self.samtags:
                 annotated_tag = samtag.get_other_tag(read)
@@ -157,7 +159,10 @@ class SamAnnotator(object):
                 alignment_file.reset()
                 return max(isize)
         alignment_file.reset()
-        return max(isize)
+        if isize:
+            return max(isize)
+        else:
+            return None
 
     @classmethod
     def allow_dovetailing(cls, read, max_proper_size=351):
@@ -173,7 +178,7 @@ class SamAnnotator(object):
             read.is_proper_pair = True
         return read
 
-    @ classmethod
+    @classmethod
     def compare_tags(cls, read, tag_prefix, tag_prefix_mate):
         if read.has_tag(tag_prefix):
             tag = cls.tag_template_compiled.parse(read.get_tag(tag_prefix))
@@ -204,8 +209,8 @@ def parse_file_tags(filetags):
             tag_prefix_mate.append(tag_mate.upper())
         else:
             annotate_with.append(filetag)
-            tag_prefix.append('R')  # Default is R for read, M for mate
-            tag_prefix_mate.append('M')
+            tag_prefix.append('A')  # Default is R for read, M for mate
+            tag_prefix_mate.append('B')
     return annotate_with, tag_prefix, tag_prefix_mate
 
 
@@ -230,7 +235,7 @@ def main():
     args = parse_args()
     files_tags = zip(*parse_file_tags(args.annotate_with))
     samtags = [SamTagProcessor(filepath, tag_prefix_self=tag, tag_prefix_mate=tag_mate) for (filepath, tag, tag_mate) in files_tags ]
-    SamAnnotator(annotate_file=args.tag_file, samtags=samtags, output_path=args.output_file)
+    SamAnnotator(annotate_file=args.tag_file, samtags=samtags, output_path=args.output_file, allow_dovetailing=args.allow_dovetailing)
 
 if __name__ == "__main__":
     main()
