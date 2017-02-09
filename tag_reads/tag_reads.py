@@ -76,17 +76,16 @@ class SamTagProcessor(object):
             elif len(tag_d) == 1:
                 # Only one of the mates mapped, so we fill the mate with its mate tag
                 if 'r1' in tag_d:
-                    tag_d['r2'] = {'m': tag_d['r1']}
+                    tag_d['r2'] = {'m': tag_d['r1']['s']}
                 else:
-                    tag_d['r1'] = {'m': tag_d['r2']}
+                    tag_d['r1'] = {'m': tag_d['r2']['s']}
             else:
                 continue
             self.result[qname] = tag_d
 
     def format_tag_value(self, t):
         "R:{ref},POS:{pos:d},QSTART:{qstart:d},QEND:{qend:d},CIGAR:{cigar},S:{sense},MQ:{mq:d}"
-        tags = dict(ref=t[0], pos=t[1], cigar=t[2], sense=t[3], mq=t[4], qstart=t[5], qend=t[6])
-        return self.tag_template.format(**tags)
+        return self.tag_template.format(ref=t[0], pos=t[1], cigar=t[2], sense=t[3], mq=t[4], qstart=t[5], qend=t[6])
 
     def format_tags(self, tags):
         formatted_tags = []
