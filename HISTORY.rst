@@ -6,6 +6,13 @@ History
 .. to_doc
 
 ---------------------
+0.1.4 (2017-02-10)
+---------------------
+* Add option (-k) to keep alternative tags if they do not
+  explain the softclipped read any better.
+  Default is to discard them.
+
+  ---------------------
 0.1.3.2 (2017-02-08)
 ---------------------
 * Fix dovetailing script

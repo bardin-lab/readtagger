@@ -1,10 +1,10 @@
-<tool id="bam_tag_reads" name="Tag alignment files" version="0.1.3">
+<tool id="bam_tag_reads" name="Tag alignment files" version="0.1.4">
     <description>from multiple bam files</description>
     <macros>
         <import>macros.xml</import>
     </macros>
     <requirements>
-        <requirement type="package" version="0.1.3">tag_reads</requirement>
+        <requirement type="package" version="0.1.4">tag_reads</requirement>
     </requirements>
     <command detect_errors="aggressive"><![CDATA[
         tag_reads -t '$tag_file' -a
@@ -12,6 +12,7 @@
             '$element.annotate_with':$element.r_tag:$element.m_tag
         #end for
         $allow_dovetailing
+        $keep_suboptimal
         -o '$tagged_file'
     ]]></command>
     <inputs>
@@ -26,6 +27,7 @@
             </param>
         </repeat>
         <param argument="--allow_dovetailing" type="boolean" truevalue="-d" falsevalue="" label="Allow dovetailing" help="Check this to label reads as proper_pair even if the mates of a pair overlap each other"/>
+        <param argument="-k" name="keep_suboptimal" type="boolean" truevalue="-k" falsevalue="" label="Keep suboptimal alternative tags" help="Check this to also keep alternative tags that cannot explain the current read cigar"/>
     </inputs>
     <outputs>
         <data name="tagged_file" format="bam"/>

@@ -3,6 +3,8 @@ import parse
 import pysam
 import six
 
+from .cigar import alternative_alignment_cigar_is_better
+
 
 TAG_TEMPLATE = "R:{ref},POS:{pos:d},QSTART:{qstart:d},QEND:{qend:d},CIGAR:{cigar},S:{sense},MQ:{mq:d}"
 TAG_TEMPLATE_COMPILED = parse.compile(TAG_TEMPLATE)
@@ -84,20 +86,21 @@ class SamTagProcessor(object):
             self.result[qname] = tag_d
 
     def format_tag_value(self, t):
-        "R:{ref},POS:{pos:d},QSTART:{qstart:d},QEND:{qend:d},CIGAR:{cigar},S:{sense},MQ:{mq:d}"
         return self.tag_template.format(ref=t[0], pos=t[1], cigar=t[2], sense=t[3], mq=t[4], qstart=t[5], qend=t[6])
 
     def format_tags(self, tags):
         formatted_tags = []
         if 'm' in tags:
-            formatted_tags.append((self.detail_tag_mate, self.format_tag_value(tags['m']), (self.reference_tag_mate, tags['m'][0])))
+            formatted_tags.append((self.detail_tag_mate, self.format_tag_value(tags['m'])))
+            formatted_tags.append((self.reference_tag_mate, tags['m'][0]))
         if 's' in tags:
-            formatted_tags.append(
-                (self.detail_tag_self, self.format_tag_value(tags['s']), (self.reference_tag_self, tags['s'][0])))
+            formatted_tags.append((self.detail_tag_self, self.format_tag_value(tags['s'])))
+            formatted_tags.append((self.reference_tag_self, tags['s'][0]))
+        return formatted_tags
 
     def get_other_tag(self, other_r):
         """
-        convinience method that takes a read object `other_r` and fetches the
+        convenience method that takes a read object `other_r` and fetches the
         annotation tag that has been processed in the instance
         """
         other_r_reverse = 'r1' if other_r.is_read1 else 'r2'
@@ -111,7 +114,7 @@ class SamAnnotator(object):
 
     tag_template_compiled = TAG_TEMPLATE_COMPILED
 
-    def __init__(self, annotate_file, samtags, output_path="test.bam", allow_dovetailing=False):
+    def __init__(self, annotate_file, samtags, output_path="test.bam", allow_dovetailing=False, discard_bad_alt_tag=True):
         """
         Compare `samtags` with `annotate_file`.
         Produces a new alignment file at output_path.
@@ -125,9 +128,13 @@ class SamAnnotator(object):
         self.annotate_file = pysam.AlignmentFile(annotate_file)
         self.output = pysam.AlignmentFile(output_path, 'wb', template=self.annotate_file)
         self.samtags = samtags
-        self.process(allow_dovetailing)
+        self.detail_tag_self = self.samtags[0].detail_tag_self  # urgs ... probably bad design here :(.
+        self.detail_tag_mate = self.samtags[0].detail_tag_mate
+        self.reference_tag_self = self.samtags[0].reference_tag_self
+        self.reference_tag_mate = self.samtags[0].reference_tag_mate
+        self.process(allow_dovetailing, discard_bad_alt_tag)
 
-    def process(self, allow_dovetailing=False):
+    def process(self, allow_dovetailing=False, discard_bad_alt_tag=True):
         if allow_dovetailing:
             max_proper_size = self.get_max_proper_pair_size(self.annotate_file)
             if not max_proper_size:
@@ -137,10 +144,39 @@ class SamAnnotator(object):
                 annotated_tag = samtag.get_other_tag(read)
                 if annotated_tag:
                     read.tags = annotated_tag + read.tags
+                    if discard_bad_alt_tag:
+                        read = self.verify_alt_tag(read)
             if allow_dovetailing:
                 read = self.allow_dovetailing(read, max_proper_size)
             self.output.write(read)
         self.output.close()
+
+    def verify_alt_tag(self, read):
+        """
+        Take a read and verify that the alternative tags are really better
+        :param read: A pysam read
+        :type read: pysam.AlignedRead
+        :return: read
+        :type read: pysam.AlignedRead
+        """
+        # TODO: Make this available as a standalone function by explcitly passing in the tags to look at
+        tags_to_check = []
+        if read.has_tag(self.detail_tag_self):
+            tags_to_check.append((self.detail_tag_self, self.reference_tag_self, read.cigarstring))
+        if read.has_tag(self.detail_tag_mate) and read.has_tag('MC'):
+            mc_tag = read.get_tag('MC')
+            tags_to_check.append((self.detail_tag_mate, self.reference_tag_mate, mc_tag))
+        for (alt_tag, alt_r_tag, cigar) in tags_to_check:
+            tag = self.tag_template_compiled.parse(read.get_tag(alt_tag))
+            alt_is_reverse = True if tag['sense'] == 'AS' else False
+            keep = alternative_alignment_cigar_is_better(current_cigar=cigar,
+                                                         alternative_cigar=tag['cigar'],
+                                                         same_orientation=alt_is_reverse == read.is_reverse)
+            if not keep:
+                read.set_tag(tag=alt_tag, value=None)
+                read.set_tag(tag=alt_r_tag, value=None)
+        return read
+
 
     @classmethod
     def get_max_proper_pair_size(cls, alignment_file):
@@ -178,13 +214,6 @@ class SamAnnotator(object):
             read.is_proper_pair = True
         return read
 
-    @classmethod
-    def compare_tags(cls, read, tag_prefix, tag_prefix_mate):
-        if read.has_tag(tag_prefix):
-            tag = cls.tag_template_compiled.parse(read.get_tag(tag_prefix))
-        if read.has_tag(tag_prefix_mate):
-            mate_tag = cls.tag_template_compiled.parse(read.get_tag(tag_prefix))
-
 
 def parse_file_tags(filetags):
     """
@@ -209,7 +238,7 @@ def parse_file_tags(filetags):
             tag_prefix_mate.append(tag_mate.upper())
         else:
             annotate_with.append(filetag)
-            tag_prefix.append('A')  # Default is R for read, M for mate
+            tag_prefix.append('A')  # Default is A for read, B for mate
             tag_prefix_mate.append('B')
     return annotate_with, tag_prefix, tag_prefix_mate
 
@@ -229,13 +258,20 @@ def parse_args():
     p.add_argument('-d', '--allow_dovetailing',
                    action='store_true',
                    help="Sets the proper pair flag (0x0002) to true if reads dovetail [reads reach into or surpass the mate sequence].")
+    p.add_argument('-k', '--keep_suboptimal_alternate_tags', action='store_true',
+                   help="By default cigar strings of the alternative tags are compared and alternates that are not explaining the current cigar strings are discarded."
+                        "Use this option to keep the alternative tags (effectively restoring the behaviour of tag_reads < 0.1.4)")
     return p.parse_args()
 
 def main():
     args = parse_args()
     files_tags = zip(*parse_file_tags(args.annotate_with))
     samtags = [SamTagProcessor(filepath, tag_prefix_self=tag, tag_prefix_mate=tag_mate) for (filepath, tag, tag_mate) in files_tags ]
-    SamAnnotator(annotate_file=args.tag_file, samtags=samtags, output_path=args.output_file, allow_dovetailing=args.allow_dovetailing)
+    SamAnnotator(annotate_file=args.tag_file,
+                 samtags=samtags,
+                 output_path=args.output_file,
+                 allow_dovetailing=args.allow_dovetailing,
+                 discard_bad_alt_tag=not args.keep_suboptimal_alternate_tags)
 
 if __name__ == "__main__":
     main()
