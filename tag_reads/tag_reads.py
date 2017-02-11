@@ -159,6 +159,8 @@ class SamAnnotator(object):
         :return: read
         :type read: pysam.AlignedRead
         """
+        if read.is_unmapped:
+            return read
         # TODO: Make this available as a standalone function by explcitly passing in the tags to look at
         tags_to_check = []
         if read.has_tag(self.detail_tag_self):
@@ -167,14 +169,16 @@ class SamAnnotator(object):
             mc_tag = read.get_tag('MC')
             tags_to_check.append((self.detail_tag_mate, self.reference_tag_mate, mc_tag))
         for (alt_tag, alt_r_tag, cigar) in tags_to_check:
-            tag = self.tag_template_compiled.parse(read.get_tag(alt_tag))
-            alt_is_reverse = True if tag['sense'] == 'AS' else False
-            keep = alternative_alignment_cigar_is_better(current_cigar=cigar,
-                                                         alternative_cigar=tag['cigar'],
-                                                         same_orientation=alt_is_reverse == read.is_reverse)
-            if not keep:
-                read.set_tag(tag=alt_tag, value=None)
-                read.set_tag(tag=alt_r_tag, value=None)
+            if cigar:
+                # Can only check if read has cigar/alt_cigar
+                tag = self.tag_template_compiled.parse(read.get_tag(alt_tag))
+                alt_is_reverse = True if tag['sense'] == 'AS' else False
+                keep = alternative_alignment_cigar_is_better(current_cigar=cigar,
+                                                             alternative_cigar=tag['cigar'],
+                                                             same_orientation=alt_is_reverse == read.is_reverse)
+                if not keep:
+                    read.set_tag(tag=alt_tag, value=None)
+                    read.set_tag(tag=alt_r_tag, value=None)
         return read
 
 
