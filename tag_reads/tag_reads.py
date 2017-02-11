@@ -107,7 +107,7 @@ class SamTagProcessor(object):
         other_r_reverse = 'r1' if other_r.is_read1 else 'r2'
         tagged_mates = self.result.get(other_r.query_name)
         if tagged_mates:
-            return self.format_tags(tagged_mates[other_r_reverse])
+            return tagged_mates[other_r_reverse]
         else:
             return None
 
@@ -142,16 +142,17 @@ class SamAnnotator(object):
         with BamAlignmentWriter(outpath=self.output_path, template=self.annotate_file, threads=4) as output:
             for read in self.annotate_file:
                 for samtag in self.samtags:
-                    annotated_tag = samtag.get_other_tag(read)
-                    if annotated_tag:
-                        read.tags = annotated_tag + read.tags
-                        if discard_bad_alt_tag:
-                            read = self.verify_alt_tag(read)
+                    alt_tag = samtag.get_other_tag(read)
+                    if alt_tag:
+                        verified_alt_tag = self.verify_alt_tag(read, alt_tag)
+                        if verified_alt_tag:
+                            formatted_alt_tag = samtag.format_tags(verified_alt_tag)
+                            read.tags = formatted_alt_tag + read.tags
                 if allow_dovetailing:
                     read = self.allow_dovetailing(read, max_proper_size)
                 output.write(read)
 
-    def verify_alt_tag(self, read):
+    def verify_alt_tag(self, read, alt_tag):
         """
         Take a read and verify that the alternative tags are really better
         :param read: A pysam read
@@ -163,24 +164,22 @@ class SamAnnotator(object):
         if read.is_unmapped:
             return read
         tags_to_check = []
-        if read.has_tag(self.detail_tag_self):
-            tags_to_check.append((self.detail_tag_self, self.reference_tag_self, read.cigarstring))
-        if read.has_tag(self.detail_tag_mate) and read.has_tag('MC'):
+        if 's' in alt_tag:
+            tags_to_check.append((alt_tag['s'], 's', read.cigarstring))
+        if 'n' in alt_tag and read.has_tag('MC'):
             mc_tag = read.get_tag('MC')
-            tags_to_check.append((self.detail_tag_mate, self.reference_tag_mate, mc_tag))
-        for (alt_tag, alt_r_tag, cigar) in tags_to_check:
+            tags_to_check.append((alt_tag['m'], 'm', mc_tag))
+        verified_alt_tag = {}
+        for (alt_tag, s_or_m, cigar) in tags_to_check:
             if cigar:
                 # Can only check if read has cigar/alt_cigar
-                s = read.get_tag(alt_tag)
-                tag = dict(item.split(":", 1) for item in s.split(","))
-                alt_is_reverse = True if tag['S'] == 'AS' else False
+                alt_is_reverse = True if alt_tag[3] == 'AS' else False
                 keep = alternative_alignment_cigar_is_better(current_cigar=cigar,
-                                                             alternative_cigar=tag['CIGAR'],
+                                                             alternative_cigar=alt_tag[2],
                                                              same_orientation=alt_is_reverse == read.is_reverse)
-                if not keep:
-                    read.set_tag(tag=alt_tag, value=None)
-                    read.set_tag(tag=alt_r_tag, value=None)
-        return read
+                if keep:
+                    verified_alt_tag[s_or_m] = alt_tag
+        return verified_alt_tag
 
 
     @classmethod
