@@ -1,6 +1,6 @@
 import argparse
-import parse
 import pysam
+from profilehooks import profile
 import six
 
 from .cigar import alternative_alignment_cigar_is_better
@@ -8,13 +8,13 @@ from .io import BamAlignmentWriter
 
 
 TAG_TEMPLATE = "R:{ref},POS:{pos:d},QSTART:{qstart:d},QEND:{qend:d},CIGAR:{cigar},S:{sense},MQ:{mq:d}"
-TAG_TEMPLATE_COMPILED = parse.compile(TAG_TEMPLATE)
 
 
 class SamTagProcessor(object):
 
     tag_template = TAG_TEMPLATE
 
+    @profile
     def __init__(self, source_path, tag_prefix_self, tag_prefix_mate, tag_mate=True):
         self.tag_mate = tag_mate
         self.tag_prefix_self = tag_prefix_self
@@ -113,8 +113,7 @@ class SamTagProcessor(object):
 
 class SamAnnotator(object):
 
-    tag_template_compiled = TAG_TEMPLATE_COMPILED
-
+    @profile
     def __init__(self, annotate_file, samtags, output_path="test.bam", allow_dovetailing=False, discard_bad_alt_tag=True):
         """
         Compare `samtags` with `annotate_file`.
@@ -172,10 +171,11 @@ class SamAnnotator(object):
         for (alt_tag, alt_r_tag, cigar) in tags_to_check:
             if cigar:
                 # Can only check if read has cigar/alt_cigar
-                tag = self.tag_template_compiled.parse(read.get_tag(alt_tag))
-                alt_is_reverse = True if tag['sense'] == 'AS' else False
+                s = read.get_tag(alt_tag)
+                tag = dict(item.split(":", 1) for item in s.split(","))
+                alt_is_reverse = True if tag['S'] == 'AS' else False
                 keep = alternative_alignment_cigar_is_better(current_cigar=cigar,
-                                                             alternative_cigar=tag['cigar'],
+                                                             alternative_cigar=tag['CIGAR'],
                                                              same_orientation=alt_is_reverse == read.is_reverse)
                 if not keep:
                     read.set_tag(tag=alt_tag, value=None)
