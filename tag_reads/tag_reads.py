@@ -4,6 +4,7 @@ import pysam
 import six
 
 from .cigar import alternative_alignment_cigar_is_better
+from .io import BamAlignmentWriter
 
 
 TAG_TEMPLATE = "R:{ref},POS:{pos:d},QSTART:{qstart:d},QEND:{qend:d},CIGAR:{cigar},S:{sense},MQ:{mq:d}"
@@ -126,7 +127,7 @@ class SamAnnotator(object):
         :type allow_dovetailing: bool
         """
         self.annotate_file = pysam.AlignmentFile(annotate_file)
-        self.output = pysam.AlignmentFile(output_path, 'wb', template=self.annotate_file)
+        self.output_path = output_path
         self.samtags = samtags
         self.detail_tag_self = self.samtags[0].detail_tag_self  # urgs ... probably bad design here :(.
         self.detail_tag_mate = self.samtags[0].detail_tag_mate
@@ -139,17 +140,17 @@ class SamAnnotator(object):
             max_proper_size = self.get_max_proper_pair_size(self.annotate_file)
             if not max_proper_size:
                 allow_dovetailing = False
-        for read in self.annotate_file:
-            for samtag in self.samtags:
-                annotated_tag = samtag.get_other_tag(read)
-                if annotated_tag:
-                    read.tags = annotated_tag + read.tags
-                    if discard_bad_alt_tag:
-                        read = self.verify_alt_tag(read)
-            if allow_dovetailing:
-                read = self.allow_dovetailing(read, max_proper_size)
-            self.output.write(read)
-        self.output.close()
+        with BamAlignmentWriter(outpath=self.output_path, template=self.annotate_file, threads=4) as output:
+            for read in self.annotate_file:
+                for samtag in self.samtags:
+                    annotated_tag = samtag.get_other_tag(read)
+                    if annotated_tag:
+                        read.tags = annotated_tag + read.tags
+                        if discard_bad_alt_tag:
+                            read = self.verify_alt_tag(read)
+                if allow_dovetailing:
+                    read = self.allow_dovetailing(read, max_proper_size)
+                output.write(read)
 
     def verify_alt_tag(self, read):
         """
@@ -159,9 +160,9 @@ class SamAnnotator(object):
         :return: read
         :type read: pysam.AlignedRead
         """
+        # TODO: Make this available as a standalone function by explcitly passing in the tags to look at
         if read.is_unmapped:
             return read
-        # TODO: Make this available as a standalone function by explcitly passing in the tags to look at
         tags_to_check = []
         if read.has_tag(self.detail_tag_self):
             tags_to_check.append((self.detail_tag_self, self.reference_tag_self, read.cigarstring))
