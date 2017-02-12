@@ -4,7 +4,7 @@ from profilehooks import profile
 import six
 
 from .cigar import alternative_alignment_cigar_is_better
-from .io import BamAlignmentWriter
+from .io import BamAlignmentWriter, BamAlignmentReader
 
 
 TAG_TEMPLATE = "R:{ref},POS:{pos:d},QSTART:{qstart:d},QEND:{qend:d},CIGAR:{cigar},S:{sense},MQ:{mq:d}"
@@ -24,6 +24,7 @@ class SamTagProcessor(object):
         self.reference_tag_self = tag_prefix_self + 'R'
         self.reference_tag_mate = tag_prefix_mate + 'R'
         self.source_alignment = pysam.AlignmentFile(source_path)
+        self.source_path = source_path
         self.result = self.process_source()
         if self.tag_mate:
             self.add_mate()
@@ -61,13 +62,14 @@ class SamTagProcessor(object):
 
     def process_source(self):
         tag_d = {}
-        for r in self.source_alignment:
-            if self.is_taggable(r):
-                fw_rev = 'r1' if r.is_read1 else 'r2'
-                if r.query_name in tag_d:
-                    tag_d[r.query_name][fw_rev] = {'s': self.compute_tag(r)}
-                else:
-                    tag_d[r.query_name] = {fw_rev: {'s': self.compute_tag(r)}}
+        with BamAlignmentReader(self.source_path) as source_alignment:
+            for r in source_alignment:
+                if self.is_taggable(r):
+                    fw_rev = 'r1' if r.is_read1 else 'r2'
+                    if r.query_name in tag_d:
+                        tag_d[r.query_name][fw_rev] = {'s': self.compute_tag(r)}
+                    else:
+                        tag_d[r.query_name] = {fw_rev: {'s': self.compute_tag(r)}}
         return tag_d
 
     def add_mate(self):
@@ -125,32 +127,34 @@ class SamAnnotator(object):
         :param allow_dovetailing: Controls whether or not dovetailing should be allowed
         :type allow_dovetailing: bool
         """
-        self.annotate_file = pysam.AlignmentFile(annotate_file)
+        self.annotate_file = annotate_file
         self.output_path = output_path
         self.samtags = samtags
         self.detail_tag_self = self.samtags[0].detail_tag_self  # urgs ... probably bad design here :(.
         self.detail_tag_mate = self.samtags[0].detail_tag_mate
         self.reference_tag_self = self.samtags[0].reference_tag_self
         self.reference_tag_mate = self.samtags[0].reference_tag_mate
+        if allow_dovetailing:
+            self.max_proper_size = self.get_max_proper_pair_size(pysam.AlignmentFile(annotate_file))
+            if not self.max_proper_size:
+                allow_dovetailing = False
         self.process(allow_dovetailing, discard_bad_alt_tag)
 
     def process(self, allow_dovetailing=False, discard_bad_alt_tag=True):
-        if allow_dovetailing:
-            max_proper_size = self.get_max_proper_pair_size(self.annotate_file)
-            if not max_proper_size:
-                allow_dovetailing = False
-        with BamAlignmentWriter(outpath=self.output_path, template=self.annotate_file, threads=4) as output:
-            for read in self.annotate_file:
-                for samtag in self.samtags:
-                    alt_tag = samtag.get_other_tag(read)
-                    if alt_tag:
-                        verified_alt_tag = self.verify_alt_tag(read, alt_tag)
-                        if verified_alt_tag:
-                            formatted_alt_tag = samtag.format_tags(verified_alt_tag)
+        with BamAlignmentReader(self.annotate_file) as annotate_file:
+            with BamAlignmentWriter(outpath=self.output_path, template=annotate_file, threads=4) as output:
+                # Maybe build batches of ~10000 reads and schedule MP processing?
+                for read in annotate_file:
+                    for samtag in self.samtags:
+                        alt_tag = samtag.get_other_tag(read)
+                        if alt_tag and discard_bad_alt_tag:
+                            alt_tag = self.verify_alt_tag(read, alt_tag)
+                        if alt_tag:
+                            formatted_alt_tag = samtag.format_tags(alt_tag)
                             read.tags = formatted_alt_tag + read.tags
-                if allow_dovetailing:
-                    read = self.allow_dovetailing(read, max_proper_size)
-                output.write(read)
+                    if allow_dovetailing:
+                        read = self.allow_dovetailing(read, self.max_proper_size)
+                    output.write(read)
 
     def verify_alt_tag(self, read, alt_tag):
         """

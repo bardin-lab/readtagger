@@ -24,3 +24,23 @@ class BamAlignmentWriter(object):
 
     def __exit__(self, type, value, traceback):
         self.close()
+
+
+class BamAlignmentReader(object):
+    """
+    Simple wrapper around pysam.AlignmentFile that uses sambamba for reading
+    """
+    def __init__(self, inpath):
+        self.args = ['sambamba', 'view', '-h', inpath]
+        self.proc = subprocess.Popen(self.args, stdout=subprocess.PIPE)
+
+    def close(self):
+        self.af.close()
+        self.proc.stdout.close()
+
+    def __enter__(self):
+        self.af = pysam.AlignmentFile(self.proc.stdout)
+        return self.af
+
+    def __exit__(self, type, value, traceback):
+        self.close()
