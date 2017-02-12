@@ -6,6 +6,14 @@ History
 .. to_doc
 
 ---------------------
+0.1.5 (2017-02-12)
+---------------------
+* Add option (-wd) to write suboptimal tag into separate BAM file
+* Add option (-wv) to write verified tags into separate BAM file
+* Performance improvemtns by letting sambamba handle BAM reading
+  and writing. Also elimininate regualr expression to parse cigarstring.
+
+---------------------
 0.1.4 (2017-02-10)
 ---------------------
 * Add option (-k) to keep alternative tags if they do not

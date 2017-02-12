@@ -3,7 +3,7 @@ try:
 except ImportError:
     from distutils.core import setup
 
-requirements = ['pysam','six']
+requirements = ['contextib2', 'pysam','six']
 
 ENTRY_POINTS = '''
         [console_scripts]
@@ -13,7 +13,7 @@ ENTRY_POINTS = '''
 
 setup(
     name='tag_reads',
-    version='0.1.4',
+    version='0.1.5',
     packages=['tag_reads'],
     install_requires=requirements,
     entry_points=ENTRY_POINTS,
@@ -29,6 +29,9 @@ setup(
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
     ],
+    extras_require={
+        'testing': ["pytest"],
+    },
     url='https://github.com/bardin-lab/tag_reads',
     license='MIT',
     author='Marius van den Beek',

@@ -6,9 +6,10 @@ class BamAlignmentWriter(object):
     """
     Simple wrapper around pysam.AlignmentFile that uses sambamba for multithreaded compressed writing
     """
-    def __init__(self, outpath, template, threads=4):
+    def __init__(self, path, template=None, header=None, threads=2):
         self.template = template
-        self.args = ['sambamba', 'view', '-S', '-f', 'bam', '-t', "%s" % threads, '/dev/stdin' , '-o', outpath]
+        self.header= header
+        self.args = ['sambamba', 'view', '-S', '-f', 'bam', '-t', "%s" % threads, '/dev/stdin' , '-o', path]
         self.proc = subprocess.Popen(self.args, stdin=subprocess.PIPE)
 
     def write(self, r):
@@ -19,7 +20,7 @@ class BamAlignmentWriter(object):
         self.proc.stdin.close()
 
     def __enter__(self):
-        self.af = pysam.AlignmentFile(self.proc.stdin, mode="wh", template=self.template)
+        self.af = pysam.AlignmentFile(self.proc.stdin, mode="wh", template=self.template, header=self.header)
         return self.af
 
     def __exit__(self, type, value, traceback):
@@ -30,8 +31,8 @@ class BamAlignmentReader(object):
     """
     Simple wrapper around pysam.AlignmentFile that uses sambamba for reading
     """
-    def __init__(self, inpath):
-        self.args = ['sambamba', 'view', '-h', inpath]
+    def __init__(self, path):
+        self.args = ['sambamba', 'view', '-h', path]
         self.proc = subprocess.Popen(self.args, stdout=subprocess.PIPE)
 
     def close(self):
