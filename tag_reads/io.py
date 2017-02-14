@@ -17,6 +17,7 @@ class BamAlignmentWriter(object):
         self.args = self.get_subprocess_args()
 
     def get_subprocess_args(self):
+        """Figure out in sambamba or samtools are available and return correct arguments."""
         sambamba_args = ['sambamba', 'view', '-S', '-f', 'bam', '-t', "%s" % self.threads, '/dev/stdin', '-o', self.path]
         samtools_args = ['samtools', 'view', '-b', '/dev/stdin/', '-o', self.path]
         if self.external_bin == 'sambamba':
@@ -25,9 +26,9 @@ class BamAlignmentWriter(object):
             return samtools_args
         elif self.external_bin == 'choose_best':
             if which('sambamba'):
-                return  sambamba_args
+                return sambamba_args
             if which('samtools'):
-                return  samtools_args
+                return samtools_args
         return None
 
     def close(self):
@@ -61,6 +62,7 @@ class BamAlignmentReader(object):
         self.args = self.get_subprocess_args()
 
     def get_subprocess_args(self):
+        """Figure out in sambamba or samtools are available and return correct arguments."""
         sambamba_args = ['sambamba', 'view', '-h', self.path]
         samtools_args = ['samtools', 'view', '-h', self.path]
         if self.external_bin == 'sambamba':
@@ -69,9 +71,9 @@ class BamAlignmentReader(object):
             return samtools_args
         elif self.external_bin == 'choose_best':
             if which('sambamba'):
-                return  sambamba_args
+                return sambamba_args
             if which('samtools'):
-                return  samtools_args
+                return samtools_args
         return None
 
     def close(self):
