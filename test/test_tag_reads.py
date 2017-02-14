@@ -1,29 +1,9 @@
-import subprocess
-import time
-
-from tag_reads.io import BamAlignmentReader
-from tag_reads.io import BamAlignmentWriter
-
 from tag_reads.tag_reads import SamTagProcessor
 from tag_reads.tag_reads import SamAnnotator
 
+
 TEST_SAM = 'testsam_a.sam'
 TEST_SAM_B = 'testsam_b.sam'
-
-
-def test_bamreader(datadir):  # noqa: D103
-    with BamAlignmentReader(datadir[TEST_SAM]) as reader:
-        assert len([r for r in reader]) == 2
-
-
-def test_bamwriter(datadir, tmpdir):  # noqa: D103
-    outfile = tmpdir.join('out.bam')
-    with BamAlignmentReader(datadir[TEST_SAM]) as reader, BamAlignmentWriter(outfile.strpath, template=reader) as out:
-        for r in reader:
-            out.write(r)
-    time.sleep(1)  # Sleep a little to allow closing of handle
-    out = subprocess.call(['samtools', 'view', outfile.strpath])
-    assert out == 0
 
 
 def test_samtag_processor(datadir):  # noqa: D103

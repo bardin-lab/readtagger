@@ -7,17 +7,28 @@ import pysam
 class BamAlignmentWriter(object):
     """Wrap pysam.AlignmentFile with sambamba for multithreaded compressed writing."""
 
-    def __init__(self, path, template=None, header=None, threads=2):
+    def __init__(self, path, template=None, header=None, threads=2, external_bin='choose_best'):
         """Use this class with a contexthandler."""
         self.template = template
         self.header = header
         self.path = path
-        if which('sambamba'):
-            self.args = ['sambamba', 'view', '-S', '-f', 'bam', '-t', "%s" % threads, '/dev/stdin', '-o', path]
-        elif which('samtools'):
-            self.args = ['samtools', 'view', '-b', '>', path]
-        else:
-            self.args = None
+        self.external_bin = external_bin
+        self.threads = threads
+        self.args = self.get_subprocess_args()
+
+    def get_subprocess_args(self):
+        sambamba_args = ['sambamba', 'view', '-S', '-f', 'bam', '-t', "%s" % self.threads, '/dev/stdin', '-o', self.path]
+        samtools_args = ['samtools', 'view', '-b', '/dev/stdin/', '-o', self.path]
+        if self.external_bin == 'sambamba':
+            return sambamba_args
+        elif self.external_bin == 'samtools':
+            return samtools_args
+        elif self.external_bin == 'choose_best':
+            if which('sambamba'):
+                return  sambamba_args
+            if which('samtools'):
+                return  samtools_args
+        return None
 
     def close(self):
         """Close filehandles and suprocess safely."""
@@ -42,16 +53,26 @@ class BamAlignmentWriter(object):
 class BamAlignmentReader(object):
     """Wraps pysam.AlignmentFile with sambamba for reading if input file is a bam file."""
 
-    def __init__(self, path):
+    def __init__(self, path, external_bin='choose_best'):
         """Use this class with a contexthandler."""
         self.bam = pysam.AlignmentFile(path).is_bam
         self.path = path
-        if which('sambamba'):
-            self.args = ['sambamba', 'view', '-h', path]
-        elif which('samtools'):
-            self.args = ['samtools', 'view', '-h', path]
-        else:
-            self.args = None
+        self.external_bin = external_bin
+        self.args = self.get_subprocess_args()
+
+    def get_subprocess_args(self):
+        sambamba_args = ['sambamba', 'view', '-h', self.path]
+        samtools_args = ['samtools', 'view', '-h', self.path]
+        if self.external_bin == 'sambamba':
+            return sambamba_args
+        elif self.external_bin == 'samtools':
+            return samtools_args
+        elif self.external_bin == 'choose_best':
+            if which('sambamba'):
+                return  sambamba_args
+            if which('samtools'):
+                return  samtools_args
+        return None
 
     def close(self):
         """Close filehandles and suprocess safely."""
