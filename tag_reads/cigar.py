@@ -1,8 +1,8 @@
 from itertools import groupby
 
-
-CODE2CIGAR= "MIDNSHP=XB"
+CODE2CIGAR = "MIDNSHP=XB"
 CIGAR2CODE = dict([y, x] for x, y in enumerate(CODE2CIGAR))
+
 
 #  Op BAM Description
 #  ------------------
@@ -19,31 +19,38 @@ CIGAR2CODE = dict([y, x] for x, y in enumerate(CODE2CIGAR))
 # M includes both sequence match and mismatch (that's why = and X exist)
 # Seems BWA is not setting those (same for N, which is being set by tophat/hisat/star for introns)
 
+
 def cigartuples_to_cigarstring(cigartuple):
     """
+    Convert cigartuple to cigarstring.
 
     :param cigartuple:
-    :return:
+    :rtype: str
     >>> cigartuples_to_cigarstring([(0, 91), (4, 34)])
     '91M34S'
     """
     return "".join(["%s%s" % (l, CODE2CIGAR[op]) for op, l in cigartuple])
 
 
-
-def cigar_split(cigar):
-    """ CIGAR grouping function modified from:
-    https://github.com/brentp/bwa-meth
+def cigar_split(cigarstring):
     """
-    cig_iter = groupby(cigar, lambda c: c.isdigit())
+    Group cigarstring.
+
+    CIGAR grouping function modified from https://github.com/brentp/bwa-meth
+    and https://github.com/mdshw5/simplesam/blob/master/simplesam.py .
+
+    :param cigarstring: Cigarstring to iterate over
+    :rtype generator
+    """
+    cig_iter = groupby(cigarstring, lambda c: c.isdigit())
     for _, n in cig_iter:
         yield ("".join(n)), "".join(next(cig_iter)[1], )
 
 
 def cigar_to_tuple(cigar):
     """
-    Turns a cigar into a list of tuples by splitting at any of the valid CIGAR letters
-    (MIDNSHPX)
+    Turn a cigar into a list of tuples.
+
     :param cigar: string
     :return: list of tuples, with first integer spcifying the length of the operation,
               and the string specifying the operation
@@ -59,7 +66,8 @@ def cigar_to_tuple(cigar):
 
 def cigar_tuple_to_cigar_length(cigar):
     """
-    Replace consecutive tags with coordinates in the read
+    Replace consecutive tags with coordinates in the read.
+
     >>> cigar = [(0, 3), (1, 1), (0, 44), (3, 1), (0, 7), (1, 1), (0, 32), (4, 37)]
     >>> cigar_tuple_to_cigar_length(cigar)
     [((0, 3), 0), ((3, 4), 1), ((4, 48), 0), ((48, 49), 3), ((49, 56), 0), ((56, 57), 1), ((57, 89), 0), ((89, 126), 4)]
@@ -75,8 +83,9 @@ def cigar_tuple_to_cigar_length(cigar):
 
 def alternative_alignment_cigar_is_better(current_cigar, alternative_cigar, same_orientation):
     """
-    Try to judge whether a read should be marked as having an alternative alignment
-    tag. The read with the characteristics below should not be marked as aligning
+    Judge whether a read should be marked as having an alternative alignment tag.
+
+    The read with the characteristics below should not be marked as aligning
     to a transposon, because:
       - This read has 10 nt softclipped on the left side, and the alternative transposon-aligned
         read is antisense with a cigar of 43M1D7M1I32M42S. Because the read is mapping antisense to the TE,
@@ -97,11 +106,12 @@ def alternative_alignment_cigar_is_better(current_cigar, alternative_cigar, same
      Out[8]: False
      In [9]: r.tags
      Out[9]:
-     [('AD', 'R:FBti0060251_Dmel\\1360_P,POS:666,CIGAR:43M1D7M1I32M42S,S:AS'),
-     ('AR', 'FBti0060251_Dmel\\1360_P'),
-     ('BD', 'R:FBti0060251_Dmel\\1360_P,POS:665,CIGAR:80S39M6S,S:S'),
-     ('BR', 'FBti0060251_Dmel\\1360_P'),
+     [('AD', 'R:FBti0060251_Dmel1360_P,POS:666,CIGAR:43M1D7M1I32M42S,S:AS'),
+     ('AR', 'FBti0060251_Dmel1360_P'),
+     ('BD', 'R:FBti0060251_Dmel1360_P,POS:665,CIGAR:80S39M6S,S:S'),
+     ('BR', 'FBti0060251_Dmel1360_P'),
      ('MC', '6S119M'),
+
      :param cigar: cigar string of current read
      :param alternative_cigar: alternative cigar
      :return: bool
@@ -118,9 +128,9 @@ def alternative_alignment_cigar_is_better(current_cigar, alternative_cigar, same
           >>> cd_args = dict(current_cigar='6S119M', alternative_cigar='119M6S', same_orientation=False)
      >>> alternative_alignment_cigar_is_better(**cd_args)
      False
-     >>> true_alternatives = [('94M31S', '32M93S', False), ('95M30S', '90S35M', True), ('95M30S', '90S35M', True), ('92M33S', '87S38M', True), ('92M33S', '87S38M', True), ('65M60S', '66M59S', False), ('31S94M', '32M93S', True)]
+     >>> true_alternatives = [('94M31S', '32M93S', False), ('95M30S', '90S35M', True), ('95M30S', '90S35M', True)]
      >>> [alternative_alignment_cigar_is_better(*a) for a in true_alternatives]
-     [True, True, True, True, True, True, True]
+     [True, True, True]
     """
     # We start by discarding alignments that are not clipped
     if isinstance(current_cigar, str):
@@ -133,7 +143,7 @@ def alternative_alignment_cigar_is_better(current_cigar, alternative_cigar, same
     if not any([op for (op, l) in current_cigar if op in {4, 5}]):
         # No soft or hard-clipping in current cigar. This is a perfect aignment, alternative cigar can't be better
         return False
-    if not any([op for (op, l) in alternative_cigar if op in {4,5}]):
+    if not any([op for (op, l) in alternative_cigar if op in {4, 5}]):
         # No clipping in alternative cigar, while current cigar is clipped.
         # I don't think there is a case in which we would want to discard an alternative cigar that is better than the
         # current cigar UNLESS the alternative cigar has large deletions or insertions.
@@ -141,8 +151,10 @@ def alternative_alignment_cigar_is_better(current_cigar, alternative_cigar, same
         #  TODO: verify this.
         return True
     cigar_lengths_current_read = cigar_tuple_to_cigar_length(current_cigar)
-    split_regions_current_read = [set(range(*reg)) for (reg, operation) in cigar_lengths_current_read if operation in {4, 5}]  # These are the split regions wrt the current BAM file
+    # Next we get a range representing the soft and hardlclipped regions in the current read
+    split_regions_current_read = [set(range(*reg)) for (reg, operation) in cigar_lengths_current_read if operation in {4, 5}]
     cigar_lengths_alternative = cigar_tuple_to_cigar_length(alternative_cigar)
+    # Next are the matched regions in the alternative cigar.
     matched_regions_alternative = [set(range(*reg)) for (reg, operation) in cigar_lengths_alternative if operation == 0]
     for reg in split_regions_current_read:
         for altreg in matched_regions_alternative:
@@ -160,9 +172,3 @@ def alternative_alignment_cigar_is_better(current_cigar, alternative_cigar, same
                     # The alternative match overlaps the clipped region and is equal to or longer than the clipped region
                     return True
     return False
-
-
-
-
-
-

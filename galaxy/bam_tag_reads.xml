@@ -1,10 +1,10 @@
-<tool id="bam_tag_reads" name="Tag alignment files" version="0.1.4">
+<tool id="bam_tag_reads" name="Tag alignment files" version="0.1.5">
     <description>from multiple bam files</description>
     <macros>
         <import>macros.xml</import>
     </macros>
     <requirements>
-        <requirement type="package" version="0.1.4">tag_reads</requirement>
+        <requirement type="package" version="0.1.5">tag_reads</requirement>
     </requirements>
     <command detect_errors="aggressive"><![CDATA[
         tag_reads -t '$tag_file' -a
@@ -13,6 +13,8 @@
         #end for
         $allow_dovetailing
         $keep_suboptimal
+        $discarded
+        $verified
         -o '$tagged_file'
     ]]></command>
     <inputs>
@@ -28,19 +30,44 @@
         </repeat>
         <param argument="--allow_dovetailing" type="boolean" truevalue="-d" falsevalue="" label="Allow dovetailing" help="Check this to label reads as proper_pair even if the mates of a pair overlap each other"/>
         <param argument="-k" name="keep_suboptimal" type="boolean" truevalue="-k" falsevalue="" label="Keep suboptimal alternative tags" help="Check this to also keep alternative tags that cannot explain the current read cigar"/>
+        <param argument="-wd" name="discarded" type="boolean" truevalue="-wd discarded.bam" falsevalue="" label="Check this to produce an output file containing only the reads with tags that failed validation"/>
+        <param argument="-wv" name="verified" type="boolean" truevalue="-wv verified.bam" falsevalue="" label="Check this to produce an output file containing only the reads with tags that pass validation"/>
     </inputs>
     <outputs>
         <data name="tagged_file" format="bam"/>
+        <data name="verified_file" format="bam" from_work_dir="verified.bam">
+            <filter>verified is True</filter>
+        </data>
+        <data name="discarded_file" format="bam" from_work_dir="verified.bam">
+            <filter>verified is True</filter>
+        </data>
     </outputs>
     <tests>
-        <test>
-            <param name="tag_file" value="dm6_a_pasteurianus.bam" ftype="bam"/>
+        <test> <!-- test that a single read originating from a pasteurianus is properly annotated in a dm6 alignment (should end in verified bam file) -->
+            <param name="tag_file" value="dm6.bam" ftype="bam"/>
             <repeat name="alignment_series">
-                <param name="annotate_with" value="dm6_a_pasteurianus.bam" ftype="bam"/>
+                <param name="annotate_with" value="pasteurianus.bam" ftype="bam"/>
                 <param name="r_tag" value="A"/>
                 <param name="m_tag" value="B"/>
             </repeat>
-            <output name="tagged_file" file="out.bam" ftype="bam"/>
+            <param name="discarded" value="True"/>
+            <param name="verified" value="True"/>
+            <output name="tagged_file" file="dm6_tagged_with_a_pasteurianus.bam" ftype="bam"/>
+            <output name="verified_file" file="dm6_tagged_with_a_pasteurianus_verified.bam" ftype="bam"/>
+            <output name="discarded_file" file="dm6_tagged_with_a_pasteurianus_discarded.bam" ftype="bam"/>
+        </test>
+        <test> <!-- test that a single read originating from a pasteurianus is annotated in pasteurianus.bam as having homology with dm6, but marked as discarded (should end in discarded bam file) -->
+            <param name="tag_file" value="pasteurianus.bam" ftype="bam"/>
+            <repeat name="alignment_series">
+                <param name="annotate_with" value="dm6.bam" ftype="bam"/>
+                <param name="r_tag" value="A"/>
+                <param name="m_tag" value="B"/>
+            </repeat>
+            <param name="discarded" value="True"/>
+            <param name="verified" value="True"/>
+            <output name="tagged_file" file="a_pasteurianus_tagged_with_dm6.bam" ftype="bam"/>
+            <output name="verified_file" file="a_pasteurianus_tagged_with_dm6_verified.bam" ftype="bam"/>
+            <output name="discarded_file" file="a_pasteurianus_tagged_with_dm6_discarded.bam" ftype="bam"/>
         </test>
     </tests>
     <help><![CDATA[

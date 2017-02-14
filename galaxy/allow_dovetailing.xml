@@ -15,7 +15,7 @@
     <tests>
         <test>
             <param name="input" value="dm6_a_pasteurianus.bam" ftype="bam"/>
-            <output name="output" file="dm6_a_pasteurianus.bam" ftype="bam"/>
+            <output name="output" file="dovetailing_allowed.bam" ftype="bam"/>
         </test>
     </tests>
     <help><![CDATA[

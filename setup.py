@@ -3,7 +3,7 @@ try:
 except ImportError:
     from distutils.core import setup
 
-requirements = ['contextlib2', 'pysam','six']
+requirements = ['contextlib2', 'pysam', 'six']
 
 ENTRY_POINTS = '''
         [console_scripts]
@@ -30,7 +30,7 @@ setup(
         'Programming Language :: Python :: 3',
     ],
     extras_require={
-        'testing': ["pytest"],
+        'testing': ["pytest", "pytest-datadir", "tox", "planemo"],
     },
     url='https://github.com/bardin-lab/tag_reads',
     license='MIT',

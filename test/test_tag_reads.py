@@ -1,4 +1,5 @@
 import subprocess
+import time
 
 from tag_reads.io import BamAlignmentReader
 from tag_reads.io import BamAlignmentWriter
@@ -10,21 +11,22 @@ TEST_SAM = 'testsam_a.sam'
 TEST_SAM_B = 'testsam_b.sam'
 
 
-def test_bamreader(datadir):
+def test_bamreader(datadir):  # noqa: D103
     with BamAlignmentReader(datadir[TEST_SAM]) as reader:
         assert len([r for r in reader]) == 2
 
 
-def test_bamwriter(datadir, tmpdir):
+def test_bamwriter(datadir, tmpdir):  # noqa: D103
     outfile = tmpdir.join('out.bam')
     with BamAlignmentReader(datadir[TEST_SAM]) as reader, BamAlignmentWriter(outfile.strpath, template=reader) as out:
         for r in reader:
             out.write(r)
+    time.sleep(1)  # Sleep a little to allow closing of handle
     out = subprocess.call(['sambamba', 'view', outfile.strpath])
     assert out == 0
 
 
-def test_samtag_processor(datadir):
+def test_samtag_processor(datadir):  # noqa: D103
     p_mate_false = get_samtag_processor(datadir, tag_mate=False)
     assert len(p_mate_false.result) == 1
     assert len(p_mate_false.result.values()) == 1
@@ -34,7 +36,7 @@ def test_samtag_processor(datadir):
     # Need some more data to make more meaningful tests
 
 
-def test_samtag_annotator(datadir, tmpdir):
+def test_samtag_annotator(datadir, tmpdir):  # noqa: D103
     p = get_samtag_processor(datadir, tag_mate=True)
     output_path = tmpdir.join('testout.bam')
     a = SamAnnotator(datadir[TEST_SAM_B],
@@ -48,11 +50,10 @@ def test_samtag_annotator(datadir, tmpdir):
     output_path.check()
 
 
-def get_samtag_processor(datadir, tag_mate):
+def get_samtag_processor(datadir, tag_mate):  # noqa: D103
     source_path = datadir[TEST_SAM]
     tag_prefix_self = 'A'
     tag_prefix_mate = 'B'
-    tag_mate=False
     p = SamTagProcessor(source_path, tag_prefix_self, tag_prefix_mate, tag_mate)
     assert hasattr(p, 'result')
     assert isinstance(p.result, dict)
