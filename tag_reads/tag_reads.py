@@ -234,11 +234,11 @@ class SamAnnotator(object):
         :type read: pysam.AlignedRead
         """
         # TODO: Make this available as a standalone function by explcitly passing in the tags to look at
+        verified_alt_tag = {}
         if read.is_unmapped:
-            return read
+            return verified_alt_tag
         tags_to_check = ((v, 's', read.cigar) if k == 's' else (v, 'm', read.get_tag('MC')) if read.has_tag('MC') else (None, None, None) for k, v in
                          alt_tag.items())
-        verified_alt_tag = {}
         for (alt_tag, s_or_m, cigar) in tags_to_check:
             if cigar:
                 # Can only check if read has cigar/alt_cigar
