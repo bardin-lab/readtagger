@@ -18,7 +18,7 @@ class BamAlignmentWriter(object):
 
     def get_subprocess_args(self):
         """Figure out in sambamba or samtools are available and return correct arguments."""
-        sambamba_args = ['sambamba', 'view', '-S', '-f', 'bam', '-t', "%s" % self.threads, '/dev/stdin', '-o', self.path]
+        sambamba_args = ['sambamba', 'view', '-f', 'bam', '-t', "%s" % self.threads, '/dev/stdin', '-o', self.path]
         samtools_args = ['samtools', 'view', '-b', '/dev/stdin/', '-o', self.path]
         if self.external_bin == 'sambamba':
             return sambamba_args
@@ -41,7 +41,7 @@ class BamAlignmentWriter(object):
         """Provide context handler entry."""
         if self.args:
             self.proc = subprocess.Popen(self.args, stdin=subprocess.PIPE)
-            self.af = pysam.AlignmentFile(self.proc.stdin, mode="wh", template=self.template, header=self.header)
+            self.af = pysam.AlignmentFile(self.proc.stdin, mode="wbu", template=self.template, header=self.header)
         else:
             self.af = pysam.AlignmentFile(self.path, mode="wb", template=self.template, header=self.header)
         return self.af
