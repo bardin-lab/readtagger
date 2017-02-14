@@ -52,9 +52,9 @@
             </repeat>
             <param name="discarded" value="True"/>
             <param name="verified" value="True"/>
-            <output name="tagged_file" file="dm6_tagged_with_a_pasteurianus.bam" ftype="bam"/>
-            <output name="verified_file" file="dm6_tagged_with_a_pasteurianus_verified.bam" ftype="bam"/>
-            <output name="discarded_file" file="dm6_tagged_with_a_pasteurianus_discarded.bam" ftype="bam"/>
+            <output name="tagged_file" file="dm6_tagged_with_a_pasteurianus.bam" ftype="bam" lines_diff="5"/>
+            <output name="verified_file" file="dm6_tagged_with_a_pasteurianus_verified.bam" ftype="bam" lines_diff="5"/>
+            <output name="discarded_file" file="dm6_tagged_with_a_pasteurianus_discarded.bam" ftype="bam" lines_diff="5"/>
         </test>
         <test> <!-- test that a single read originating from a pasteurianus is annotated in pasteurianus.bam as having homology with dm6, but marked as discarded (should end in discarded bam file) -->
             <param name="tag_file" value="pasteurianus.bam" ftype="bam"/>
@@ -65,9 +65,9 @@
             </repeat>
             <param name="discarded" value="True"/>
             <param name="verified" value="True"/>
-            <output name="tagged_file" file="a_pasteurianus_tagged_with_dm6.bam" ftype="bam"/>
-            <output name="verified_file" file="a_pasteurianus_tagged_with_dm6_verified.bam" ftype="bam"/>
-            <output name="discarded_file" file="a_pasteurianus_tagged_with_dm6_discarded.bam" ftype="bam"/>
+            <output name="tagged_file" file="a_pasteurianus_tagged_with_dm6.bam" ftype="bam" lines_diff="5" />
+            <output name="verified_file" file="a_pasteurianus_tagged_with_dm6_verified.bam" ftype="bam" lines_diff="5"/>
+            <output name="discarded_file" file="a_pasteurianus_tagged_with_dm6_discarded.bam" ftype="bam" lines_diff="5"/>
         </test>
     </tests>
     <help><![CDATA[
