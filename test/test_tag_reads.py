@@ -22,7 +22,7 @@ def test_bamwriter(datadir, tmpdir):  # noqa: D103
         for r in reader:
             out.write(r)
     time.sleep(1)  # Sleep a little to allow closing of handle
-    out = subprocess.call(['sambamba', 'view', outfile.strpath])
+    out = subprocess.call(['samtools', 'view', outfile.strpath])
     assert out == 0
 
 

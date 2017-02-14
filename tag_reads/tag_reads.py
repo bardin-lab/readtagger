@@ -2,6 +2,7 @@ import argparse
 
 import pysam
 import six
+import warnings
 
 from contextlib2 import ExitStack
 
@@ -270,10 +271,11 @@ class SamAnnotator(object):
         if isize:
             return max(isize)
         else:
+            warnings.warn("Could not determine maximum allowed insert sizef for a proper pair. Are there any proper pairs in the input file?")
             return None
 
     @classmethod
-    def allow_dovetailing(cls, read, max_proper_size=351):
+    def allow_dovetailing(cls, read, max_proper_size=351, default_max_proper_size=351):
         """
         Manipulate is_proper_pair tag to allow dovetailing of reads.
 
@@ -283,6 +285,9 @@ class SamAnnotator(object):
         :type read: pysam.AlignedSegment
         :rtype pysam.AlignedSegment
         """
+        if max_proper_size is None:
+            warnings.warn("Using default maximum insert size of %d" % default_max_proper_size)
+            max_proper_size = default_max_proper_size
         if not read.is_proper_pair and not read.is_reverse == read.mate_is_reverse and read.reference_id == read.mrnm and abs(read.isize) <= max_proper_size:
             read.is_proper_pair = True
         return read

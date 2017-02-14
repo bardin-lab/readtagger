@@ -1,3 +1,5 @@
+import shutilwhich  # noqa: F401
+from shutil import which
 import subprocess
 import pysam
 
@@ -9,17 +11,27 @@ class BamAlignmentWriter(object):
         """Use this class with a contexthandler."""
         self.template = template
         self.header = header
-        self.args = ['sambamba', 'view', '-S', '-f', 'bam', '-t', "%s" % threads, '/dev/stdin', '-o', path]
-        self.proc = subprocess.Popen(self.args, stdin=subprocess.PIPE)
+        self.path = path
+        if which('sambamba'):
+            self.args = ['sambamba', 'view', '-S', '-f', 'bam', '-t', "%s" % threads, '/dev/stdin', '-o', path]
+        elif which('samtools'):
+            self.args = ['samtools', 'view', '-b', '>', path]
+        else:
+            self.args = None
 
     def close(self):
         """Close filehandles and suprocess safely."""
         self.af.close()
-        self.proc.stdin.close()
+        if self.args:
+            self.proc.stdin.close()
 
     def __enter__(self):
         """Provide context handler entry."""
-        self.af = pysam.AlignmentFile(self.proc.stdin, mode="wh", template=self.template, header=self.header)
+        if self.args:
+            self.proc = subprocess.Popen(self.args, stdin=subprocess.PIPE)
+            self.af = pysam.AlignmentFile(self.proc.stdin, mode="wh", template=self.template, header=self.header)
+        else:
+            self.af = pysam.AlignmentFile(self.path, mode="wb", template=self.template, header=self.header)
         return self.af
 
     def __exit__(self, type, value, traceback):
@@ -34,17 +46,22 @@ class BamAlignmentReader(object):
         """Use this class with a contexthandler."""
         self.bam = pysam.AlignmentFile(path).is_bam
         self.path = path
-        self.args = ['sambamba', 'view', '-h', path]
+        if which('sambamba'):
+            self.args = ['sambamba', 'view', '-h', path]
+        elif which('samtools'):
+            self.args = ['samtools', 'view', '-h', path]
+        else:
+            self.args = None
 
     def close(self):
         """Close filehandles and suprocess safely."""
         self.af.close()
-        if self.bam:
+        if self.bam and self.args:
             self.proc.stdout.close()
 
     def __enter__(self):
         """Provide context handler entry."""
-        if self.bam:
+        if self.bam and self.args:
             self.proc = subprocess.Popen(self.args, stdout=subprocess.PIPE)
             self.af = pysam.AlignmentFile(self.proc.stdout)
         else:

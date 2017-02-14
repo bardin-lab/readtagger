@@ -14,8 +14,8 @@
     </outputs>
     <tests>
         <test>
-            <param name="input" value="dm6_a_pasteurianus.bam" ftype="bam"/>
-            <output name="output" file="dovetailing_allowed.bam" ftype="bam"/>
+            <param name="input" value="not_a_proper_pair.bam" ftype="bam"/>
+            <output name="output" file="proper_pair.bam" ftype="bam"/>
         </test>
     </tests>
     <help><![CDATA[

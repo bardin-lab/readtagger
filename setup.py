@@ -3,7 +3,7 @@ try:
 except ImportError:
     from distutils.core import setup
 
-requirements = ['contextlib2', 'pysam', 'six']
+requirements = ['contextlib2', 'pysam', 'six', 'shutilwhich']
 
 ENTRY_POINTS = '''
         [console_scripts]
