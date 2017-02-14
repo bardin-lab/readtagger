@@ -75,7 +75,7 @@ class SamTagProcessor(object):
 
     def is_taggable(self, r):
         """
-        Decide if a read should be tagged.
+        Decide if a read should be the source of a tag.
 
         :param r: AlignedSegment
         :type r: pysam.Alignedread
@@ -271,7 +271,7 @@ class SamAnnotator(object):
         if isize:
             return max(isize)
         else:
-            warnings.warn("Could not determine maximum allowed insert sizef for a proper pair. Are there any proper pairs in the input file?")
+            warnings.warn("Could not determine maximum allowed insert size for a proper pair. Are there any proper pairs in the input file?")
             return None
 
     @classmethod
