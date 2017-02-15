@@ -34,11 +34,11 @@
         <param argument="-wv" name="verified" type="boolean" truevalue="-wv verified.bam" falsevalue="" label="Check this to produce an output file containing only the reads with tags that pass validation"/>
     </inputs>
     <outputs>
-        <data name="tagged_file" format="bam"/>
-        <data name="verified_file" format="bam" from_work_dir="verified.bam">
+        <data name="tagged_file" format="bam" label="Tagged reads on $on_string"/>
+        <data name="verified_file" format="bam" from_work_dir="verified.bam" label="Verified reads/tags on $on_string">
             <filter>verified is True</filter>
         </data>
-        <data name="discarded_file" format="bam" from_work_dir="verified.bam">
+        <data name="discarded_file" format="bam" from_work_dir="discarded.bam" label="Discarded reads/tags $on_string">
             <filter>verified is True</filter>
         </data>
     </outputs>
