@@ -30,7 +30,7 @@ setup(
         'Programming Language :: Python :: 3',
     ],
     extras_require={
-        'testing': ["pytest", "pytest-datadir", "tox", "planemo"],
+        'testing': ["pytest", "pytest-datadir", "tox", "planemo", "cookiecutter", "bumpversion"],
     },
     url='https://github.com/bardin-lab/tag_reads',
     license='MIT',
