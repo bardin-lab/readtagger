@@ -28,7 +28,7 @@ History
   explain the softclipped read any better.
   Default is to discard them.
 
-  ---------------------
+---------------------
 0.1.3.2 (2017-02-08)
 ---------------------
 * Fix dovetailing script

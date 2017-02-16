@@ -59,5 +59,9 @@ Testing
 If you modify readtagger, you can run all tests by running tox:
 
 ::
+
     pip install tox
     tox
+
+
+.. include:: HISTORY.rst
