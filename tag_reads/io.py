@@ -1,7 +1,6 @@
 import shutilwhich  # noqa: F401
 from shutil import which
 import os
-import time
 import subprocess
 import pysam
 
@@ -37,15 +36,13 @@ class BamAlignmentWriter(object):
         """Close filehandles and suprocess safely."""
         self.af.close()
         if self.args:
-            time.sleep(1)
-            while not self.af.is_closed:
-                time.sleep(1)
             self.proc.stdin.close()
+            self.proc.wait()
 
     def __enter__(self):
         """Provide context handler entry."""
         if self.args:
-            self.proc = subprocess.Popen(self.args, stdin=subprocess.PIPE, env=os.environ.copy())
+            self.proc = subprocess.Popen(self.args, stdin=subprocess.PIPE, env=os.environ.copy(), close_fds=True)
             self.af = pysam.AlignmentFile(self.proc.stdin, mode="wbu", template=self.template, header=self.header)
         else:
             self.af = pysam.AlignmentFile(self.path, mode="wb", template=self.template, header=self.header)
@@ -85,14 +82,13 @@ class BamAlignmentReader(object):
         """Close filehandles and suprocess safely."""
         self.af.close()
         if self.bam and self.args:
-            while not self.af.is_closed:
-                time.sleep(1)
             self.proc.stdout.close()
+            self.proc.wait()
 
     def __enter__(self):
         """Provide context handler entry."""
         if self.bam and self.args:
-            self.proc = subprocess.Popen(self.args, stdout=subprocess.PIPE, env=os.environ.copy())
+            self.proc = subprocess.Popen(self.args, stdout=subprocess.PIPE, env=os.environ.copy(), close_fds=True)
             self.af = pysam.AlignmentFile(self.proc.stdout)
         else:
             self.af = pysam.AlignmentFile(self.path)

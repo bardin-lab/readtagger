@@ -1,5 +1,3 @@
-import subprocess
-
 from tag_reads.io import BamAlignmentReader
 from tag_reads.io import BamAlignmentWriter
 
@@ -25,7 +23,8 @@ def test_bamwriter_sambamba(datadir, tmpdir):  # noqa: D103
 
 
 def test_bamwriter_samtools(datadir, tmpdir):  # noqa: D103
-    _test_bamwriter(datadir, tmpdir, 'samtools')
+    for i in range(10):  # Bit of stress testing here.
+        _test_bamwriter(datadir, tmpdir, 'samtools', i)
 
 
 def test_bamwriter_internal(datadir, tmpdir):  # noqa: D103
@@ -33,7 +32,7 @@ def test_bamwriter_internal(datadir, tmpdir):  # noqa: D103
 
 
 def _test_bamreader(datadir, external_bin):  # noqa: D103
-    with BamAlignmentReader(datadir[TEST_SAM], external_bin) as reader:
+    with BamAlignmentReader(datadir[TEST_SAM], None) as reader:
         assert len([r for r in reader]) == 2
 
 
@@ -42,5 +41,5 @@ def _test_bamwriter(datadir, tmpdir, external_bin='choose_best', i=0):  # noqa: 
     with BamAlignmentReader(datadir[TEST_SAM], external_bin) as reader, BamAlignmentWriter(outfile.strpath, template=reader, external_bin=external_bin) as out:
         for r in reader:
             out.write(r)
-    out = subprocess.call(['samtools', 'view', outfile.strpath])
-    assert out == 0
+    with BamAlignmentReader(outfile.strpath, None) as reader:
+        assert len([r for r in reader]) == 2
