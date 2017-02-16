@@ -1,5 +1,5 @@
-from tag_reads.bam_io import BamAlignmentReader
-from tag_reads.bam_io import BamAlignmentWriter
+from readtagger.bam_io import BamAlignmentReader
+from readtagger.bam_io import BamAlignmentWriter
 
 TEST_SAM = 'testsam_a.sam'
 TEST_SAM_B = 'testsam_b.sam'

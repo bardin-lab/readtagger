@@ -1,8 +1,8 @@
 import argparse
 import pysam
 from .bam_io import BamAlignmentWriter as Writer
-from .tag_reads import SamAnnotator
-from .tag_reads import __VERSION__
+from .readtagger import SamAnnotator
+from .readtagger import __VERSION__
 
 
 def main(args=None):

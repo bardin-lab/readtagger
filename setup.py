@@ -7,14 +7,14 @@ __VERSION__ = '0.1.6'
 
 ENTRY_POINTS = '''
         [console_scripts]
-        tag_reads=tag_reads.tag_reads:main
-        allow_dovetailing=tag_reads.allow_dovetailing:main
+        readtagger=readtagger.readtagger:main
+        allow_dovetailing=readtagger.allow_dovetailing:main
 '''
 
 setup(
-    name='tag_reads',
+    name='readtagger',
     version=__VERSION__,
-    packages=['tag_reads'],
+    packages=['readtagger'],
     install_requires=['contextlib2', 'pysam', 'six', 'shutilwhich'],
     entry_points=ENTRY_POINTS,
     keywords='Bioinformatics',
@@ -32,7 +32,7 @@ setup(
     extras_require={
         'testing': ["pytest", "pytest-datadir", "tox", "planemo", "cookiecutter", "bumpversion"],
     },
-    url='https://github.com/bardin-lab/tag_reads',
+    url='https://github.com/bardin-lab/readtagger',
     license='MIT',
     author='Marius van den Beek',
     author_email='m.vandenbeek@gmail.com',

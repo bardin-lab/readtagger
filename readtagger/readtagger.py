@@ -356,7 +356,7 @@ def parse_args():
                    help="Sets the proper pair flag (0x0002) to true if reads dovetail [reads reach into or surpass the mate sequence].")
     p.add_argument('-k', '--keep_suboptimal_alternate_tags', action='store_true',
                    help="By default cigarstrings of the alternative tags are compared and alternates that are not explaining the current cigar "
-                        "strings are discarded. Use this option to keep the alternative tags (effectively restoring the behaviour of tag_reads < 0.1.4)")
+                        "strings are discarded. Use this option to keep the alternative tags (effectively restoring the behaviour of readtagger < 0.1.4)")
     p.add_argument('-wd', '--write_discarded', default=False, required=False, help="Write discarded reads into separate file")
     p.add_argument('-wv', '--write_verified', default=False, required=False,
                    help="Write verified reads into separate file")

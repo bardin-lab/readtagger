@@ -1,6 +1,6 @@
-from tag_reads.tag_reads import SamTagProcessor
-from tag_reads.tag_reads import SamAnnotator
-from tag_reads.tag_reads import main
+from readtagger.readtagger import SamTagProcessor
+from readtagger.readtagger import SamAnnotator
+from readtagger.readtagger import main
 
 from collections import namedtuple
 
