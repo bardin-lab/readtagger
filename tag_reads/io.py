@@ -1,6 +1,7 @@
 import shutilwhich  # noqa: F401
 from shutil import which
 import os
+import time
 import subprocess
 import pysam
 
@@ -36,6 +37,9 @@ class BamAlignmentWriter(object):
         """Close filehandles and suprocess safely."""
         self.af.close()
         if self.args:
+            time.sleep(1)
+            while not self.af.is_closed:
+                time.sleep(1)
             self.proc.stdin.close()
 
     def __enter__(self):
@@ -81,6 +85,8 @@ class BamAlignmentReader(object):
         """Close filehandles and suprocess safely."""
         self.af.close()
         if self.bam and self.args:
+            while not self.af.is_closed:
+                time.sleep(1)
             self.proc.stdout.close()
 
     def __enter__(self):

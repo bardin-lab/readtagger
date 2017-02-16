@@ -1,5 +1,4 @@
 import subprocess
-import time
 
 from tag_reads.io import BamAlignmentReader
 from tag_reads.io import BamAlignmentWriter
@@ -21,7 +20,8 @@ def test_bamreader_internal(datadir):  # noqa: D103
 
 
 def test_bamwriter_sambamba(datadir, tmpdir):  # noqa: D103
-    _test_bamwriter(datadir, tmpdir, 'sambamba')
+    for i in range(10):  # Bit of stress testing here.
+        _test_bamwriter(datadir, tmpdir, 'sambamba', i)
 
 
 def test_bamwriter_samtools(datadir, tmpdir):  # noqa: D103
@@ -37,11 +37,10 @@ def _test_bamreader(datadir, external_bin):  # noqa: D103
         assert len([r for r in reader]) == 2
 
 
-def _test_bamwriter(datadir, tmpdir, external_bin):  # noqa: D103
-    outfile = tmpdir.join('out.bam')
+def _test_bamwriter(datadir, tmpdir, external_bin='choose_best', i=0):  # noqa: D103
+    outfile = tmpdir.join("%s_%s" % (i, 'out.bam'))
     with BamAlignmentReader(datadir[TEST_SAM], external_bin) as reader, BamAlignmentWriter(outfile.strpath, template=reader, external_bin=external_bin) as out:
         for r in reader:
             out.write(r)
-    time.sleep(1)  # Sleep a little to allow closing of handle
     out = subprocess.call(['samtools', 'view', outfile.strpath])
     assert out == 0
