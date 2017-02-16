@@ -1,7 +1,8 @@
 import argparse
 import pysam
-from .io import BamAlignmentWriter as Writer
+from .bam_io import BamAlignmentWriter as Writer
 from .tag_reads import SamAnnotator
+from .tag_reads import __VERSION__
 
 
 def main(args=None):
@@ -28,6 +29,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Allow dovetailing.")
     parser.add_argument('-i', '--input_path', help="Input alignment file to manipulate", required=True)
     parser.add_argument('-o', '--output_path', help="Output alignment file", required=True)
+    parser.add_argument('--version', action='version', version=__VERSION__)
     args = parser.parse_args()
     return args
 

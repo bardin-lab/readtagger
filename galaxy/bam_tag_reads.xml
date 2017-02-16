@@ -1,10 +1,10 @@
-<tool id="bam_tag_reads" name="Tag alignment files" version="0.1.5">
+<tool id="bam_tag_reads" name="Tag alignment files" version="0.1.6">
     <description>from multiple bam files</description>
     <macros>
         <import>macros.xml</import>
     </macros>
     <requirements>
-        <requirement type="package" version="0.1.5">tag_reads</requirement>
+        <requirement type="package" version="0.1.6">tag_reads</requirement>
     </requirements>
     <command detect_errors="aggressive"><![CDATA[
         tag_reads -t '$tag_file' -a

@@ -7,11 +7,12 @@ import warnings
 from contextlib2 import ExitStack
 
 from .cigar import alternative_alignment_cigar_is_better, cigartuples_to_cigarstring
-from .io import (
+from .bam_io import (
     BamAlignmentWriter as Writer,
     BamAlignmentReader as Reader,
 )
 
+__VERSION__ = '0.1.6'
 TAG_TEMPLATE = "R:{ref:s},POS:{pos:d},QSTART:{qstart:d},QEND:{qend:d},CIGAR:{cigar:s},S:{sense:s},MQ:{mq:d}"
 
 
@@ -359,6 +360,7 @@ def parse_args():
     p.add_argument('-wd', '--write_discarded', default=False, required=False, help="Write discarded reads into separate file")
     p.add_argument('-wv', '--write_verified', default=False, required=False,
                    help="Write verified reads into separate file")
+    p.add_argument('--version', action='version', version=__VERSION__)
     return p.parse_args()
 
 
