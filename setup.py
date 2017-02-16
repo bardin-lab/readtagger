@@ -3,7 +3,7 @@ try:
 except ImportError:
     from distutils.core import setup
 
-__VERSION__ = '0.1.5'
+__VERSION__ = '0.1.6'
 
 requirements = ['contextlib2', 'pysam', 'six', 'shutilwhich']
 
