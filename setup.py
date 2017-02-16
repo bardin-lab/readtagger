@@ -15,6 +15,7 @@ setup(
     name='tag_reads',
     version=__VERSION__,
     packages=['tag_reads'],
+    install_requires=['contextlib2', 'pysam', 'six', 'shutilwhich'],
     entry_points=ENTRY_POINTS,
     keywords='Bioinformatics',
     classifiers=[
