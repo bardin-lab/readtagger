@@ -1,5 +1,6 @@
 import shutilwhich  # noqa: F401
 from shutil import which
+import os
 import subprocess
 import pysam
 
@@ -40,7 +41,7 @@ class BamAlignmentWriter(object):
     def __enter__(self):
         """Provide context handler entry."""
         if self.args:
-            self.proc = subprocess.Popen(self.args, stdin=subprocess.PIPE)
+            self.proc = subprocess.Popen(self.args, stdin=subprocess.PIPE, env=os.environ.copy())
             self.af = pysam.AlignmentFile(self.proc.stdin, mode="wbu", template=self.template, header=self.header)
         else:
             self.af = pysam.AlignmentFile(self.path, mode="wb", template=self.template, header=self.header)
@@ -85,7 +86,7 @@ class BamAlignmentReader(object):
     def __enter__(self):
         """Provide context handler entry."""
         if self.bam and self.args:
-            self.proc = subprocess.Popen(self.args, stdout=subprocess.PIPE)
+            self.proc = subprocess.Popen(self.args, stdout=subprocess.PIPE, env=os.environ.copy())
             self.af = pysam.AlignmentFile(self.proc.stdout)
         else:
             self.af = pysam.AlignmentFile(self.path)
