@@ -19,7 +19,7 @@ class BamAlignmentWriter(object):
     def get_subprocess_args(self):
         """Figure out in sambamba or samtools are available and return correct arguments."""
         sambamba_args = ['sambamba', 'view', '-f', 'bam', '-t', "%s" % self.threads, '/dev/stdin', '-o', self.path]
-        samtools_args = ['samtools', 'view', '-b', '/dev/stdin/', '-o', self.path]
+        samtools_args = ['samtools', 'view', '-b', '/dev/stdin', '-o', self.path]
         if self.external_bin == 'sambamba':
             return sambamba_args
         elif self.external_bin == 'samtools':
