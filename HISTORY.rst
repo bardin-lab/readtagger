@@ -6,11 +6,19 @@ History
 .. to_doc
 
 ---------------------
+0.2.0 (2017-02-16)
+---------------------
+* Rename to readtagger
+* Fix bug with stdin closing file descriptor too early, leading to corrupt
+  BAM files.
+* Extend testing
+
+---------------------
 0.1.5 (2017-02-12)
 ---------------------
 * Add option (-wd) to write suboptimal tag into separate BAM file
 * Add option (-wv) to write verified tags into separate BAM file
-* Performance improvemtns by letting sambamba handle BAM reading
+* Performance improvments by letting sambamba handle BAM reading
   and writing. Also elimininate regualr expression to parse cigarstring.
 
 ---------------------
