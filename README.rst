@@ -41,3 +41,21 @@ To tag one bam file using multiple alignment files, run:
 Now reads that align in file ``b.bam`` will be tagged with AR, AD and
 BR, BD, while reads aligned in file ``c.bam`` are marked with CR, CD and
 DR, DD.
+
+Advanced usage
+--------------
+
+To see the advanced options, type:
+
+::
+
+    tag_reads -h
+
+Testing
+-------
+
+If you modify tag_reads, you can run all tests by running tox:
+
+::
+    pip install tox
+    tox
