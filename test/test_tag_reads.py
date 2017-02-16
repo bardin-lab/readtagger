@@ -1,9 +1,15 @@
 from tag_reads.tag_reads import SamTagProcessor
 from tag_reads.tag_reads import SamAnnotator
+# from tag_reads.tag_reads import main
+
+from collections import namedtuple
 
 
 TEST_SAM = 'testsam_a.sam'
 TEST_SAM_B = 'testsam_b.sam'
+
+TEST_BAM_A = 'dm6.bam'
+TEST_BAM_B = 'pasteurianus.bam'
 
 
 def test_samtag_processor(datadir):  # noqa: D103
@@ -28,6 +34,18 @@ def test_samtag_annotator(datadir, tmpdir):  # noqa: D103
                      verified_writer=None)
     assert isinstance(a, SamAnnotator)
     output_path.check()
+
+
+def test_main(datadir, tmpdir):  # noqa: D103
+    discarded = tmpdir.join('discarded.bam')
+    verified = tmpdir.join('verified.bam')
+    output = tmpdir.join('output.bam')
+    annotate_with = datadir[TEST_BAM_A]
+    tag_file = datadir[TEST_BAM_B]
+    args_template = namedtuple('args', 'annotate_with tag_file allow_dovetailing keep_suboptimal_alternate_tags write_discarded write_verified, output_file')
+    args_template(annotate_with=annotate_with, tag_file=tag_file, allow_dovetailing=True, keep_suboptimal_alternate_tags=True,
+                  output_file=output.strpath, write_discarded=discarded.strpath, write_verified=verified.strpath)
+    # main(args)
 
 
 def get_samtag_processor(datadir, tag_mate):  # noqa: D103
