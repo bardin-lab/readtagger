@@ -1,5 +1,7 @@
 tag\_reads
 ----------
+.. image:: https://travis-ci.org/bardin-lab/tag_reads.svg?branch=master
+    :target: https://travis-ci.org/bardin-lab/tag_reads
 
 Tags reads in a BAM file based on other BAM files.
 

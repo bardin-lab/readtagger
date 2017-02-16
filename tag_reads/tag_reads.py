@@ -40,12 +40,18 @@ class SamTagProcessor(object):
         self.detail_tag_mate = tag_prefix_mate + 'D'
         self.reference_tag_self = tag_prefix_self + 'R'
         self.reference_tag_mate = tag_prefix_mate + 'R'
-        self.source_alignment = pysam.AlignmentFile(source_path)
-        self.tid_to_reference_name = {self.source_alignment.get_tid(rname): rname for rname in (d['SN'] for d in self.source_alignment.header['SQ'])}
         self.source_path = source_path
         self.result = self.process_source()
         if self.tag_mate:
             self.add_mate()
+
+    @property
+    def tid_to_reference_name(self):
+        """Build dictionary for mapping tid to reference name."""
+        if not hasattr(self, '_tid_to_reference_name'):
+            with Reader(self.source_path, external_bin=None) as source:
+                self._tid_to_reference_name = {source.get_tid(rname): rname for rname in (d['SN'] for d in source.header['SQ'])}
+        return self._tid_to_reference_name
 
     def compute_tag(self, r):
         """
@@ -173,19 +179,26 @@ class SamAnnotator(object):
         self.detail_tag_mate = self.samtags[0].detail_tag_mate
         self.reference_tag_self = self.samtags[0].reference_tag_self
         self.reference_tag_mate = self.samtags[0].reference_tag_mate
-        self.template = pysam.AlignmentFile(annotate_file).header
         if allow_dovetailing:
             self.max_proper_size = self.get_max_proper_pair_size(pysam.AlignmentFile(annotate_file))
             if not self.max_proper_size:
                 allow_dovetailing = False
         self.process(allow_dovetailing, discard_bad_alt_tag, discarded_writer, verified_writer)
 
+    @property
+    def header(self):
+        """Return SAM/BAM header."""
+        if not hasattr(self, '_header'):
+            with Reader(self.annotate_file, external_bin=None) as source:
+                self._header = source.header
+        return self._header
+
     def process(self, allow_dovetailing=False, discard_bad_alt_tag=True, discarded_writer=None, verified_writer=None):
         """Iterate over reads and fetch annotation from self.samtags."""
         kwds = {'reader': {Reader: {'path': self.annotate_file}},
-                'main_writer': {Writer: {'path': self.output_path, 'header': self.template}},
-                'discarded_writer': {Writer: {'path': discarded_writer, 'header': self.template}},
-                'verified_writer': {Writer: {'path': verified_writer, 'header': self.template}}}
+                'main_writer': {Writer: {'path': self.output_path, 'header': self.header}},
+                'discarded_writer': {Writer: {'path': discarded_writer, 'header': self.header}},
+                'verified_writer': {Writer: {'path': verified_writer, 'header': self.header}}}
         args = {'allow_dovetailing': allow_dovetailing,
                 'discard_bad_alt_tag': discard_bad_alt_tag}
         with ExitStack() as stack:
@@ -310,6 +323,8 @@ def parse_file_tags(filetags):
     annotate_with = []
     tag_prefix = []
     tag_prefix_mate = []
+    if not isinstance(filetags, list):
+        filetags = [filetags]
     for filetag in filetags:
         if ':' in filetag:
             filepath, tag, tag_mate = filetag.split(':')

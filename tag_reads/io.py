@@ -1,5 +1,6 @@
 import shutilwhich  # noqa: F401
 from shutil import which
+import gzip
 import os
 import subprocess
 import pysam
@@ -58,7 +59,6 @@ class BamAlignmentReader(object):
 
     def __init__(self, path, external_bin='choose_best'):
         """Use this class with a contexthandler."""
-        self.bam = pysam.AlignmentFile(path).is_bam
         self.path = path
         self.external_bin = external_bin
         self.args = self.get_subprocess_args()
@@ -78,16 +78,31 @@ class BamAlignmentReader(object):
                 return samtools_args
         return None
 
+    @property
+    def is_bam(self):
+        """Return whether file is BAM (True) or SAM."""
+        if not hasattr(self, '_is_bam'):
+            try:
+                g = gzip.GzipFile(self.path)
+                if g.read(3) == 'BAM':
+                    self._is_bam = True
+                else:
+                    self._is_bam = False
+            except Exception:
+                self._is_bam = False
+        print(self.path, self._is_bam)
+        return self._is_bam
+
     def close(self):
         """Close filehandles and suprocess safely."""
         self.af.close()
-        if self.bam and self.args:
+        if self.is_bam and self.args:
             self.proc.stdout.close()
             self.proc.wait()
 
     def __enter__(self):
         """Provide context handler entry."""
-        if self.bam and self.args:
+        if self.is_bam and self.args:
             self.proc = subprocess.Popen(self.args, stdout=subprocess.PIPE, env=os.environ.copy(), close_fds=True)
             self.af = pysam.AlignmentFile(self.proc.stdout)
         else:
