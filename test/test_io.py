@@ -32,7 +32,7 @@ def test_bamwriter_internal(datadir, tmpdir):  # noqa: D103
 
 
 def _test_bamreader(datadir, external_bin):  # noqa: D103
-    with BamAlignmentReader(datadir[TEST_SAM], None) as reader:
+    with BamAlignmentReader(datadir[TEST_SAM], external_bin) as reader:
         assert len([r for r in reader]) == 2
 
 
