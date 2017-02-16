@@ -3,6 +3,8 @@ try:
 except ImportError:
     from distutils.core import setup
 
+__VERSION__ = '0.1.5'
+
 requirements = ['contextlib2', 'pysam', 'six', 'shutilwhich']
 
 ENTRY_POINTS = '''
@@ -13,7 +15,7 @@ ENTRY_POINTS = '''
 
 setup(
     name='tag_reads',
-    version='0.1.5',
+    version=__VERSION__,
     packages=['tag_reads'],
     install_requires=requirements,
     entry_points=ENTRY_POINTS,
