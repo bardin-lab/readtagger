@@ -1,0 +1,4 @@
+contextlib2==0.5.4
+pysam==0.10.0
+shutilwhich==1.1.0
+six==1.10.0

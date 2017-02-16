@@ -1,0 +1,6 @@
+bumpversion==0.5.3
+cookiecutter==1.5.1
+planemo==0.38.1
+pytest==3.0.6
+pytest-datadir==0.2.0
+tox==2.6.0

@@ -5,8 +5,6 @@ except ImportError:
 
 __VERSION__ = '0.1.6'
 
-requirements = ['contextlib2', 'pysam', 'six', 'shutilwhich']
-
 ENTRY_POINTS = '''
         [console_scripts]
         tag_reads=tag_reads.tag_reads:main
@@ -17,7 +15,6 @@ setup(
     name='tag_reads',
     version=__VERSION__,
     packages=['tag_reads'],
-    install_requires=requirements,
     entry_points=ENTRY_POINTS,
     keywords='Bioinformatics',
     classifiers=[
