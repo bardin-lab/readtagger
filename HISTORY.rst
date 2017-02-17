@@ -6,6 +6,12 @@ History
 .. to_doc
 
 ---------------------
+0.1.13(2017-02-17)
+---------------------
+* Add instructions for development
+* Install planemo in deployment step
+
+---------------------
 0.1.12(2017-02-17)
 ---------------------
 * Test deployment again

@@ -4,6 +4,9 @@ set -e
 
 CURRENT_DIR=$(dirname $0)
 
+echo "Installing planemo"  # Would be great if the dependencies would persist in deployment mode
+pip install planemo
+
 echo "Deploying to Testtoolshed ..."
 planemo shed_update -r --force_repository_creation -t testtoolshed --shed_key_from_env TTS_KEY "$CURRENT_DIR"
 
