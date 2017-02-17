@@ -1,7 +1,16 @@
-tag\_reads
+Readtagger
 ----------
 .. image:: https://travis-ci.org/bardin-lab/readtagger.svg?branch=master
     :target: https://travis-ci.org/bardin-lab/readtagger
+
+.. image:: https://coveralls.io/repos/github/bardin-lab/readtagger/badge.svg?branch=master
+    :target: https://coveralls.io/github/bardin-lab/readtagger?branch=master
+
+.. image:: https://badge.fury.io/py/readtagger.svg
+    :target: https://badge.fury.io/py/readtagger
+
+.. image:: https://anaconda.org/mvdbeek/readtagger/badges/version.svg
+    :target: https://anaconda.org/mvdbeek/readtagger
 
 Tags reads in a BAM file based on other BAM files.
 

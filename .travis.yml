@@ -1,21 +1,48 @@
 sudo: false
+os:
+- linux
 language: python
 python:
 - '2.7'
-- '3.6'
+- '3.5'
+env:
+  global:
+    - secure: "kCYuKyRRl0CIML6XVbsKQ05DJwR02CqOfehUJ0mVolMiry5k7w4Zh4YBAdmGIRbokcT3qKCgd3HvqvlYTGVvwxJQF1d2+G1KQNU4+M+BBR/NMTO1ij+uARXeRHoG6DPSr+6KFqdq/Ehchtt3rQNOxwJodhKW9q70caU5HvrLLs3EMuiRnmJFpP0eg5dR7pLpc5XS6Sy3K7idE3i/rXyF1Q/NlJb1+qkTPm4CYeaObPb4tkEDi4tNl/e74i/R2MEPtvCWdBJbwlcazPTbUC0GJEn4XnRh/zi5z+u9gVC6UhXZWeWzY3ypIqfx20igOfvL2yllHPF0ohDVC1q0GpoO8Y5jP1lvx+GkcCLHEP4XS6VykRW4AFTJOA/vo/xthU8HMa5/pH4iRvN5FZvwW6GUKZ8mIqS5elJepPB89Eg9oTbRdr3VSckaP4orTqr/uSb5StoTq7pJWjxFc4La+BHTQUsGt8V6RFVvKaHebkHjyLA479IyDuytKvAZMxrD1djm6nqyMFymruj4/WWMXPdv2RDUZ/DlECO/cVF/ETmtIFLaSXp0boWng5/fa4a9euaikvySFfZoS99Nq5r7pmwTuxcfuGwcK5W1mYCTICCvihD4pcUV8uc2sxmsp5V0wjcoYUmC1HJ/0XFZePm+IhqQZj+YgA2p/GVHIEvkIXGhIM8="
+    - secure: "Ypcq7vc0e8/fDFSZ4ldlVEWVUCk65NrLi4xUFeVDjFbUsuGJ+9cO9DPk7fgAx5uSQy0b7LLZ+4iY/1dHzcvTmg1HauH8AIBgqyR2bi2yASiwkWF5path/yZ2tpgUHQnPYURVwo2OcQAxPIn7u5+lyjikOU7PHN7vqkBaXEAwTBC26ALPdROmrGaNAUaSz/JXYw6cFnHe/5UGWrIfCFIsa/W+MbOlz9X7gAGRAtReCqWSLqibuGatNVF3z815PqzjYLtTtDqDr9HIjFuDjqLcfW6Yp/fO6qf7A2ePXEldNrl1etYVtwZCQpGkzvQTFv91SN28yRMukRSBeoETmVzyr+uza3Fu+3OhP3LmLe/ArzrJxl7cmDlNW8MyaCLovK5f1LJ0QGh4h+OSw2lKMMFR1FOnWE/ziziYpm0YQZ2vxdNPQM/UsgOF+86z2bilEn1WRhML8AI+I0thCegVz/BbTEtIQ8Ejl3IZlwopdQt8BNVPhSJA2NIVVn887skoxLOy/zHc1XwGVt9Rl80+SWhfhVmnFNhYOTYV5cw8uI1kM5JoLYo/iTb+H9Hbf2NjuqfqMHoKHvCwcuz+pTQfO7b+cbNHQ5X3kIbKrPuiGv948et/W6Zwr83TbyS1fgWUou2ng3REpgez5dpB5ilqCxz4wEPFfW+gM2SFlBiaPI1p0gw="
+    - CONDA_PREFIX=~/conda
+    - CONDA_BIN=~/conda/bin/conda
 install:
-- wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O mc3.sh
-  && bash mc3.sh -bp ~/conda
-- "~/conda/bin/conda install -y sambamba samtools -c bioconda"
-- mkdir ~/bin && cp ~/conda/bin/samtools ~/conda/bin/sambamba ~/bin
-- export PATH="~/bin:$PATH"
-- samtools --version
-- pip install tox-travis
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
+      wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
+    else
+      wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+    fi
+  - bash miniconda.sh -bp $CONDA_PREFIX
+  - $CONDA_BIN config --set always_yes yes --set changeps1 no
+  - $CONDA_BIN --version
+  - $CONDA_BIN config --add channels mvdbeek
+  - $CONDA_BIN config --add channels bioconda
+  - $CONDA_BIN config --add channels conda-forge
+  - $CONDA_BIN install sambamba samtools conda-build -c bioconda
+  - mkdir ~/bin && cp ~/conda/bin/samtools ~/conda/bin/sambamba ~/bin
+  - export PATH="~/bin:$PATH"
+  - samtools --version
+  - pip install tox-travis coveralls anaconda-client
+  - $CONDA_BIN build --python "$TRAVIS_PYTHON_VERSION" conda/readtagger
 script: tox
+after_success:
+    - chmod +x conda/deploy.sh
+    - coveralls
 deploy:
-  provider: pypi
-  user: mvdbeek
-  password:
-    secure: D9HPB8c8xsklQsKHLCSRw5UeuSo/JuM6tO5f6DIPdd/BJNB3xFl6vZFs8yTWSoOZ6aL9kxY03N6Ezj7LQ+M/B6yCu0eDNGvmny89d/ZEwzJ3deV4QVYJi4tu6/rF7+a12OFUIT9N3Y076LkFIYzSlVrDiKoWpfWPgmhD5QmjxgtezJNfjXWjQIorHi/m1fJXvIyCy97tk8OWrSneRGssJtI/laObgJVMbX0lfhxxcjKSbd7Thye0RzoHXl8LUOvxxrB+e88pqZPn1oBIpIirXFFyjAta6uOIQg3b9Yg5XaJUQQWkYXngBMsfwuOIMmCkLaLWg4mg46PahbRzswlKSVtk5cl4af4DkxlrpXqApw1T4FAxfWalirPIvFRiX+N/ZFNzpa1Xl8+npJqVX8n3rZZPR8I7zaai2dwJp5TX71B2Q8WCnP4l2UtlbC2iFP3GbaXXWFXGW9hcCTpeRfJ0UX3prO6fva9wKHXalyFeokCmCyrtyOLyAZYsd7bHVtXnbEpmcFrUbwdGY+FFYkKf7d59Wtfy+0Dg9/AWuFR6cbndVeoZmpBEAS/D3OzjokWrML3LMYDN4PKGf6Fks/C2Ej++n4lLTmVSqQG76yLVzQc1/AunpMWXRVn2vtXApQ+HdUJ+LNY2Dlzm4QJus49/8MgDKRKGvXfPpzws/LIKzQw=
-  on:
-    tags: true
+  - provider: pypi
+    skip_cleanup: true
+    user: mvdbeek
+    password:
+      secure: D9HPB8c8xsklQsKHLCSRw5UeuSo/JuM6tO5f6DIPdd/BJNB3xFl6vZFs8yTWSoOZ6aL9kxY03N6Ezj7LQ+M/B6yCu0eDNGvmny89d/ZEwzJ3deV4QVYJi4tu6/rF7+a12OFUIT9N3Y076LkFIYzSlVrDiKoWpfWPgmhD5QmjxgtezJNfjXWjQIorHi/m1fJXvIyCy97tk8OWrSneRGssJtI/laObgJVMbX0lfhxxcjKSbd7Thye0RzoHXl8LUOvxxrB+e88pqZPn1oBIpIirXFFyjAta6uOIQg3b9Yg5XaJUQQWkYXngBMsfwuOIMmCkLaLWg4mg46PahbRzswlKSVtk5cl4af4DkxlrpXqApw1T4FAxfWalirPIvFRiX+N/ZFNzpa1Xl8+npJqVX8n3rZZPR8I7zaai2dwJp5TX71B2Q8WCnP4l2UtlbC2iFP3GbaXXWFXGW9hcCTpeRfJ0UX3prO6fva9wKHXalyFeokCmCyrtyOLyAZYsd7bHVtXnbEpmcFrUbwdGY+FFYkKf7d59Wtfy+0Dg9/AWuFR6cbndVeoZmpBEAS/D3OzjokWrML3LMYDN4PKGf6Fks/C2Ej++n4lLTmVSqQG76yLVzQc1/AunpMWXRVn2vtXApQ+HdUJ+LNY2Dlzm4QJus49/8MgDKRKGvXfPpzws/LIKzQw=
+    on:
+      tags: true
+  - provider: script
+    skip_cleanup: true
+    script: conda/deploy.sh
+    on:
+      tags: true

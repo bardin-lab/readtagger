@@ -1,9 +1,11 @@
-import shutilwhich  # noqa: F401
-from shutil import which
 import gzip
 import os
 import subprocess
 import pysam
+import six
+if six.PY2:
+    import shutilwhich  # noqa: F401
+from shutil import which  # noqa: E402
 
 
 class BamAlignmentWriter(object):
