@@ -17,10 +17,15 @@ requirements = ['contextlib2', 'pysam', 'six']
 if sys.version_info[0] == 2:
     requirements.append('shutilwhich')
 
+readme = open('README.rst').read()
+history = open('HISTORY.rst').read().replace('.. :changelog:', '')
+
 setup(
     name='readtagger',
     version=__VERSION__,
     packages=['readtagger'],
+    description="Tags reads in a BAM file based on other BAM files.",
+    long_description=readme + '\n\n' + history,
     install_requires=requirements,
     entry_points=ENTRY_POINTS,
     keywords='Bioinformatics',
@@ -42,5 +47,4 @@ setup(
     license='MIT',
     author='Marius van den Beek',
     author_email='m.vandenbeek@gmail.com',
-    description='Tags reads in BAM files based on alignments in additional BAM files.'
 )

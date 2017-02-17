@@ -6,11 +6,28 @@ History
 .. to_doc
 
 ---------------------
-0.2.0 (2017-02-16)
+0.1.9 (2017-02-17)
+---------------------
+* Add automated deployment to Galaxy Toolshed
+
+---------------------
+0.1.8 (2017-02-17)
+---------------------
+* Minor release to test release process
+
+---------------------
+0.1.7 (2017-02-17)
+---------------------
+* Extend testing with coverage testing
+* Automate deployment to pypi and conda
+* Register project with pyup.io
+
+---------------------
+0.1.6 (2017-02-16)
 ---------------------
 * Rename to readtagger
 * Fix bug with stdin closing file descriptor too early, leading to corrupt
-  BAM files.
+  BAM files
 * Extend testing
 
 ---------------------
@@ -19,7 +36,7 @@ History
 * Add option (-wd) to write suboptimal tag into separate BAM file
 * Add option (-wv) to write verified tags into separate BAM file
 * Performance improvments by letting sambamba handle BAM reading
-  and writing. Also elimininate regualr expression to parse cigarstring.
+  and writing. Also elimininate regualr expression to parse cigarstring
 
 ---------------------
 0.1.4 (2017-02-10)
