@@ -9,6 +9,7 @@ History
 0.1.9 (2017-02-17)
 ---------------------
 * Add automated deployment to Galaxy Toolshed
+* Add instructions for development and release process
 
 ---------------------
 0.1.8 (2017-02-17)
