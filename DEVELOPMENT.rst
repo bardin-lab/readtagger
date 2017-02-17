@@ -16,13 +16,11 @@ Edit the HISTORY.rst file and bump the version:
 
 ::
 
-    bumpversion minor
+    bumpversion minor --commit
 
-This will change all version numbers.
-Add a commit with the changes and push to master (or open a PR if you don't
-have push rights). Do not push tags yet.  Make sure current master branch
-builds correctly.
-Once all is good you can push the tags
+This will change all version numbers.  Now push to master (or open a PR if you
+don't have push rights). Do not push tags yet.  Make sure current master branch
+builds correctly. Once all is good you can push the tags
 
 ::
 
