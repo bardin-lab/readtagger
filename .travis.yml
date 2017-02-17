@@ -43,13 +43,16 @@ deploy:
       secure: D9HPB8c8xsklQsKHLCSRw5UeuSo/JuM6tO5f6DIPdd/BJNB3xFl6vZFs8yTWSoOZ6aL9kxY03N6Ezj7LQ+M/B6yCu0eDNGvmny89d/ZEwzJ3deV4QVYJi4tu6/rF7+a12OFUIT9N3Y076LkFIYzSlVrDiKoWpfWPgmhD5QmjxgtezJNfjXWjQIorHi/m1fJXvIyCy97tk8OWrSneRGssJtI/laObgJVMbX0lfhxxcjKSbd7Thye0RzoHXl8LUOvxxrB+e88pqZPn1oBIpIirXFFyjAta6uOIQg3b9Yg5XaJUQQWkYXngBMsfwuOIMmCkLaLWg4mg46PahbRzswlKSVtk5cl4af4DkxlrpXqApw1T4FAxfWalirPIvFRiX+N/ZFNzpa1Xl8+npJqVX8n3rZZPR8I7zaai2dwJp5TX71B2Q8WCnP4l2UtlbC2iFP3GbaXXWFXGW9hcCTpeRfJ0UX3prO6fva9wKHXalyFeokCmCyrtyOLyAZYsd7bHVtXnbEpmcFrUbwdGY+FFYkKf7d59Wtfy+0Dg9/AWuFR6cbndVeoZmpBEAS/D3OzjokWrML3LMYDN4PKGf6Fks/C2Ej++n4lLTmVSqQG76yLVzQc1/AunpMWXRVn2vtXApQ+HdUJ+LNY2Dlzm4QJus49/8MgDKRKGvXfPpzws/LIKzQw=
     on:
       tags: true
+      python: 2.7
   - provider: script
     skip_cleanup: true
     script: conda/deploy.sh
     on:
       tags: true
+      python: 2.7
   - provider: script
     skip_cleanup: true
     script: galaxy/deploy.sh
     on:
       tags: true
+      python: 2.7
