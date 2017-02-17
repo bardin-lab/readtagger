@@ -1,3 +1,4 @@
+import sys
 try:
     from setuptools import setup
 except ImportError:
@@ -11,11 +12,16 @@ ENTRY_POINTS = '''
         allow_dovetailing=readtagger.allow_dovetailing:main
 '''
 
+requirements = ['contextlib2', 'pysam', 'six']
+
+if sys.version_info[0] == 2:
+    requirements.append('shutilwhich')
+
 setup(
     name='readtagger',
     version=__VERSION__,
     packages=['readtagger'],
-    install_requires=['contextlib2', 'pysam', 'six', 'shutilwhich'],
+    install_requires=requirements,
     entry_points=ENTRY_POINTS,
     keywords='Bioinformatics',
     classifiers=[

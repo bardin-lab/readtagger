@@ -4,13 +4,18 @@ python:
 - '2.7'
 - '3.6'
 install:
-- wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O mc3.sh
-  && bash mc3.sh -bp ~/conda
-- "~/conda/bin/conda install -y sambamba samtools -c bioconda"
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
+      wget http://repo.continuum.io/miniconda/Miniconda-3.4.2-Linux-x86_64.sh -O miniconda.sh;
+    else
+      wget http://repo.continuum.io/miniconda/Miniconda3-3.4.2-Linux-x86_64.sh -O miniconda.sh;
+    fi
+- bash miniconda.sh -bp ~/conda
+- "~/conda/bin/conda install -y sambamba samtools conda-build -c bioconda"
 - mkdir ~/bin && cp ~/conda/bin/samtools ~/conda/bin/sambamba ~/bin
 - export PATH="~/bin:$PATH"
 - samtools --version
-- pip install tox-travis
+- pip install tox-travis anaconda-client
+- ~/conda/bin/conda build conda/readtagger
 script: tox
 deploy:
   provider: pypi

@@ -1,0 +1,44 @@
+package:
+  name: readtagger
+  version: {{ GIT_DESCRIBE_TAG }}
+
+source:
+  path: ../../
+
+build:
+  entry_points:
+    - readtagger=readtagger.readtagger:main
+    - readtagger=readtagger.allow_dovetailing:main
+  number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0)}}
+
+requirements:
+  build:
+    - python
+    - setuptools
+    - contextlib2
+    - shutilwhich  # [not py3k]
+    - pysam
+    - six
+
+  run:
+    - sambamba
+    - python
+    - contextlib2
+    - pysam
+    - six
+    - shutilwhich  # [not py3k]
+
+test:
+  # Python imports
+  imports:
+    - readtagger
+
+  commands:
+    - tag_reads --help
+    - allow_dovetailing --help
+
+about:
+  home: https://github.com/bardin-lab/readtagger
+  license: MIT
+  summary: 'Tags reads in BAM files based on alignments in additional BAM files.'
+  license_family: MIT
