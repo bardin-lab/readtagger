@@ -33,7 +33,7 @@ install:
   - $CONDA_BIN build --python "$TRAVIS_PYTHON_VERSION" conda/readtagger
 script: tox
 after_success:
-    - chmod +x conda/deploy.sh
+    - chmod +x conda/deploy.sh galaxy/deploy.sh
     - coveralls
 deploy:
   - provider: pypi
