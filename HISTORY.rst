@@ -6,6 +6,11 @@ History
 .. to_doc
 
 ---------------------
+0.1.10 (2017-02-17)
+---------------------
+* Fix toolshed deployment
+
+---------------------
 0.1.9 (2017-02-17)
 ---------------------
 * Add automated deployment to Galaxy Toolshed
