@@ -131,6 +131,10 @@ def alternative_alignment_cigar_is_better(current_cigar, alternative_cigar, same
      >>> true_alternatives = [('94M31S', '32M93S', False), ('95M30S', '90S35M', True), ('95M30S', '90S35M', True)]
      >>> [alternative_alignment_cigar_is_better(*a) for a in true_alternatives]
      [True, True, True]
+     >>> # The following test is a bit more complicated, because the alternative match is separated by an I
+     >>> difficult_situation = dict(current_cigar='90M35S', alternative_cigar='90S15M1I19M', same_orientation=True)
+     >>> alternative_alignment_cigar_is_better(**difficult_situation)
+     True
     """
     # We start by discarding alignments that are not clipped
     if isinstance(current_cigar, str):
@@ -153,6 +157,7 @@ def alternative_alignment_cigar_is_better(current_cigar, alternative_cigar, same
     cigar_lengths_current_read = cigar_tuple_to_cigar_length(current_cigar)
     # Next we get a range representing the soft and hardlclipped regions in the current read
     split_regions_current_read = [set(range(*reg)) for (reg, operation) in cigar_lengths_current_read if operation in {4, 5}]
+    alternative_cigar = stitch_matched_regions(alternative_cigar)
     cigar_lengths_alternative = cigar_tuple_to_cigar_length(alternative_cigar)
     # Next are the matched regions in the alternative cigar.
     matched_regions_alternative = [set(range(*reg)) for (reg, operation) in cigar_lengths_alternative if operation == 0]
@@ -172,3 +177,45 @@ def alternative_alignment_cigar_is_better(current_cigar, alternative_cigar, same
                     # The alternative match overlaps the clipped region and is equal to or longer than the clipped region
                     return True
     return False
+
+
+def stitch_matched_regions(cigartuples):
+    """
+    Close gaps that are created by I or D events in cigar tuples.
+
+    :param cigartuples:
+    :return:
+    >>> stitch_matched_regions([(4, 90), (0, 15), (1, 1), (0, 19)])
+    [(4, 90), (0, 35)]
+    >>> stitch_matched_regions([(4, 90), (0, 15), (1, 1), (0, 19), (5, 30)])
+    [(4, 90), (0, 35), (5, 30)]
+    >>> stitch_matched_regions([(4, 90), (0, 15), (2, 1), (0, 21)])
+    [(4, 90), (0, 35)]
+    >>> stitch_matched_regions([(4, 90), (0, 15), (1, 10), (0, 19)])
+    [(4, 90), (0, 15), (1, 10), (0, 19)]
+
+    """
+    new_tuples = []
+    for i, (op, l) in enumerate(cigartuples):
+        if op in {1, 2, 7, 8}:  # Insertion, Deletion, Reference Skip Match, Mismatch, these should never occur in the begging or end of a cigar
+            # The following removes the previous match from new_tuples and appends the length to the next item in cigartuples.
+            # This assumes that both are matches ...
+            if new_tuples[-1][0] == 0 and cigartuples[i + 1][0] == 0:
+                # previous cigar added to new_tuples is a match and next item to iterate over is a match as well
+                previous_tuple = new_tuples.pop()
+                add_length = previous_tuple[1]
+                next_tuple = cigartuples.pop(i + 1)
+                if op == 1:
+                    add_length += l  # If insertion in read add the inserted length ... might be a bad choice if insertion is long ...
+                if op == 2:
+                    add_length -= l
+                if l < (next_tuple[1] + add_length) / 10.0:
+                    # make sure l is less then 10% of the length of the stitched region
+                    cigartuples.insert(i + 1, (next_tuple[0], next_tuple[1] + add_length))
+                else:
+                    new_tuples.append(previous_tuple)
+                    new_tuples.append((op, l))
+                    cigartuples.insert(i + 1, next_tuple)
+        else:
+            new_tuples.append((op, l))
+    return new_tuples
