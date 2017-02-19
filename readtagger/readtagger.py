@@ -3,6 +3,7 @@ import argparse
 import pysam
 import six
 import warnings
+from collections import namedtuple
 
 from contextlib2 import ExitStack
 
@@ -13,13 +14,27 @@ from .bam_io import (
 )
 
 __VERSION__ = '0.1.13'
-TAG_TEMPLATE = "R:{ref:s},POS:{pos:d},QSTART:{qstart:d},QEND:{qend:d},CIGAR:{cigar:s},S:{sense:s},MQ:{mq:d}"
+
+
+class BaseTag(object):
+    """Generate class template for tags."""
+
+    def __new__(cls, tid_to_reference_name):
+        """Return a Tag class that knows how to format a tag."""
+        return type('Tag', (namedtuple('tag', 'tid reference_start cigar is_reverse mapq qstart qend'),),
+                    {'__str__': lambda self: self.tag_str_template % (self.tid_to_reference_name[self.tid],
+                                                                      self.reference_start,
+                                                                      self.qstart,
+                                                                      self.qend,
+                                                                      cigartuples_to_cigarstring(self.cigar),
+                                                                      'AS' if self.is_reverse else 'S',
+                                                                      self.mapq),
+                     'tid_to_reference_name': tid_to_reference_name,
+                     'tag_str_template': "R:%s,POS:%d,QSTART:%d,QEND:%d,CIGAR:%s,S:%s,MQ:%d"})
 
 
 class SamTagProcessor(object):
     """Process SAM/AM file for tags of interest and keep a dict of readname, mate identity and tag in self.result."""
-
-    tag_template = TAG_TEMPLATE
 
     def __init__(self, source_path, tag_prefix_self, tag_prefix_mate, tag_mate=True):
         """
@@ -42,6 +57,7 @@ class SamTagProcessor(object):
         self.reference_tag_self = tag_prefix_self + 'R'
         self.reference_tag_mate = tag_prefix_mate + 'R'
         self.source_path = source_path
+        self.tag_template = BaseTag(tid_to_reference_name=self.tid_to_reference_name)
         self.result = self.process_source()
         if self.tag_mate:
             self.add_mate()
@@ -68,17 +84,16 @@ class SamTagProcessor(object):
             - qend
 
         :param r: AlignedSegment
-        :return tags: tuple of information to add to tag
-        :rtype tuple
+        :return tags: namedtuple of information to add to tag
+        :rtype namedtuple
         """
-        tags = (r.tid,
-                r.reference_start,
-                r.cigar,
-                r.is_reverse,
-                r.mapping_quality,
-                r.qstart,
-                r.qend)
-        return tags
+        return self.tag_template(tid=r.tid,
+                                 reference_start=r.reference_start,
+                                 cigar=r.cigar,
+                                 is_reverse=r.is_reverse,
+                                 mapq=r.mapping_quality,
+                                 qstart=r.qstart,
+                                 qend=r.qend)
 
     def is_taggable(self, r):
         """
@@ -113,18 +128,6 @@ class SamTagProcessor(object):
                 if (not k) in tag_d:
                     v['m'] = tag_d[(not k)]['s']
 
-    def format_tag_value(self, t):
-        """
-        Format tuple t into a string to be written out as a tag value.
-
-        :param t: tuple with tag information
-        :type t: tuple
-        >>> t = (0, 362603, [(4, 2), (0, 37)], False, 4, 0, 37)
-        """
-        d = dict(ref=self.tid_to_reference_name[t[0]], pos=t[1], cigar=cigartuples_to_cigarstring(t[2]), sense='AS' if t[3] else 'S', mq=t[4], qstart=t[5],
-                 qend=t[6])
-        return self.tag_template.format(**d)
-
     def format_tags(self, tags):
         """
         Format tags dictionary.
@@ -134,11 +137,11 @@ class SamTagProcessor(object):
         formatted_tags = []
         for k, v in tags.items():
             if k == 's':
-                formatted_tags.append((self.detail_tag_self, self.format_tag_value(v)))
+                formatted_tags.append((self.detail_tag_self, str(v)))
                 formatted_tags.append((self.reference_tag_self, self.tid_to_reference_name[v[0]]))
             else:
-                formatted_tags.append((self.detail_tag_mate, self.format_tag_value(v)))
-                formatted_tags.append(((self.reference_tag_mate, self.tid_to_reference_name[v[0]])))
+                formatted_tags.append((self.detail_tag_mate, str(v)))
+                formatted_tags.append(((self.reference_tag_mate, self.tid_to_reference_name[v.tid])))
         return formatted_tags
 
     def get_other_tag(self, other_r):
