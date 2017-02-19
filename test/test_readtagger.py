@@ -36,14 +36,24 @@ def test_samtag_annotator(datadir, tmpdir):  # noqa: D103
     output_path.check()
 
 
-def test_main(datadir, tmpdir):  # noqa: D103
-    discarded = tmpdir.join('discarded.bam')
-    verified = tmpdir.join('verified.bam')
-    output = tmpdir.join('output.bam')
-    annotate_with = str(datadir[TEST_BAM_A])
-    tag_file = str(datadir[TEST_BAM_B])
+def test_main_keep_suboptimal(datadir, tmpdir):  # noqa: D103
+    # Annotate dm6 with pasteurianus reads, keep suboptimal tags
+    discarded, verified, output = get_output_files(tmpdir)
+    annotate_with = str(datadir[TEST_BAM_B])
+    tag_file = str(datadir[TEST_BAM_A])
     args_template = namedtuple('args', 'annotate_with tag_file allow_dovetailing keep_suboptimal_alternate_tags write_discarded write_verified, output_file')
     args = args_template(annotate_with=[annotate_with], tag_file=tag_file, allow_dovetailing=True, keep_suboptimal_alternate_tags=True,
+                         output_file=output.strpath, write_discarded=discarded.strpath, write_verified=verified.strpath)
+    main(args)
+
+
+def test_main_discard_suboptimal(datadir, tmpdir):  # noqa: D103
+    # Annotate dm6 with pasteurianus reads, keep suboptimal tags
+    discarded, verified, output = get_output_files(tmpdir)
+    annotate_with = str(datadir[TEST_BAM_B])
+    tag_file = str(datadir[TEST_BAM_A])
+    args_template = namedtuple('args', 'annotate_with tag_file allow_dovetailing keep_suboptimal_alternate_tags write_discarded write_verified, output_file')
+    args = args_template(annotate_with=[annotate_with], tag_file=tag_file, allow_dovetailing=True, keep_suboptimal_alternate_tags=False,
                          output_file=output.strpath, write_discarded=discarded.strpath, write_verified=verified.strpath)
     main(args)
 
@@ -56,3 +66,7 @@ def get_samtag_processor(datadir, tag_mate):  # noqa: D103
     assert hasattr(p, 'result')
     assert isinstance(p.result, dict)
     return p
+
+
+def get_output_files(tmpdir):  # noqa: D103
+    return tmpdir.join('discarded.bam'), tmpdir.join('verified.bam'), tmpdir.join('output.bam')
