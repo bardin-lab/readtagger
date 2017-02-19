@@ -154,7 +154,7 @@ def alternative_alignment_cigar_is_better(current_cigar, alternative_cigar, same
         # Maybe we should at least check that the amount of matched bases is higher
         #  TODO: verify this.
         return True
-    cigar_lengths_current_read = cigar_tuple_to_cigar_length(current_cigar)
+    cigar_lengths_current_read = cigar_tuple_to_cigar_length(stitch_matched_regions(current_cigar))
     # Next we get a range representing the soft and hardlclipped regions in the current read
     split_regions_current_read = [set(range(*reg)) for (reg, operation) in cigar_lengths_current_read if operation in {4, 5}]
     alternative_cigar = stitch_matched_regions(alternative_cigar)
@@ -199,7 +199,6 @@ def stitch_matched_regions(cigartuples):
     for i, (op, l) in enumerate(cigartuples):
         if op in {1, 2, 7, 8}:  # Insertion, Deletion, Reference Skip Match, Mismatch, these should never occur in the begging or end of a cigar
             # The following removes the previous match from new_tuples and appends the length to the next item in cigartuples.
-            # This assumes that both are matches ...
             if new_tuples[-1][0] == 0 and cigartuples[i + 1][0] == 0:
                 # previous cigar added to new_tuples is a match and next item to iterate over is a match as well
                 previous_tuple = new_tuples.pop()
