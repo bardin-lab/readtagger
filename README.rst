@@ -31,9 +31,9 @@ output.bam, type
 
     readtagger --tag_file a.bam --annotate_with b.bam ----output_file output.bam
 
-This will by default tag reads with the RD, RR, MD and MR tags, where
-the RD tag has detail mapping information for the current read, while
-the MD tag has the information for the mate. RR and MR contain the
+This will by default tag reads with the AD, AR, BD and BR tags, where
+the AD tag has detail mapping information for the current read, while
+the BD tag has the information for the mate. AR and BR contain the
 aligned reference (i.e chromosome). The first letter can be changed on a
 per-file basis by appending ":first\_letter\_read:first\_letter\_mate"
 to the file path. To change the above example into X for the read and Y
@@ -71,3 +71,4 @@ If you modify readtagger, you can run all tests by running tox:
 
     pip install tox
     tox
+
