@@ -179,10 +179,6 @@ class SamAnnotator(object):
         self.annotate_file = annotate_file
         self.output_path = output_path
         self.samtags = samtags
-        self.detail_tag_self = self.samtags[0].detail_tag_self  # urgs ... probably bad design here :(.
-        self.detail_tag_mate = self.samtags[0].detail_tag_mate
-        self.reference_tag_self = self.samtags[0].reference_tag_self
-        self.reference_tag_mate = self.samtags[0].reference_tag_mate
         if allow_dovetailing:
             self.max_proper_size = self.get_max_proper_pair_size(pysam.AlignmentFile(annotate_file))
             if not self.max_proper_size:
