@@ -15,6 +15,7 @@
         $keep_suboptimal
         $discarded
         $verified
+        $discard_proper_pairs
         -o '$tagged_file'
     ]]></command>
     <inputs>
@@ -30,6 +31,7 @@
         </repeat>
         <param argument="--allow_dovetailing" type="boolean" truevalue="-d" falsevalue="" label="Allow dovetailing" help="Check this to label reads as proper_pair even if the mates of a pair overlap each other"/>
         <param argument="-k" name="keep_suboptimal" type="boolean" truevalue="-k" falsevalue="" label="Keep suboptimal alternative tags" help="Check this to also keep alternative tags that cannot explain the current read cigar"/>
+        <param argument="-dp" name="discard_proper_pairs" type="boolean" truevalue="-dp" falsevalue="" label="Discard alternative tags for proper pairs" help="Check this to discard alternative tags for reads in proper pairs"/>
         <param argument="-wd" name="discarded" type="boolean" truevalue="-wd discarded.bam" falsevalue="" label="Check this to produce an output file containing only the reads with tags that failed validation"/>
         <param argument="-wv" name="verified" type="boolean" truevalue="-wv verified.bam" falsevalue="" label="Check this to produce an output file containing only the reads with tags that pass validation"/>
     </inputs>
@@ -68,6 +70,21 @@
             <output name="tagged_file" file="a_pasteurianus_tagged_with_dm6.bam" ftype="bam" lines_diff="5" />
             <output name="verified_file" file="a_pasteurianus_tagged_with_dm6_verified.bam" ftype="bam" lines_diff="5"/>
             <output name="discarded_file" file="a_pasteurianus_tagged_with_dm6_discarded.bam" ftype="bam" lines_diff="5"/>
+        </test>
+        <test> <!-- test that a pair with homology to a TE insertion is discarded, because it is a proper pair -->
+            <param name="tag_file" value="proper_pair_discard.bam" ftype="bam"/>
+            <repeat name="alignment_series">
+                <param name="annotate_with" value="proper_pair_discard_fbti.bam" ftype="bam"/>
+                <param name="r_tag" value="A"/>
+                <param name="m_tag" value="B"/>
+            </repeat>
+            <param name="discarded" value="True"/>
+            <param name="keep_suboptimal" value="True"/>
+            <param name="discard_proper_pairs" value="True"/>
+            <param name="verified" value="True"/>
+            <output name="tagged_file" file="proper_pair_out_suboptimal_tags.bam" ftype="bam" lines_diff="5" />
+            <output name="verified_file" file="proper_pair_discard_verified_empty.bam" ftype="bam" lines_diff="5"/>
+            <output name="discarded_file" file="proper_pair_discard_out.bam" ftype="bam" lines_diff="5"/>
         </test>
     </tests>
     <help><![CDATA[

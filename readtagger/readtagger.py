@@ -163,6 +163,7 @@ class SamAnnotator(object):
                  output_path="test.bam",
                  allow_dovetailing=False,
                  discard_bad_alt_tag=True,
+                 discard_if_proper_pair=False,
                  discarded_writer=None,
                  verified_writer=None):
         """
@@ -183,7 +184,7 @@ class SamAnnotator(object):
             self.max_proper_size = self.get_max_proper_pair_size(pysam.AlignmentFile(annotate_file))
             if not self.max_proper_size:
                 allow_dovetailing = False
-        self.process(allow_dovetailing, discard_bad_alt_tag, discarded_writer, verified_writer)
+        self.process(allow_dovetailing, discard_bad_alt_tag, discard_if_proper_pair, discarded_writer, verified_writer)
 
     @property
     def header(self):
@@ -193,14 +194,15 @@ class SamAnnotator(object):
                 self._header = source.header
         return self._header
 
-    def process(self, allow_dovetailing=False, discard_bad_alt_tag=True, discarded_writer=None, verified_writer=None):
+    def process(self, allow_dovetailing=False, discard_bad_alt_tag=True, discard_if_proper_pair=False, discarded_writer=None, verified_writer=None):
         """Iterate over reads and fetch annotation from self.samtags."""
         kwds = {'reader': {Reader: {'path': self.annotate_file}},
                 'main_writer': {Writer: {'path': self.output_path, 'header': self.header}},
                 'discarded_writer': {Writer: {'path': discarded_writer, 'header': self.header}},
                 'verified_writer': {Writer: {'path': verified_writer, 'header': self.header}}}
         args = {'allow_dovetailing': allow_dovetailing,
-                'discard_bad_alt_tag': discard_bad_alt_tag}
+                'discard_bad_alt_tag': discard_bad_alt_tag,
+                'discard_if_proper_pair': discard_if_proper_pair}
         with ExitStack() as stack:
             for arg, cls_arg_d in kwds.items():
                 for cls, cls_args in cls_arg_d.items():
@@ -210,10 +212,11 @@ class SamAnnotator(object):
                         args[arg] = None
             self._process(**args)
 
-    def _process(self, reader, main_writer, discarded_writer=None, verified_writer=None, allow_dovetailing=False, discard_bad_alt_tag=True):
+    def _process(self, reader, main_writer, discarded_writer, discard_if_proper_pair, verified_writer, allow_dovetailing, discard_bad_alt_tag):
         for read in reader:
             discarded_tags = []
             verified_tags = []
+            verified_tag = None
             for samtag in self.samtags:
                 alt_tag = samtag.get_other_tag(read)
                 if alt_tag and discard_bad_alt_tag:
@@ -224,9 +227,12 @@ class SamAnnotator(object):
                     alt_tag = verified_tag
                 if alt_tag:
                     verified_tag = samtag.format_tags(alt_tag)
-                    verified_tags.extend(verified_tag)
             if allow_dovetailing:
                 read = self.allow_dovetailing(read, self.max_proper_size)
+            if verified_tag and discard_if_proper_pair and read.is_proper_pair:
+                discarded_tags.extend(verified_tag)
+            elif verified_tag:
+                verified_tags.extend(verified_tag)
             if discarded_tags:
                 discarded_read = read.__copy__()
                 discarded_read.tags += discarded_tags
@@ -353,6 +359,7 @@ def parse_args():
     p.add_argument('-d', '--allow_dovetailing',
                    action='store_true',
                    help="Sets the proper pair flag (0x0002) to true if reads dovetail [reads reach into or surpass the mate sequence].")
+    p.add_argument('-dp', '--discard_if_proper_pair', action='store_true', help="Discard an alternative flag if the current read is in a proper pair.")
     p.add_argument('-k', '--keep_suboptimal_alternate_tags', action='store_true',
                    help="By default cigarstrings of the alternative tags are compared and alternates that are not explaining the current cigar "
                         "strings are discarded. Use this option to keep the alternative tags (effectively restoring the behaviour of readtagger < 0.1.4)")
@@ -374,6 +381,7 @@ def main(args=None):
                  output_path=args.output_file,
                  allow_dovetailing=args.allow_dovetailing,
                  discard_bad_alt_tag=not args.keep_suboptimal_alternate_tags,
+                 discard_if_proper_pair=args.discard_if_proper_pair,
                  discarded_writer=args.write_discarded,
                  verified_writer=args.write_verified)
 
