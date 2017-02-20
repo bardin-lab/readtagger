@@ -10,6 +10,7 @@ ENTRY_POINTS = '''
         [console_scripts]
         readtagger=readtagger.readtagger:main
         allow_dovetailing=readtagger.allow_dovetailing:main
+        add_matesequence=readtagger.mateoperations:main
 '''
 
 requirements = ['contextlib2', 'pysam', 'six']

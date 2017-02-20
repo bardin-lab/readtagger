@@ -1,0 +1,45 @@
+<tool id="add_matesequence" name="Add matesequence" version="0.1.13">
+    <description>into tag field</description>
+    <requirements>
+        <requirement type="package" version="0.1.13">readtagger</requirement>
+    </requirements>
+    <version_command>add_matesequence --version</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+        add_matesequence --file_to_annotate '$file_to_annotate' --annotate_source '$annotate_source' --output_path '$output'
+    ]]></command>
+    <inputs>
+        <param name="file_to_annotate" argument="--file_to_annotate" label="Annotate reads in this file with their mate sequence" type="data" format="bam"/>
+        <param name="annotate_source" argument="--annotate_source" label="Use this file to find the mate sequence (can be same file as file_to_annotate)" type="data" format="bam"/>
+        <param name="mate_sequence_tag" type="text" default="MS"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="bam" label="Add matesequence on $on_string"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="file_to_annotate" value="dm6.bam" ftype="bam"/>
+            <param name="annotate_source" value="dm6.bam" ftype="bam"/>
+            <output name="output" file="dm6_mate_annotated.bam" ftype="bam" lines_diff="2"/>
+        </test>
+    </tests>
+    <help><![CDATA[
+.. code-block::
+
+    usage: add_matesequence [-h] -a FILE_TO_ANNOTATE -s ANNOTATE_SOURE -o
+                            OUTPUT_PATH [--version]
+
+    Annotate reads with Mate Sequence in tag field
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -a FILE_TO_ANNOTATE, --file_to_annotate FILE_TO_ANNOTATE
+                            Annotate reads in this file with their mate sequence
+      -s ANNOTATE_SOURE, --annotate_soure ANNOTATE_SOURE
+                            Use this file to find the mate sequence (can be same
+                            file as file_to_annotate)
+      -o OUTPUT_PATH, --output_path OUTPUT_PATH
+                            Write resulting BAM file to this path
+      --version             show program's version number and exit
+
+    ]]></help>
+</tool>
