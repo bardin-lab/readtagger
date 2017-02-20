@@ -92,7 +92,6 @@ class BamAlignmentReader(object):
                     self._is_bam = False
             except Exception:
                 self._is_bam = False
-        print(self.path, self._is_bam)
         return self._is_bam
 
     def close(self):
