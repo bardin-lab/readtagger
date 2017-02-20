@@ -10,7 +10,7 @@
     <inputs>
         <param name="file_to_annotate" argument="--file_to_annotate" label="Annotate reads in this file with their mate sequence" type="data" format="bam"/>
         <param name="annotate_source" argument="--annotate_source" label="Use this file to find the mate sequence (can be same file as file_to_annotate)" type="data" format="bam"/>
-        <param name="mate_sequence_tag" type="text" default="MS"/>
+        <param name="mate_sequence_tag" type="text" value="MS"/>
     </inputs>
     <outputs>
         <data name="output" format="bam" label="Add matesequence on $on_string"/>
