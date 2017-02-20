@@ -88,22 +88,45 @@
         </test>
     </tests>
     <help><![CDATA[
-        usage: readtagger [-h] -t TAG_FILE -a ANNOTATE_WITH [ANNOTATE_WITH ...] -o
-                 OUTPUT_FILE
+.. code-block::
 
-Tag reads in an alignment file based on other alignment files
+    usage: readtagger [-h] -t TAG_FILE -a ANNOTATE_WITH [ANNOTATE_WITH ...] -o
+                      OUTPUT_FILE [-d] [-dp] [-k] [-wd WRITE_DISCARDED]
+                      [-wv WRITE_VERIFIED] [--version]
 
-optional arguments:
-  -h, --help            show this help message and exit
-  -t TAG_FILE, --tag_file TAG_FILE
-                        Tag reads in this file. (default: None)
-  -a ANNOTATE_WITH [ANNOTATE_WITH ...], --annotate_with ANNOTATE_WITH [ANNOTATE_WITH ...]
-                        Tag reads in readfile if reads are aligned in these
-                        files.Append `:A:B` to tag first letter of tag
-                        describing read as A, and first letter of tag
-                        describing the mate as B (default: None)
-  -o OUTPUT_FILE, --output_file OUTPUT_FILE
-                        Write bam file to this path (default: None)
+    Tag reads in an alignment file based on other alignment files
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -t TAG_FILE, --tag_file TAG_FILE
+                            Tag reads in this file. (default: None)
+      -a ANNOTATE_WITH [ANNOTATE_WITH ...], --annotate_with ANNOTATE_WITH [ANNOTATE_WITH ...]
+                            Tag reads in readfile if reads are aligned in these
+                            files.Append `:A:B` to tag first letter of tag
+                            describing read as A, and first letter of tag
+                            describing the mate as B (default: None)
+      -o OUTPUT_FILE, --output_file OUTPUT_FILE
+                            Write bam file to this path (default: None)
+      -d, --allow_dovetailing
+                            Sets the proper pair flag (0x0002) to true if reads
+                            dovetail [reads reach into or surpass the mate
+                            sequence]. (default: False)
+      -dp, --discard_if_proper_pair
+                            Discard an alternative flag if the current read is in
+                            a proper pair. (default: False)
+      -k, --keep_suboptimal_alternate_tags
+                            By default cigarstrings of the alternative tags are
+                            compared and alternates that are not explaining the
+                            current cigar strings are discarded. Use this option
+                            to keep the alternative tags (effectively restoring
+                            the behaviour of readtagger < 0.1.4) (default: False)
+      -wd WRITE_DISCARDED, --write_discarded WRITE_DISCARDED
+                            Write discarded reads into separate file (default:
+                            False)
+      -wv WRITE_VERIFIED, --write_verified WRITE_VERIFIED
+                            Write verified reads into separate file (default:
+                            False)
+      --version             show program's version number and exit
 
     ]]></help>
 </tool>

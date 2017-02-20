@@ -19,16 +19,17 @@
         </test>
     </tests>
     <help><![CDATA[
-::
-usage: allow_dovetailing [-h] -i INPUT_PATH -o OUTPUT_PATH
+.. code-block::
 
-Allow dovetailing.
+    usage: allow_dovetailing [-h] -i INPUT_PATH -o OUTPUT_PATH
 
-optional arguments:
-  -h, --help            show this help message and exit
-  -i INPUT_PATH, --input_path INPUT_PATH
-                        Input alignment file to manipulate
-  -o OUTPUT_PATH, --output_path OUTPUT_PATH
-                        Output alignment file
+    Allow dovetailing.
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      -i INPUT_PATH, --input_path INPUT_PATH
+                            Input alignment file to manipulate
+      -o OUTPUT_PATH, --output_path OUTPUT_PATH
+                            Output alignment file
     ]]></help>
 </tool>
