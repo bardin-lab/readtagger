@@ -13,7 +13,7 @@ from .bam_io import (
     BamAlignmentReader as Reader,
 )
 
-__VERSION__ = '0.1.13'
+__VERSION__ = '0.2.0'
 
 
 class BaseTag(object):
