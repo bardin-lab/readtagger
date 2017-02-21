@@ -6,6 +6,19 @@ History
 .. to_doc
 
 ---------------------
+0.2.0(2017-02-21)
+---------------------
+* Reformat help text in galaxy wrappers
+* Add add_matesequence script to add the sequence of the mate of the current read as a tag
+* Add option to discard alternative tag if read is a proper pair
+* Stitch cigars that are separated by I or D events
+* Add a tag tuple that knows how to format itself
+* Update README.rst example with current default tag prefix
+* Test with and without discarding verified reads
+* Symlink test-files that are shared with the galaxy test, add testcase for allow_dovetailing script
+* Fix HISTORY.rst formatting
+
+---------------------
 0.1.13(2017-02-17)
 ---------------------
 * Add instructions for development
@@ -21,7 +34,7 @@ History
 ---------------------
 * Test deployment
 
-  ---------------------
+---------------------
 0.1.10 (2017-02-17)
 ---------------------
 * Fix toolshed deployment
