@@ -6,15 +6,12 @@ source:
   path: ../../
 
 build:
-  entry_points:
-    - readtagger=readtagger.readtagger:main
-    - allow_dovetailing=readtagger.allow_dovetailing:main
-    - add_matesequence=readtagger.add_matesequence:main
   number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0)}}
 
 requirements:
   build:
     - python
+    - biopython
     - setuptools
     - contextlib2
     - shutilwhich  # [not py3k]
@@ -22,6 +19,7 @@ requirements:
     - six
 
   run:
+    - biopython
     - cap3
     - sambamba
     - python
