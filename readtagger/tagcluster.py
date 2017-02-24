@@ -4,6 +4,8 @@ from .cigar import cigar_tuple_to_cigar_length
 from .cigar import stitch_matched_regions
 from .tags import Tag
 
+MAX_TSD_SIZE = 50
+
 
 class TagCluster(object):
     """Take a cluster of reads and figure out how to organize clustered reads."""
@@ -11,6 +13,7 @@ class TagCluster(object):
     def __init__(self, cluster):
         """Cluster is an iterable of pysam.AlignedSegement objects."""
         self.cluster = cluster
+        self.tsd = TargetSiteDuplication(self.cluster)
         self.sequences_of_interest = self.extract_seqs_of_interest()
 
     def find_break(self):
@@ -57,11 +60,22 @@ class TagCluster(object):
 class TargetSiteDuplication(object):
     """Collect Target Site Duplication methods and data."""
 
-    def __init__(self, cluster):
+    def __init__(self, cluster, include_duplicates=False):
+        """Return TargetSiteDuplication object for reads in cluster."""
         self.cluster = cluster
-        self.split_ads = [r for r in self.cluster if r.has_tag('AD')]
+        if include_duplicates:
+            self.split_ads = [r for r in self.cluster if r.has_tag('AD')]
+        else:
+            self.split_ads = [r for r in self.cluster if r.has_tag('AD') and not r.is_duplicate]
         self.three_p = self.find_three_p()
         self.five_p = self.find_five_p()
+
+    @property
+    def is_valid(self):
+        """Return True if Target Site Duplication is valid."""
+        if not hasattr(self, '_is_valid'):
+            self._is_valid = self.three_p != self.five_p and self.five_p - self.three_p <= MAX_TSD_SIZE  # Super arbitrary, but I guess we should check this
+        return self._is_valid
 
     def find_five_p(self):
         """
@@ -142,18 +156,21 @@ class TargetSiteDuplication(object):
 
     @property
     def three_p_support(self):
+        """Return list of Reads that support inferred three prime position for this TSD."""
         if not hasattr(self, '_three_p_support'):
             self._three_p_support = [r.query_name for r in self.split_ads if r.pos == self.three_p]
         return self._three_p_support
 
     @property
     def five_p_support(self):
+        """Return list of Reads that support inferred five prime position for this TSD."""
         if not hasattr(self, '_five_p_support'):
             self._five_p_support = [r.query_name for r in self.split_ads if r.reference_end == self.five_p]
         return self._five_p_support
 
     @property
     def unassigned_support(self):
+        """Return list of Reads that were not starting or ending at the three prime or five prime of this TSD."""
         if not hasattr(self, '_unassigned_support'):
             self._unassigned_support = [r.query_name for r in self.split_ads if r.query_name not in self.five_p_support + self.three_p_support]
         return self._unassigned_support
