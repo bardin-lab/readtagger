@@ -3,34 +3,19 @@ import argparse
 import pysam
 import six
 import warnings
-from collections import namedtuple
 
 from contextlib2 import ExitStack
 
-from .cigar import alternative_alignment_cigar_is_better, cigartuples_to_cigarstring
+from .cigar import alternative_alignment_cigar_is_better
 from .bam_io import (
     BamAlignmentWriter as Writer,
     BamAlignmentReader as Reader,
 )
+from .tags import (
+    BaseTag,
+)
 
 __VERSION__ = '0.2.0'
-
-
-class BaseTag(object):
-    """Generate class template for tags."""
-
-    def __new__(cls, tid_to_reference_name):
-        """Return a Tag class that knows how to format a tag."""
-        return type('Tag', (namedtuple('tag', 'tid reference_start cigar is_reverse mapq qstart qend'),),
-                    {'__str__': lambda self: self.tag_str_template % (self.tid_to_reference_name[self.tid],
-                                                                      self.reference_start,
-                                                                      self.qstart,
-                                                                      self.qend,
-                                                                      cigartuples_to_cigarstring(self.cigar),
-                                                                      'AS' if self.is_reverse else 'S',
-                                                                      self.mapq),
-                     'tid_to_reference_name': tid_to_reference_name,
-                     'tag_str_template': "R:%s,POS:%d,QSTART:%d,QEND:%d,CIGAR:%s,S:%s,MQ:%d"})
 
 
 class SamTagProcessor(object):
@@ -261,10 +246,9 @@ class SamAnnotator(object):
         for (alt_tag, s_or_m, cigar) in tags_to_check:
             if cigar:
                 # Can only check if read has cigar/alt_cigar
-                alt_is_reverse = alt_tag[3]
-                same_orientation = alt_is_reverse == (read.is_reverse if s_or_m == 's' else read.mate_is_reverse)
+                same_orientation = alt_tag.is_reverse == (read.is_reverse if s_or_m == 's' else read.mate_is_reverse)
                 keep = alternative_alignment_cigar_is_better(current_cigar=cigar,
-                                                             alternative_cigar=alt_tag[2],
+                                                             alternative_cigar=alt_tag.cigar,
                                                              same_orientation=same_orientation)
                 if keep:
                     verified_alt_tag[s_or_m] = alt_tag
