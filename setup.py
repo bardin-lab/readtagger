@@ -13,7 +13,7 @@ ENTRY_POINTS = '''
         add_matesequence=readtagger.mateoperations:main
 '''
 
-requirements = ['contextlib2', 'pysam', 'six']
+requirements = ['biopython', 'contextlib2', 'pysam', 'six']
 
 if sys.version_info[0] == 2:
     requirements.append('shutilwhich')
