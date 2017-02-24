@@ -8,7 +8,8 @@ source:
 build:
   entry_points:
     - readtagger=readtagger.readtagger:main
-    - readtagger=readtagger.allow_dovetailing:main
+    - allow_dovetailing=readtagger.allow_dovetailing:main
+    - add_matesequence=readtagger.add_matesequence:main
   number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0)}}
 
 requirements:
@@ -36,6 +37,7 @@ test:
   commands:
     - readtagger --help
     - allow_dovetailing --help
+    - add_matesequence --help
 
 about:
   home: https://github.com/bardin-lab/readtagger
