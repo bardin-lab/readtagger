@@ -39,6 +39,7 @@ class Tag(object):
 
     @property
     def cigar_regions(self):
+        """Return cigar regions as list of tuples in foim [(start, end), operation]."""
         if not hasattr(self, '_cigar_regions'):
             self._cigar_regions = cigar_tuple_to_cigar_length(self.cigar)
         return self._cigar_regions
