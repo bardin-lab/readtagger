@@ -25,8 +25,8 @@ install:
   - $CONDA_BIN config --add channels mvdbeek
   - $CONDA_BIN config --add channels bioconda
   - $CONDA_BIN config --add channels conda-forge
-  - $CONDA_BIN install sambamba samtools conda-build -c bioconda
-  - mkdir ~/bin && cp ~/conda/bin/samtools ~/conda/bin/sambamba ~/bin
+  - $CONDA_BIN install cap3 sambamba samtools conda-build -c bioconda
+  - mkdir ~/bin && cp ~/conda/bin/cap3 ~/conda/bin/samtools ~/conda/bin/sambamba ~/bin
   - export PATH="~/bin:$PATH"
   - samtools --version
   - pip install tox-travis coveralls anaconda-client
