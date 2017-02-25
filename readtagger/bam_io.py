@@ -5,7 +5,7 @@ import pysam
 import six
 if six.PY2:
     import shutilwhich  # noqa: F401
-from shutil import which  # noqa: E402
+import shutil  # noqa: E402
 
 
 class BamAlignmentWriter(object):
@@ -29,9 +29,9 @@ class BamAlignmentWriter(object):
         elif self.external_bin == 'samtools':
             return samtools_args
         elif self.external_bin == 'choose_best':
-            if which('sambamba'):
+            if shutil.which('sambamba'):
                 return sambamba_args
-            if which('samtools'):
+            if shutil.which('samtools'):
                 return samtools_args
         return None
 
@@ -74,9 +74,9 @@ class BamAlignmentReader(object):
         elif self.external_bin == 'samtools':
             return samtools_args
         elif self.external_bin == 'choose_best':
-            if which('sambamba'):
+            if shutil.which('sambamba'):
                 return sambamba_args
-            if which('samtools'):
+            if shutil.which('samtools'):
                 return samtools_args
         return None
 
