@@ -27,7 +27,13 @@ class Tag(object):
     """Collect tag attributes and conversion."""
 
     def __init__(self, reference_start, cigar, is_reverse, mapq=None, qstart=None, qend=None, tid=None, reference_name=None):
-        """Return new Tag instance from kwds."""
+        """
+        Return new Tag instance from kwds.
+
+        Note that the cigar is always wrt the reference alignment.
+        When comparing Tag object by their cigar, one of the cigar needs to be inverted if the
+        Tag objects are not in the same orientation.
+        """
         self.reference_start = reference_start
         self._cigar = cigar
         self.is_reverse = is_reverse
@@ -39,7 +45,12 @@ class Tag(object):
 
     @property
     def cigar_regions(self):
-        """Return cigar regions as list of tuples in foim [(start, end), operation]."""
+        """
+        Return cigar regions as list of tuples in foim [(start, end), operation].
+
+        >>> Tag(reference_start=0, cigar='20M30S', is_reverse='True', mapq=60, qstart=0, qend=20, tid=5).cigar_regions
+        [((0, 20), 0), ((20, 50), 4)]
+        """
         if not hasattr(self, '_cigar_regions'):
             self._cigar_regions = cigar_tuple_to_cigar_length(self.cigar)
         return self._cigar_regions
@@ -82,6 +93,11 @@ class Tag(object):
         >>> t = Tag.from_tag_str('R:FBti0019061_rover_Gypsy,POS:7435,QSTART:0,QEND:34,CIGAR:34M91S,S:S,MQ:60')
         >>> isinstance(t, Tag)
         True
+        >>> t.cigar == [(0, 34), (4, 91)]
+        True
+        >>> t = Tag.from_tag_str('R:FBti0019061_rover_Gypsy,POS:7435,QSTART:0,QEND:34,CIGAR:34M91S,S:AS,MQ:60')
+        >>> t.is_reverse
+        True
         """
         tag_to_attr = {'R': 'reference_name', 'POS': 'reference_start', 'QSTART': 'qstart', 'QEND': 'qend', 'CIGAR': 'cigar', 'S': 'is_reverse', 'MQ': 'mapq'}
         integers = ['reference_start', 'qstart', 'qend', 'mapq']
@@ -95,7 +111,13 @@ class Tag(object):
         return Tag(**tag_d)
 
     def to_dict(self):
-        """Serialize self into dictionary."""
+        """
+        Serialize self into dictionary.
+
+        >>> t = Tag.from_tag_str('R:FBti0019061_rover_Gypsy,POS:7435,QSTART:0,QEND:34,CIGAR:34M91S,S:S,MQ:60')
+        >>> t.to_dict()['is_reverse']
+        False
+        """
         return {'reference_start': self.reference_start,
                 'cigar': self.cigar,
                 'mapq': self.mapq,
