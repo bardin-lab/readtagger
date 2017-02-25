@@ -38,3 +38,10 @@ class Cap3Assembly(object):
         """Assemble sequences."""
         args = ['cap3', self.input_path, '-p', '75', '-s', '500', '-z', '2']
         subprocess.call(args, env=os.environ.copy())
+
+    @staticmethod
+    def join_assemblies(assemblies):
+        """Get contigs for each assembly and attemp to generate a longer contig."""
+        contigs = [contig for cap3obj in assemblies for contig in cap3obj.assembly.contigs]
+        sequences = {"Contig_%s" % i: contig.sequence for i, contig in enumerate(contigs)}
+        return Cap3Assembly(sequences)
