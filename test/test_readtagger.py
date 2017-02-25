@@ -1,6 +1,7 @@
 from readtagger.readtagger import SamTagProcessor
 from readtagger.readtagger import SamAnnotator
 from readtagger.readtagger import main
+from .helpers import namedtuple_to_argv
 
 from collections import namedtuple
 
@@ -72,6 +73,19 @@ def test_main_discard_suboptimal_discard_if_proper(datadir, tmpdir):  # noqa: D1
     args = ARGS_TEMPLATE(annotate_with=[annotate_with], tag_file=tag_file, allow_dovetailing=True, keep_suboptimal_alternate_tags=False,
                          discard_if_proper_pair=True, output_file=output.strpath, write_discarded=discarded.strpath, write_verified=verified.strpath)
     main(args)
+
+
+def test_main_with_argparse(datadir, tmpdir, mocker):  # noqa: D103
+    # Annotate dm6 with pasteurianus reads, keep suboptimal tags, discard proper pairs
+    # and test that argparse argument parsing works as expected.
+    discarded, verified, output = get_output_files(tmpdir)
+    annotate_with = str(datadir[TEST_BAM_B])
+    tag_file = str(datadir[TEST_BAM_A])
+    args = ARGS_TEMPLATE(annotate_with=[annotate_with], tag_file=tag_file, allow_dovetailing=True, keep_suboptimal_alternate_tags=False,
+                         discard_if_proper_pair=True, output_file=output.strpath, write_discarded=discarded.strpath, write_verified=verified.strpath)
+    argv = namedtuple_to_argv(args, 'readtagger.py')
+    mocker.patch('sys.argv', argv)
+    main()
 
 
 def get_samtag_processor(datadir, tag_mate):  # noqa: D103
