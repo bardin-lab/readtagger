@@ -1,7 +1,7 @@
 from readtagger.bam_io import BamAlignmentReader
 from readtagger.bam_io import BamAlignmentWriter
 
-
+TEST_BAM = 'dm6.bam'
 TEST_SAM = 'testsam_a.sam'
 TEST_SAM_B = 'testsam_b.sam'
 
@@ -21,6 +21,11 @@ def test_bamreader_internal(datadir):  # noqa: D103
 def test_bamreader_choose_best_samtools(datadir, mocker):  # noqa: D103
     mocker.patch('shutil.which', side_effect=return_samtools)  # will test samtools
     _test_bamreader(datadir, 'choose_best')
+
+
+def test_bamreader_bam(datadir):  # noqa: D103
+    with BamAlignmentReader(datadir[TEST_BAM], 'sambamba') as reader:
+        assert len([r for r in reader]) == 2
 
 
 def test_bamwriter_sambamba(datadir, tmpdir):  # noqa: D103
