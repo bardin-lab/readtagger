@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import tempfile
 from Bio.Sequencing import Ace
@@ -27,6 +28,7 @@ class Cap3Assembly(object):
         self.write_sequences()
         self.assemble()
         self.assembly = Ace.read(open(os.path.join(self.input_dir, 'multialign.fa.cap.ace')))
+        shutil.rmtree(self.input_dir)
 
     def write_sequences(self):
         """Take sequences and write them out to temporary file for cap3."""
@@ -37,7 +39,7 @@ class Cap3Assembly(object):
     def assemble(self):
         """Assemble sequences."""
         args = ['cap3', self.input_path, '-p', '75', '-s', '500', '-z', '2']
-        subprocess.call(args, env=os.environ.copy())
+        subprocess.check_call(args, env=os.environ.copy())  # Use check call to ignore stdout of cap3
 
     @staticmethod
     def join_assemblies(assemblies):
