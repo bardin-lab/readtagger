@@ -3,7 +3,8 @@ from cached_property import cached_property
 from .cigar import (
     cigartuples_to_cigarstring,
     cigar_tuple_to_cigar_length,
-    cigar_to_tuple
+    cigar_to_tuple,
+    cigartuples_to_named_cigartuples
 )
 
 
@@ -64,6 +65,7 @@ class Tag(object):
         """
         if isinstance(self._cigar, str):
             self._cigar = cigar_to_tuple(self._cigar)
+        self._cigar = cigartuples_to_named_cigartuples(self._cigar)
         return self._cigar
 
     @staticmethod

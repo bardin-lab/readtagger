@@ -3,7 +3,6 @@ from collections import Counter
 import warnings
 from cached_property import cached_property
 from .cap3 import Cap3Assembly
-from .tags import Tag
 
 MAX_TSD_SIZE = 50
 
@@ -50,9 +49,9 @@ class TagCluster(object):
         if self.right_sequences and self.left_sequences:
             return Cap3Assembly.join_assemblies([self.left_insert, self.right_insert])
         elif self.right_sequences:
-            return self._right_insert
-        elif self._left_sequences:
-            return self._left_insert
+            return self.right_insert
+        elif self.left_sequences:
+            return self.left_insert
         else:
             return None
 
@@ -141,10 +140,8 @@ class TagCluster(object):
                         qname = "%s.2" % r.query_name
                     left_sequences[qname] = r.get_tag('MS')
             if r.has_tag('AD') and r.query_name in self.tsd.five_p_support:
-                if r.is_reverse:
-                    left_sequences[r.query_name] = r.query_sequence[:r.query_alignment_start]
-                else:
-                    left_sequences[r.query_name] = r.query_sequence[r.query_alignment_end:]
+                if r.reference_end == self.tsd.five_p or r.pos == self.tsd.five_p:
+                    left_sequences[r.query_name] = r.query_sequence
         return left_sequences
 
     @cached_property
@@ -159,6 +156,8 @@ class TagCluster(object):
         right_sequences = {}
         for r in self.cluster:
             if r.has_tag('BD'):
+                # Exclude reads that have both AD and BD when determining reads that support the right side,
+                # because if they overlap they will already count by their AD Tag below.
                 if r.is_reverse:
                     if r.is_read1:
                         qname = "%s.1" % r.query_name
@@ -166,10 +165,8 @@ class TagCluster(object):
                         qname = "%s.2" % r.query_name
                     right_sequences[qname] = r.get_tag('MS')
             if r.has_tag('AD') and r.query_name in self.tsd.three_p_support:
-                if r.is_reverse:
-                    right_sequences[r.query_name] = r.query_sequence[:r.query_alignment_start]
-                else:
-                    right_sequences[r.query_name] = r.query_sequence[r.query_alignment_end:]
+                if r.reference_end == self.tsd.three_p or r.pos == self.tsd.three_p:
+                    right_sequences[r.query_name] = r.query_sequence
         return right_sequences
 
 
@@ -177,7 +174,49 @@ class TargetSiteDuplication(object):
     """Collect Target Site Duplication methods and data."""
 
     def __init__(self, cluster, include_duplicates=False):
-        """Return TargetSiteDuplication object for reads in cluster."""
+        """
+        Return TargetSiteDuplication object for reads in cluster.
+
+        >>> from collections import namedtuple
+        >>> R = namedtuple('AlignedSegment', 'query_name reference_end pos, has_tag query_alignment_start, query_alignment_end query_length')
+        >>> # 2 nt 3' clipping
+        >>> r1 = R(query_name='r1', reference_end=10, pos=2, has_tag=lambda x: True, query_alignment_start=0, query_alignment_end=10, query_length=12)
+        >>> r2 = R(query_name='r2', reference_end=12, pos=2, has_tag=lambda x: True, query_alignment_start=0, query_alignment_end=12, query_length=15)
+        >>> r3 = R(query_name='r3', reference_end=12, pos=2, has_tag=lambda x: True, query_alignment_start=0, query_alignment_end=12, query_length=15)
+        >>> # 3 nt 3' clipping
+        >>> r4 = R(query_name='r4', reference_end=12, pos=2, has_tag=lambda x: True, query_alignment_start=0, query_alignment_end=12, query_length=15)
+        >>> tsd = TargetSiteDuplication(cluster = [r1, r2, r3, r4], include_duplicates=True)
+        >>> assert tsd.three_p is None
+        >>> tsd.five_p
+        12
+        >>> tsd.is_valid
+        False
+        >>> # 10 nt 5' clipping
+        >>> r5 = R(query_name='r5', reference_end=20, pos=10, has_tag=lambda x: True, query_alignment_start=10, query_alignment_end=20, query_length=20)
+        >>> r6 = R(query_name='r6', reference_end=20, pos=10, has_tag=lambda x: True, query_alignment_start=10, query_alignment_end=20, query_length=20)
+        >>> r7 = R(query_name='r7', reference_end=20, pos=10, has_tag=lambda x: True, query_alignment_start=10, query_alignment_end=20, query_length=20)
+        >>> # 12 nt 5' clipping
+        >>> r8 = R(query_name='r8', reference_end=20, pos=12, has_tag=lambda x: True, query_alignment_start=12, query_alignment_end=20, query_length=20)
+        >>> tsd = TargetSiteDuplication(cluster = [r5, r6, r7, r8], include_duplicates=True)
+        >>> assert tsd.five_p is None
+        >>> tsd.three_p
+        10
+        >>> tsd.is_valid
+        False
+        >>> tsd = TargetSiteDuplication(cluster = [r1, r2, r3, r4, r5, r6, r7, r8], include_duplicates=True)
+        >>> tsd.is_valid
+        True
+        >>> tsd.five_p_clip_length
+        3
+        >>> tsd.three_p_clip_length
+        10
+        >>> tsd.three_p_support
+        ['r5', 'r6', 'r7']
+        >>> tsd.five_p_support
+        ['r2', 'r3', 'r4']
+        >>> tsd.unassigned_support
+        ['r1', 'r8']
+        """
         self.cluster = cluster
         if include_duplicates:
             self.split_ads = [r for r in self.cluster if r.has_tag('AD')]
@@ -189,7 +228,11 @@ class TargetSiteDuplication(object):
     @cached_property
     def is_valid(self):
         """Return True if Target Site Duplication is valid."""
-        return self.three_p != self.five_p and self.five_p - self.three_p <= MAX_TSD_SIZE  # Super arbitrary, but I guess this is necessary
+        # Super arbitrary, but I guess this is necessary
+        if self.three_p and self.five_p and self.three_p != self.five_p and ((self.five_p - self.three_p) <= MAX_TSD_SIZE):
+            return True
+        else:
+            return False
 
     def find_five_p(self):
         """
@@ -209,15 +252,6 @@ class TargetSiteDuplication(object):
         The five prime of a TSD is characterized by having
           - the rightmost alignment end (of reads that support an insertion with the AD tag)
           - the most frequent alignment end (of reads that support an insertion with the AD tag)
-        >>> from collections import namedtuple
-        >>> R = namedtuple('AlignedSegment', 'reference_end pos, has_tag')
-        >>> r1 = R(reference_end=10, pos=2, has_tag=lambda x: True)
-        >>> r2 = R(reference_end=12, pos=2, has_tag=lambda x: True)
-        >>> r3 = R(reference_end=12, pos=2, has_tag=lambda x: True)
-        >>> r4 = R(reference_end=12, pos=2, has_tag=lambda x: True)
-        >>> tsd = TargetSiteDuplication(cluster = [r1, r2, r3, r4], include_duplicates=True)
-        >>> tsd.five_p
-        12
         """
         if not self.sorted_split_end_positions:
             return None
@@ -255,16 +289,6 @@ class TargetSiteDuplication(object):
         The three prime of a TSD is characterized by having
           - the leftmost alignment start (of reads that support an insertion with the AD tag)
           - the most frequent alignment start (of reads that support an insertion with the AD tag)
-
-        >>> from collections import namedtuple
-        >>> R = namedtuple('AlignedSegment', 'reference_end pos, has_tag')
-        >>> r1 = R(reference_end=20, pos=12, has_tag=lambda x: True)
-        >>> r2 = R(reference_end=20, pos=12, has_tag=lambda x: True)
-        >>> r3 = R(reference_end=20, pos=12, has_tag=lambda x: True)
-        >>> r4 = R(reference_end=20, pos=14, has_tag=lambda x: True)
-        >>> tsd = TargetSiteDuplication(cluster = [r1, r2, r3, r4], include_duplicates=True)
-        >>> tsd.three_p
-        12
         """
         if not self.sorted_split_start_positions:
             return None
@@ -294,15 +318,15 @@ class TargetSiteDuplication(object):
     @cached_property
     def sorted_split_start_positions(self):
         """Return sorted start positions of split reads."""
-        return sorted([r.pos for r in self.split_ads])
+        return sorted([r.pos for r in self.split_ads if r.query_alignment_start != 0])  # To only get relevant split start positions
 
     @cached_property
     def sorted_split_end_positions(self):
         """Return sorted end positions of split reads."""
-        return sorted(r.reference_end for r in self.split_ads)
+        return sorted([r.reference_end for r in self.split_ads if r.query_alignment_end != r.query_length])
 
-    @property
-    def five_p_support_extension(self):
+    @cached_property
+    def three_p_clip_length(self):
         """
         Return the longest clipped region that extends the five_p breakpoint.
 
@@ -314,9 +338,28 @@ class TargetSiteDuplication(object):
 
         In this case return 11 for the 5p breakpoint.
         """
-        ad_cigars = [Tag.from_read(r).cigar for r in self.split_ads if r.pos == self.five_p]
-        max_split = max([cig for cig in ad_cigars])
-        return max_split  # TODO: Ooolalala, need to do someting here.
+        clip_length_at_five_p = [r.query_alignment_start for r in self.split_ads if r.pos == self.three_p]
+        if not clip_length_at_five_p:
+            return 0
+        return max(clip_length_at_five_p)
+
+    @cached_property
+    def five_p_clip_length(self):
+        """
+        Return the longest clipped region that extends the five_p breakpoint.
+
+        5p Breakpoint:           v
+        3p Breakpoint:               v
+        Genome:         |012345678901234567890
+        5p split read:  |  >>>>>>XXXX
+        3p split read:  |          XXX>>>>>>>
+
+        In this case return 11 for the 5p breakpoint.
+        """
+        clip_length_at_five_p = [r.query_length - r.query_alignment_end for r in self.split_ads if r.reference_end == self.five_p]
+        if not clip_length_at_five_p:
+            return 0
+        return max(clip_length_at_five_p)
 
     @cached_property
     def three_p_support(self):

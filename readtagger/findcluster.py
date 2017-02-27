@@ -59,8 +59,14 @@ class Cluster(list):
         self_clustertag = TagCluster(self)
         other_clustertag = TagCluster(other_cluster)
         # TODO: definitely need to check if clipped sequences overlap, or introduce maximum distance between clusters
-        if len(self_clustertag.right_sequences) == 0 and len(other_clustertag.left_sequences) == 0:
-            return True
+        if not self_clustertag.tsd.three_p and not other_clustertag.tsd.five_p:
+            if self_clustertag.tsd.five_p and other_clustertag.tsd.three_p:
+                extended_three_p = other_clustertag.tsd.three_p - other_clustertag.tsd.three_p_clip_length
+                extended_five_p = self_clustertag.tsd.five_p_clip_length + self_clustertag.tsd.five_p
+                if extended_three_p <= extended_five_p:
+                    return True
+                else:
+                    return False
         return False
 
 

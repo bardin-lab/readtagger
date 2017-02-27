@@ -22,6 +22,16 @@ CIGAR = namedtuple('CIGAR', 'operation length')
 # Seems BWA is not setting those (same for N, which is being set by tophat/hisat/star for introns)
 
 
+def cigartuples_to_named_cigartuples(cigartuple):
+    """
+    Convert cigartuple to namedtuple.
+
+    >>> cigartuples_to_named_cigartuples([(0, 91), (4, 34)])
+    [CIGAR(operation=0, length=91), CIGAR(operation=4, length=34)]
+    """
+    return [CIGAR(operation=c[0], length=c[1]) for c in cigartuple]
+
+
 def cigartuples_to_cigarstring(cigartuple):
     """
     Convert cigartuple to cigarstring.
