@@ -2,6 +2,7 @@
 from collections import Counter
 import warnings
 from .cap3 import Cap3Assembly
+from .tags import Tag
 
 MAX_TSD_SIZE = 50
 
@@ -20,9 +21,15 @@ class TagCluster(object):
         self.cluster = cluster
         self.tsd = TargetSiteDuplication(self.cluster)
         self.five_p_breakpoint, self.three_p_breakpoint = self.find_breakpoint()
+        # TODO: Move the below stuff into properties
         self.left_insert = Cap3Assembly(self.left_sequences)
         self.right_insert = Cap3Assembly(self.right_sequences)
         self.joint_insert = Cap3Assembly.join_assemblies([self.left_insert, self.right_insert])
+        # TODO: Implement looking up what TE the insert(s) best match to
+        # TODO: Sum read support:
+        #   - how many reads support TSD?
+        #   - how many fragments cover any part of the insertion?
+        #   - how many reads support the left side, how many reads support the right side
 
     def find_breakpoint(self):
         """
@@ -71,16 +78,24 @@ class TagCluster(object):
                 warn = "Found a cluster with 5p and 3p evidence for TSD, but reads are spaced too far apart.\n"
                 warn += "The custer coordinates are tid: %s, start:%s, end%s" % (self.cluster[0].tid, self.cluster[0].pos, self.cluster[-1].reference_end)
                 warnings.warn(warn)
-                return self.tsd.five_p and self.tsd.three_p
+                return self.tsd.five_p, self.tsd.three_p
         return self.tsd.five_p, self.tsd.three_p
 
     def infer_five_p_from_mates(self):
         """Return rightmost reference end for sense reads with BD tag."""
-        return max([r.reference_end for r in self.cluster if not r.is_reverse and r.has_tag('BD')])
+        five_p_reads = [r.reference_end for r in self.cluster if not r.is_reverse and r.has_tag('BD')]
+        if five_p_reads:
+            return max(five_p_reads)
+        else:
+            return None
 
     def infer_three_p_from_mates(self):
         """Return leftmost reference start for antisense reads with BD tag."""
-        return min([r.pos for r in self.cluster if r.is_reverse and r.has_tag('BD')])
+        three_p_reads = [r.pos for r in self.cluster if r.is_reverse and r.has_tag('BD')]
+        if three_p_reads:
+            return min(three_p_reads)
+        else:
+            return None
 
     @property
     def left_sequences(self):
@@ -268,6 +283,23 @@ class TargetSiteDuplication(object):
         if not hasattr(self, '_sorted_split_end_positions'):
             self._sorted_split_end_positions = sorted(r.reference_end for r in self.split_ads)
         return self._sorted_split_end_positions
+
+    @property
+    def five_p_support_extension(self):
+        """
+        Return the longest clipped region that extends the five_p breakpoint.
+
+        5p Breakpoint:           v
+        3p Breakpoint:               v
+        Genome:         |012345678901234567890
+        5p split read:  |  >>>>>>XXXX
+        3p split read:  |          XXX>>>>>>>
+
+        In this case return 11 for the 5p breakpoint.
+        """
+        ad_cigars = [Tag.from_read(r).cigar for r in self.split_ads if r.pos == self.five_p]
+        max_split = max([cig for cig in ad_cigars])
+        return max_split
 
     @property
     def three_p_support(self):
