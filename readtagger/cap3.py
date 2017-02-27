@@ -24,11 +24,15 @@ class Cap3Assembly(object):
         """
         self.sequences = sequences
         self.input_dir = tempfile.mkdtemp(dir='.')
-        self.input_path = os.path.join(self.input_dir, 'multialign.fa')
         self.write_sequences()
         self.assemble()
         self.assembly = Ace.read(open(os.path.join(self.input_dir, 'multialign.fa.cap.ace')))
         shutil.rmtree(self.input_dir)
+
+    @property
+    def input_path(self):
+        """Return input path, even in input_dir changes."""
+        return os.path.join(self.input_dir, 'multialign.fa')
 
     def write_sequences(self):
         """Take sequences and write them out to temporary file for cap3."""
@@ -38,6 +42,9 @@ class Cap3Assembly(object):
 
     def assemble(self):
         """Assemble sequences."""
+        if not os.path.exists(self.input_path):
+            self.input_dir = tempfile.mkdtemp(dir='.')
+            self.write_sequences()
         args = ['cap3', self.input_path, '-p', '75', '-s', '500', '-z', '2']
         subprocess.check_call(args, env=os.environ.copy())  # Use check call to ignore stdout of cap3
 
