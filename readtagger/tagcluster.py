@@ -21,15 +21,45 @@ class TagCluster(object):
         self.cluster = cluster
         self.tsd = TargetSiteDuplication(self.cluster)
         self.five_p_breakpoint, self.three_p_breakpoint = self.find_breakpoint()
-        # TODO: Move the below stuff into properties
-        self.left_insert = Cap3Assembly(self.left_sequences)
-        self.right_insert = Cap3Assembly(self.right_sequences)
-        self.joint_insert = Cap3Assembly.join_assemblies([self.left_insert, self.right_insert])
         # TODO: Implement looking up what TE the insert(s) best match to
         # TODO: Sum read support:
         #   - how many reads support TSD?
         #   - how many fragments cover any part of the insertion?
         #   - how many reads support the left side, how many reads support the right side
+
+    @property
+    def left_insert(self):
+        """Return insert sequence as assembled from the left side."""
+        if not hasattr(self, '_left_insert'):
+            if self.left_sequences:
+                self._left_insert = Cap3Assembly(self.left_sequences)
+            else:
+                self._left_insert = None
+        return self._left_insert
+
+    @property
+    def right_insert(self):
+        """Return insert sequence as assembled from the right side."""
+        if not hasattr(self, '_right_insert'):
+            if self.right_sequences:
+                self._right_insert = Cap3Assembly(self.right_sequences)
+            else:
+                self._right_insert = None
+        return self._right_insert
+
+    @property
+    def joint_insert(self):
+        """Return joint insert sequence."""
+        if not hasattr(self, '_joint_insert'):
+            if self.right_sequences and self.left_sequences:
+                self._joint_insert = Cap3Assembly.join_assemblies([self.left_insert, self.right_insert])
+            elif self.right_sequences:
+                self._joint_insert = self._right_insert
+            elif self._left_sequences:
+                self._joint_insert = self._left_insert
+            else:
+                self._joint_insert = None
+        return self._joint_insert
 
     def find_breakpoint(self):
         """
