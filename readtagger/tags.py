@@ -61,7 +61,7 @@ class Tag(object):
         Lazily convert cigarstring to tuple if it doesn't exist.
 
         >>> Tag(reference_start=0, cigar='20M30S', is_reverse='True', mapq=60, qstart=0, qend=20, tid=5).cigar
-        [(0, 20), (4, 30)]
+        [CIGAR(operation=0, length=20), CIGAR(operation=4, length=30)]
         """
         if isinstance(self._cigar, str):
             self._cigar = cigar_to_tuple(self._cigar)

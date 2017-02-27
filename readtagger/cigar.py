@@ -1,7 +1,9 @@
+from collections import namedtuple
 from itertools import groupby
 
 CODE2CIGAR = "MIDNSHP=XB"
 CIGAR2CODE = dict([y, x] for x, y in enumerate(CODE2CIGAR))
+CIGAR = namedtuple('CIGAR', 'operation length')
 
 
 #  Op BAM Description
@@ -54,14 +56,14 @@ def cigar_to_tuple(cigar):
     :param cigar: string
     :return: list of tuples, with first integer spcifying the length of the operation,
               and the string specifying the operation
-    >>> cigar_to_tuple('3M1I44M1D7M1I32M37S')
-    [(0, 3), (1, 1), (0, 44), (2, 1), (0, 7), (1, 1), (0, 32), (4, 37)]
-    >>> c = cigar_to_tuple('3M1I44M1D7M1I32M37S')
+    >>> cigar_to_tuple('3M1I44M1D7M')
+    [CIGAR(operation=0, length=3), CIGAR(operation=1, length=1), CIGAR(operation=0, length=44), CIGAR(operation=2, length=1), CIGAR(operation=0, length=7)]
+    >>> c = cigar_to_tuple('3M1I44M1D7M')
     >>> c.reverse()
     >>> c
-    [(4, 37), (0, 32), (1, 1), (0, 7), (2, 1), (0, 44), (1, 1), (0, 3)]
+    [CIGAR(operation=0, length=7), CIGAR(operation=2, length=1), CIGAR(operation=0, length=44), CIGAR(operation=1, length=1), CIGAR(operation=0, length=3)]
     """
-    return [(CIGAR2CODE[op], int(l)) for (l, op) in cigar_split(cigar)]
+    return [CIGAR(operation=CIGAR2CODE[op], length=int(l)) for (l, op) in cigar_split(cigar)]
 
 
 def cigar_tuple_to_cigar_length(cigar):
