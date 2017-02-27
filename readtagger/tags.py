@@ -1,4 +1,5 @@
 from collections import namedtuple
+from cached_property import cached_property
 from .cigar import (
     cigartuples_to_cigarstring,
     cigar_tuple_to_cigar_length,
@@ -43,7 +44,7 @@ class Tag(object):
         self.tid = tid
         self.reference_name = reference_name
 
-    @property
+    @cached_property
     def cigar_regions(self):
         """
         Return cigar regions as list of tuples in foim [(start, end), operation].
@@ -51,11 +52,9 @@ class Tag(object):
         >>> Tag(reference_start=0, cigar='20M30S', is_reverse='True', mapq=60, qstart=0, qend=20, tid=5).cigar_regions
         [((0, 20), 0), ((20, 50), 4)]
         """
-        if not hasattr(self, '_cigar_regions'):
-            self._cigar_regions = cigar_tuple_to_cigar_length(self.cigar)
-        return self._cigar_regions
+        return cigar_tuple_to_cigar_length(self.cigar)
 
-    @property
+    @cached_property
     def cigar(self):
         """
         Lazily convert cigarstring to tuple if it doesn't exist.

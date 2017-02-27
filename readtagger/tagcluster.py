@@ -1,6 +1,7 @@
 """Organize a cluster of interest."""
 from collections import Counter
 import warnings
+from cached_property import cached_property
 from .cap3 import Cap3Assembly
 from .tags import Tag
 
@@ -27,39 +28,33 @@ class TagCluster(object):
         #   - how many fragments cover any part of the insertion?
         #   - how many reads support the left side, how many reads support the right side
 
-    @property
+    @cached_property
     def left_insert(self):
         """Return insert sequence as assembled from the left side."""
-        if not hasattr(self, '_left_insert'):
-            if self.left_sequences:
-                self._left_insert = Cap3Assembly(self.left_sequences)
-            else:
-                self._left_insert = None
-        return self._left_insert
+        if self.left_sequences:
+            return Cap3Assembly(self.left_sequences)
+        else:
+            return None
 
-    @property
+    @cached_property
     def right_insert(self):
         """Return insert sequence as assembled from the right side."""
-        if not hasattr(self, '_right_insert'):
-            if self.right_sequences:
-                self._right_insert = Cap3Assembly(self.right_sequences)
-            else:
-                self._right_insert = None
-        return self._right_insert
+        if self.right_sequences:
+            return Cap3Assembly(self.right_sequences)
+        else:
+            return None
 
-    @property
+    @cached_property
     def joint_insert(self):
         """Return joint insert sequence."""
-        if not hasattr(self, '_joint_insert'):
-            if self.right_sequences and self.left_sequences:
-                self._joint_insert = Cap3Assembly.join_assemblies([self.left_insert, self.right_insert])
-            elif self.right_sequences:
-                self._joint_insert = self._right_insert
-            elif self._left_sequences:
-                self._joint_insert = self._left_insert
-            else:
-                self._joint_insert = None
-        return self._joint_insert
+        if self.right_sequences and self.left_sequences:
+            return Cap3Assembly.join_assemblies([self.left_insert, self.right_insert])
+        elif self.right_sequences:
+            return self._right_insert
+        elif self._left_sequences:
+            return self._left_insert
+        else:
+            return None
 
     def find_breakpoint(self):
         """
@@ -127,7 +122,7 @@ class TagCluster(object):
         else:
             return None
 
-    @property
+    @cached_property
     def left_sequences(self):
         """
         Find reads left of a breakpoint.
@@ -136,24 +131,23 @@ class TagCluster(object):
         AD tag should support that particular TSD end (5p for left reads).
         """
         # TODO: extend this to also return quality values
-        if not hasattr(self, '_left_sequences'):
-            self._left_sequences = {}
-            for r in self.cluster:
-                if r.has_tag('BD'):
-                    if not r.is_reverse:
-                        if r.is_read1:
-                            qname = "%s.1" % r.query_name
-                        else:
-                            qname = "%s.2" % r.query_name
-                        self._left_sequences[qname] = r.get_tag('MS')
-                if r.has_tag('AD') and r.query_name in self.tsd.five_p_support:
-                    if r.is_reverse:
-                        self._left_sequences[r.query_name] = r.query_sequence[:r.query_alignment_start]
+        left_sequences = {}
+        for r in self.cluster:
+            if r.has_tag('BD'):
+                if not r.is_reverse:
+                    if r.is_read1:
+                        qname = "%s.1" % r.query_name
                     else:
-                        self._left_sequences[r.query_name] = r.query_sequence[r.query_alignment_end:]
-        return self._left_sequences
+                        qname = "%s.2" % r.query_name
+                    left_sequences[qname] = r.get_tag('MS')
+            if r.has_tag('AD') and r.query_name in self.tsd.five_p_support:
+                if r.is_reverse:
+                    left_sequences[r.query_name] = r.query_sequence[:r.query_alignment_start]
+                else:
+                    left_sequences[r.query_name] = r.query_sequence[r.query_alignment_end:]
+        return left_sequences
 
-    @property
+    @cached_property
     def right_sequences(self):
         """
         Find reads right of a breakpoint.
@@ -162,22 +156,21 @@ class TagCluster(object):
         AD tag should support that particular TSD end (3p for right reads).
         """
         # TODO: extend this to also return quality values
-        if not hasattr(self, '_right_sequences'):
-            self._right_sequences = {}
-            for r in self.cluster:
-                if r.has_tag('BD'):
-                    if r.is_reverse:
-                        if r.is_read1:
-                            qname = "%s.1" % r.query_name
-                        else:
-                            qname = "%s.2" % r.query_name
-                        self._right_sequences[qname] = r.get_tag('MS')
-                if r.has_tag('AD') and r.query_name in self.tsd.three_p_support:
-                    if r.is_reverse:
-                        self._right_sequences[r.query_name] = r.query_sequence[:r.query_alignment_start]
+        right_sequences = {}
+        for r in self.cluster:
+            if r.has_tag('BD'):
+                if r.is_reverse:
+                    if r.is_read1:
+                        qname = "%s.1" % r.query_name
                     else:
-                        self._right_sequences[r.query_name] = r.query_sequence[r.query_alignment_end:]
-        return self._right_sequences
+                        qname = "%s.2" % r.query_name
+                    right_sequences[qname] = r.get_tag('MS')
+            if r.has_tag('AD') and r.query_name in self.tsd.three_p_support:
+                if r.is_reverse:
+                    right_sequences[r.query_name] = r.query_sequence[:r.query_alignment_start]
+                else:
+                    right_sequences[r.query_name] = r.query_sequence[r.query_alignment_end:]
+        return right_sequences
 
 
 class TargetSiteDuplication(object):
@@ -193,12 +186,10 @@ class TargetSiteDuplication(object):
         self.three_p = self.find_three_p()
         self.five_p = self.find_five_p()
 
-    @property
+    @cached_property
     def is_valid(self):
         """Return True if Target Site Duplication is valid."""
-        if not hasattr(self, '_is_valid'):
-            self._is_valid = self.three_p != self.five_p and self.five_p - self.three_p <= MAX_TSD_SIZE  # Super arbitrary, but I guess this is necessary
-        return self._is_valid
+        return self.three_p != self.five_p and self.five_p - self.three_p <= MAX_TSD_SIZE  # Super arbitrary, but I guess this is necessary
 
     def find_five_p(self):
         """
@@ -300,19 +291,15 @@ class TargetSiteDuplication(object):
                     break
         return max_starting_position
 
-    @property
+    @cached_property
     def sorted_split_start_positions(self):
         """Return sorted start positions of split reads."""
-        if not hasattr(self, '_sorted_split_positions'):
-            self._sorted_split_positions = sorted([r.pos for r in self.split_ads])
-        return self._sorted_split_positions
+        return sorted([r.pos for r in self.split_ads])
 
-    @property
+    @cached_property
     def sorted_split_end_positions(self):
         """Return sorted end positions of split reads."""
-        if not hasattr(self, '_sorted_split_end_positions'):
-            self._sorted_split_end_positions = sorted(r.reference_end for r in self.split_ads)
-        return self._sorted_split_end_positions
+        return sorted(r.reference_end for r in self.split_ads)
 
     @property
     def five_p_support_extension(self):
@@ -329,25 +316,21 @@ class TargetSiteDuplication(object):
         """
         ad_cigars = [Tag.from_read(r).cigar for r in self.split_ads if r.pos == self.five_p]
         max_split = max([cig for cig in ad_cigars])
-        return max_split
+        return max_split  # TODO: Ooolalala, need to do someting here.
 
-    @property
+    @cached_property
     def three_p_support(self):
         """Return list of Reads that support the inferred three prime position for this TSD."""
         if not hasattr(self, '_three_p_support'):
             self._three_p_support = [r.query_name for r in self.split_ads if r.pos == self.three_p]
         return self._three_p_support
 
-    @property
+    @cached_property
     def five_p_support(self):
         """Return list of Reads that support the inferred five prime position for this TSD."""
-        if not hasattr(self, '_five_p_support'):
-            self._five_p_support = [r.query_name for r in self.split_ads if r.reference_end == self.five_p]
-        return self._five_p_support
+        return [r.query_name for r in self.split_ads if r.reference_end == self.five_p]
 
-    @property
+    @cached_property
     def unassigned_support(self):
         """Return list of Reads that were not starting or ending at the three prime or five prime of this TSD."""
-        if not hasattr(self, '_unassigned_support'):
-            self._unassigned_support = [r.query_name for r in self.split_ads if r.query_name not in self.five_p_support + self.three_p_support]
-        return self._unassigned_support
+        return [r.query_name for r in self.split_ads if r.query_name not in self.five_p_support + self.three_p_support]

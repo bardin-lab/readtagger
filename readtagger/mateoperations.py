@@ -1,5 +1,7 @@
 import argparse
 
+from cached_property import cached_property
+
 from .bam_io import BamAlignmentReader as Reader
 from .bam_io import BamAlignmentWriter as Writer
 from .readtagger import __VERSION__
@@ -24,13 +26,11 @@ class AnnotateMateInformation(object):
         self.get_mates()
         self.write_annotated_reads()
 
-    @property
+    @cached_property
     def header(self):
         """Return header of file to annotate."""
-        if not hasattr(self, '_header'):
-            with Reader(self.file_to_annotate, external_bin=None) as reader:
-                self._header = reader.header
-        return self._header
+        with Reader(self.file_to_annotate, external_bin=None) as reader:
+            return reader.header
 
     def get_reads_to_annotate(self):
         """Generate a list of mates to annotate."""

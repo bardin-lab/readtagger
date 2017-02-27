@@ -4,6 +4,7 @@ import pysam
 import six
 import warnings
 
+from cached_property import cached_property
 from contextlib2 import ExitStack
 
 from .cigar import alternative_alignment_cigar_is_better
@@ -47,13 +48,11 @@ class SamTagProcessor(object):
         if self.tag_mate:
             self.add_mate()
 
-    @property
+    @cached_property
     def tid_to_reference_name(self):
         """Build dictionary for mapping tid to reference name."""
-        if not hasattr(self, '_tid_to_reference_name'):
-            with Reader(self.source_path, external_bin=None) as source:
-                self._tid_to_reference_name = {source.get_tid(rname): rname for rname in (d['SN'] for d in source.header['SQ'])}
-        return self._tid_to_reference_name
+        with Reader(self.source_path, external_bin=None) as source:
+            return {source.get_tid(rname): rname for rname in (d['SN'] for d in source.header['SQ'])}
 
     def compute_tag(self, r):
         """
@@ -171,13 +170,11 @@ class SamAnnotator(object):
                 allow_dovetailing = False
         self.process(allow_dovetailing, discard_bad_alt_tag, discard_if_proper_pair, discarded_writer, verified_writer)
 
-    @property
+    @cached_property
     def header(self):
         """Return SAM/BAM header."""
-        if not hasattr(self, '_header'):
-            with Reader(self.annotate_file, external_bin=None) as source:
-                self._header = source.header
-        return self._header
+        with Reader(self.annotate_file, external_bin=None) as source:
+            return source.header
 
     def process(self, allow_dovetailing=False, discard_bad_alt_tag=True, discard_if_proper_pair=False, discarded_writer=None, verified_writer=None):
         """Iterate over reads and fetch annotation from self.samtags."""

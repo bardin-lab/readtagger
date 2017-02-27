@@ -1,3 +1,5 @@
+from cached_property import cached_property
+
 from .bam_io import BamAlignmentReader as Reader
 from .tagcluster import TagCluster
 
@@ -5,23 +7,19 @@ from .tagcluster import TagCluster
 class Cluster(list):
     """A Cluster of reads."""
 
-    @property
+    @cached_property
     def min(self):
         """
         Cache leftmost start of cluster.
 
         This assumes that the cluster is filled from left to right.
         """
-        if not hasattr(self, '_min'):
-            self._min = self[0].pos
-        return self._min
+        return self[0].pos
 
-    @property
+    @cached_property
     def tid(self):
         """Cache current reference id."""
-        if not hasattr(self, '_tid'):
-            self._tid = self[0].tid
-        return self._tid
+        return self[0].tid
 
     @property
     def max(self):
