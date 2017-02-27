@@ -86,7 +86,7 @@ class ClusterFinder(object):
         """Find clusters by iterating over input_path and creating clusters if reads are disjointed."""
         clusters = []
         with Reader(self.input_path) as reader:
-            r = reader.next()
+            r = next(reader)
             cluster = Cluster()
             cluster.append(r)
             clusters.append(cluster)
