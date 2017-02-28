@@ -1,8 +1,9 @@
 from cached_property import cached_property
 
 from .bam_io import BamAlignmentReader as Reader
+from .bam_io import BamAlignmentWriter as Writer
 from .tagcluster import TagCluster
-from.cap3 import Cap3Assembly
+from .cap3 import Cap3Assembly
 
 
 class Cluster(list):
@@ -80,23 +81,28 @@ class Cluster(list):
 class ClusterFinder(object):
     """Find clusters of reads."""
 
-    def __init__(self, input_path):
+    def __init__(self, input_path, output_path=None):
         """
         Find readclusters in input_path file.
 
         This class assumes that all reads in input_path are potentially interesting and that the alignment has been done for paired end reads.
         You will not want to run this on a full high coverage alignment file, since the clusters will become huge.
         The initial limits of the cluster are defined by the maximum extent of overlapping reads, and each read that is added at the 3 prime end of
-        the cluster will extend the cluster
+        the cluster will extend the cluster.
+        The join_cluster method will then join clusters that overlap through their clipped sequences and cluster that can be assembled based on their proximity
+        and the fact that they support the same same insertion (and can hence contribute to the same contig if assembled).
         """
         self.input_path = input_path
+        self.output_path = output_path
         self.cluster = self.find_cluster()
         self.join_clusters()
+        self.to_bam()
 
     def find_cluster(self):
         """Find clusters by iterating over input_path and creating clusters if reads are disjointed."""
         clusters = []
         with Reader(self.input_path) as reader:
+            self.header = reader.header
             r = next(reader)
             cluster = Cluster()
             cluster.append(r)
@@ -126,3 +132,12 @@ class ClusterFinder(object):
                     else:
                         prev_cluster = cluster
                 new_clusterlength = len(self.cluster)
+
+    def to_bam(self):
+        """Write clusters of reads and include cluster number in CD tag."""
+        if self.output_path:
+            with Writer(self.output_path, header=self.header) as writer:
+                for i, cluster in enumerate(self.cluster):
+                    for r in cluster:
+                        r.set_tag('CD', i)
+                        writer.write(r)

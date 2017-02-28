@@ -11,7 +11,8 @@ def test_clusterfinder_single_cluster(datadir):  # noqa: D103
     assert len(cf.cluster[0]) == 27
 
 
-def test_clusterfinder_multiple_cluster(datadir):  # noqa: D103
+def test_clusterfinder_multiple_cluster(datadir, tmpdir):  # noqa: D103
     input_path = datadir[EXTENDED]
-    cf = ClusterFinder(input_path=input_path)
+    output_path = tmpdir.join('tagged_clusters.bam')
+    cf = ClusterFinder(input_path=input_path, output_path=output_path.strpath)
     assert len(cf.cluster) == 3
