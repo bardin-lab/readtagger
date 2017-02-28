@@ -1,4 +1,3 @@
-import copy
 from cached_property import cached_property
 
 from .bam_io import BamAlignmentReader as Reader
@@ -73,17 +72,8 @@ class Cluster(list):
             # That's a bit confusing, since the mates are to the right of the cluster ... but that's how it is.
             if (other_clustertag.five_p_breakpoint - self_clustertag.five_p_breakpoint) < max_distance:
                 # We don't want clusters to be spaced too far away. Not sure if this is really a problem in practice.
-                right_and_left_sequences = copy.deepcopy(self_clustertag.left_sequences)
-                right_reads = set(self_clustertag.left_sequences.keys())
-                left_reads = set(other_clustertag.left_sequences.keys())
-                right_and_left_sequences.update(other_clustertag.left_sequences)
-                assembly = Cap3Assembly(sequences=right_and_left_sequences)
-                for contig in assembly.assembly.contigs:
-                    contig_reads = set([read.rd.name for read in contig.reads])
-                    if right_reads & contig_reads and left_reads & contig_reads:
-                        # both right_reads and left_reads contribute to the same contig,
-                        # this cluster should clearly be merged.
-                        return True
+                if Cap3Assembly.sequences_contribute_to_same_contig(self_clustertag.left_sequences, other_clustertag.left_sequences):
+                    return True
         return False
 
 

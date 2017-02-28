@@ -1,3 +1,4 @@
+import copy
 import os
 import shutil
 import subprocess
@@ -47,3 +48,32 @@ class Cap3Assembly(object):
         contigs = [contig for cap3obj in assemblies for contig in cap3obj.assembly.contigs]
         sequences = {"Contig_%s" % i: contig.sequence for i, contig in enumerate(contigs)}
         return Cap3Assembly(sequences)
+
+    @staticmethod
+    def sequences_contribute_to_same_contig(seq1, seq2):
+        """
+        Check if a contig can be generated from two sets of sequences where both sets of sequences contributed to the contig.
+
+        >>> read1 = 'TAGTTGTAAGCGATTCTTAACTTACCTACCTACATATATATACTTACGTATTTTACTATT'
+        >>> read2 = 'CGAGTCGAACAAATGATCCGTCGTTTGACTAAGATCAACGCCTTTAAAGAAGTTTCAGAA'
+        >>> read3 = 'TACCTACCTACATATATATACTTACGTATTTTACTATTCGAGTCGAACAAATGATCCGTC'
+        >>> read4 = 'CGATTCTTAACTTACCTACCTACATATATATACTTACGTATTTTACTATTCGAGTCGAACA'
+        >>> read5 = 'ATGCATGCATGCATGCATGCATGCATGCATGCAAAAAA'
+        >>> read6 = 'ATGCATGCATGCATGCATGCATGCATGCATGCTTTTTT'
+        >>> Cap3Assembly.sequences_contribute_to_same_contig(seq1={'seq1': read1, 'seq2': read2}, seq2={'seq3': read3, 'seq4': read4})
+        True
+        >>> Cap3Assembly.sequences_contribute_to_same_contig(seq1={'seq1': read1, 'seq2': read2}, seq2={'seq5': read5, 'seq6': read6})
+        False
+        """
+        sequences = copy.deepcopy(seq1)
+        sequences.update(seq2)
+        seq1_keys = set(seq1.keys())
+        seq2_keys = set(seq2.keys())
+        assembly = Cap3Assembly(sequences=sequences)
+        for contig in assembly.assembly.contigs:
+            contig_reads = set([read.rd.name for read in contig.reads])
+            if seq1_keys & contig_reads and seq2_keys & contig_reads:
+                # both right_reads and left_reads contribute to the same contig,
+                # this cluster should clearly be merged.
+                return True
+        return False
