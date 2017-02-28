@@ -14,4 +14,4 @@ def test_clusterfinder_single_cluster(datadir):  # noqa: D103
 def test_clusterfinder_multiple_cluster(datadir):  # noqa: D103
     input_path = datadir[EXTENDED]
     cf = ClusterFinder(input_path=input_path)
-    assert len(cf.cluster) == 5
+    assert len(cf.cluster) == 3

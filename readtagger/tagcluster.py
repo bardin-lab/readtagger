@@ -86,13 +86,12 @@ class TagCluster(object):
             # TODO: Could eventually be improved by looking for softclipped positions without AD,
             # but then I would need to look at reads that are not marked to be in the cluster.
             # I could look at the BD tagged reads though and scan for softclipping ... .
-            if self.tsd.five_p and not self.tsd.three_p:
-                return self.tsd.five_p, self.infer_three_p_from_mates()
-            elif self.tsd.three_p and not self.tsd.five_p:
-                return self.infer_five_p_from_mates(), self.tsd.three_p
-            elif not self.tsd.five_p and not self.tsd.three_p:
-                return self.infer_five_p_from_mates(), self.infer_three_p_from_mates()
-            elif self.tsd.five_p and self.tsd.three_p:
+            five_p, three_p = self.tsd.five_p, self.tsd.three_p
+            if not three_p:
+                three_p = self.infer_three_p_from_mates()
+            if not five_p:
+                five_p = self.infer_five_p_from_mates()
+            if self.tsd.five_p and self.tsd.three_p:
                 # An invalid TSD was found, probably because the inferred TSD is too long.
                 # This could be two close-by insertions that each have support from one side,
                 # and/or --less likely-- a pre-existing duplication of that sequence?
@@ -100,9 +99,9 @@ class TagCluster(object):
                 # points to the same TE? Should I split the cluster? Maybe I should just dump
                 # the cluster reads as a BAM file and inspect them to see what should be done.
                 warn = "Found a cluster with 5p and 3p evidence for TSD, but reads are spaced too far apart.\n"
-                warn += "The custer coordinates are tid: %s, start:%s, end%s" % (self.cluster[0].tid, self.cluster[0].pos, self.cluster[-1].reference_end)
+                warn += "The custer coordinates are tid: %s, start:%s, end: %s" % (self.cluster[0].tid, self.cluster[0].pos, self.cluster[-1].reference_end)
                 warnings.warn(warn)
-                return self.tsd.five_p, self.tsd.three_p
+            return five_p, three_p
         return self.tsd.five_p, self.tsd.three_p
 
     def infer_five_p_from_mates(self):

@@ -1,7 +1,9 @@
+import copy
 from cached_property import cached_property
 
 from .bam_io import BamAlignmentReader as Reader
 from .tagcluster import TagCluster
+from.cap3 import Cap3Assembly
 
 
 class Cluster(list):
@@ -38,9 +40,9 @@ class Cluster(list):
         """Determine if read overlaps cluster and is on same chromosome."""
         return self.overlaps(r) and self.same_chromosome(r)
 
-    def can_join(self, other_cluster):
+    def can_join(self, other_cluster, max_distance=1500):
         """
-        Join clusters that have been split.
+        Join clusters that have been split or mates that are not directly connected.
 
         This can happen when an insertion erodes a number of nucleotides at the insertion site. Example in HUM4 at chr3R:13,373,242-13,374,019.
         The situation looks like this then:
@@ -58,15 +60,30 @@ class Cluster(list):
         """
         self_clustertag = TagCluster(self)
         other_clustertag = TagCluster(other_cluster)
-        # TODO: definitely need to check if clipped sequences overlap, or introduce maximum distance between clusters
+        # First check ... are three_p and five_p of cluster overlapping?
         if not self_clustertag.tsd.three_p and not other_clustertag.tsd.five_p:
             if self_clustertag.tsd.five_p and other_clustertag.tsd.three_p:
                 extended_three_p = other_clustertag.tsd.three_p - other_clustertag.tsd.three_p_clip_length
                 extended_five_p = self_clustertag.tsd.five_p_clip_length + self_clustertag.tsd.five_p
                 if extended_three_p <= extended_five_p:
                     return True
-                else:
-                    return False
+        # Next check ... can informative parts of mates be assembled into the proper insert sequence
+        if self_clustertag.left_sequences and other_clustertag.left_sequences:
+            # A cluster that provides support for a 5p insertion will have the reads always annotated as left sequences.
+            # That's a bit confusing, since the mates are to the right of the cluster ... but that's how it is.
+            if (other_clustertag.five_p_breakpoint - self_clustertag.five_p_breakpoint) < max_distance:
+                # We don't want clusters to be spaced too far away. Not sure if this is really a problem in practice.
+                right_and_left_sequences = copy.deepcopy(self_clustertag.left_sequences)
+                right_reads = set(self_clustertag.left_sequences.keys())
+                left_reads = set(other_clustertag.left_sequences.keys())
+                right_and_left_sequences.update(other_clustertag.left_sequences)
+                assembly = Cap3Assembly(sequences=right_and_left_sequences)
+                for contig in assembly.assembly.contigs:
+                    contig_reads = set([read.rd.name for read in contig.reads])
+                    if right_reads & contig_reads and left_reads & contig_reads:
+                        # both right_reads and left_reads contribute to the same contig,
+                        # this cluster should clearly be merged.
+                        return True
         return False
 
 
@@ -79,7 +96,7 @@ class ClusterFinder(object):
 
         This class assumes that all reads in input_path are potentially interesting and that the alignment has been done for paired end reads.
         You will not want to run this on a full high coverage alignment file, since the clusters will become huge.
-        The initial limits of the cluster are defined by the maximum matepair distance, and each read that is added at the 3 prime end of
+        The initial limits of the cluster are defined by the maximum extent of overlapping reads, and each read that is added at the 3 prime end of
         the cluster will extend the cluster
         """
         self.input_path = input_path
@@ -106,10 +123,16 @@ class ClusterFinder(object):
     def join_clusters(self):
         """Iterate over self.cluster and attempt to join consecutive clusters."""
         if len(self.cluster) > 1:
-            prev_cluster = self.cluster[0]
-            for cluster in self.cluster[1:]:
-                if prev_cluster.can_join(cluster):
-                    prev_cluster.extend(cluster)
-                    self.cluster.remove(cluster)
-                else:
-                    prev_cluster = cluster
+            cluster_length = len(self.cluster)
+            new_clusterlength = 0
+            while new_clusterlength != cluster_length:
+                # Iterate until the length of the cluster doesn't change anymore.
+                cluster_length = new_clusterlength
+                prev_cluster = self.cluster[0]
+                for cluster in self.cluster[1:]:
+                    if prev_cluster.can_join(cluster):
+                        prev_cluster.extend(cluster)
+                        self.cluster.remove(cluster)
+                    else:
+                        prev_cluster = cluster
+                new_clusterlength = len(self.cluster)
