@@ -15,8 +15,8 @@ def write_cluster(clusters, output_path):
 def get_record(i, cluster, sample='sample'):
     """Turn a cluster into a biopython SeqFeature."""
     rec = SeqRecord(Seq(""), "ID%d" % i)  # seems a bit silly, but OK ...
-    left_sequences = cluster.clustertag.left_sequences.keys()
-    right_sequences = cluster.clustertag.right_sequences.keys()
+    left_sequences = list(cluster.clustertag.left_sequences.keys())
+    right_sequences = list(cluster.clustertag.right_sequences.keys())
     all_sequences = left_sequences + right_sequences
     if cluster.clustertag.left_insert:
         left_contigs = (contig.sequence for contig in cluster.clustertag.left_insert.assembly.contigs)
