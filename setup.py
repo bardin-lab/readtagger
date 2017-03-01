@@ -11,6 +11,7 @@ ENTRY_POINTS = '''
         readtagger=readtagger.readtagger:main
         allow_dovetailing=readtagger.allow_dovetailing:main
         add_matesequence=readtagger.mateoperations:main
+        findcluster=readtagger.cli.findcluster:main
 '''
 
 requirements = ['bcbio-gff', 'biopython', 'cached_property', 'contextlib2', 'pysam', 'six']
@@ -24,7 +25,7 @@ history = open('HISTORY.rst').read().replace('.. :changelog:', '')
 setup(
     name='readtagger',
     version=__VERSION__,
-    packages=['readtagger'],
+    packages=['readtagger', 'readtagger.cli'],
     description="Tags reads in a BAM file based on other BAM files.",
     long_description=readme + '\n\n' + history,
     install_requires=requirements,
