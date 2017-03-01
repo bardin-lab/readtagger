@@ -14,6 +14,7 @@ requirements:
     - python
     - cached-property
     - biopython
+    - bcbiogff
     - setuptools
     - contextlib2
     - shutilwhich  # [not py3k]
@@ -22,6 +23,7 @@ requirements:
 
   run:
     - biopython
+    - bcbiogff
     - cached-property
     - cap3
     - sambamba

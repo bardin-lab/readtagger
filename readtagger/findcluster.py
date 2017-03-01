@@ -2,6 +2,7 @@ from cached_property import cached_property
 
 from .bam_io import BamAlignmentReader as Reader
 from .bam_io import BamAlignmentWriter as Writer
+from .gff_io import write_cluster
 from .tagcluster import TagCluster
 from .cap3 import Cap3Assembly
 
@@ -40,6 +41,14 @@ class Cluster(list):
         """Determine if read overlaps cluster and is on same chromosome."""
         return self.overlaps(r) and self.same_chromosome(r)
 
+    @property
+    def clustertag(self):
+        """Return clustertag for current cluster of reads."""
+        if not hasattr(self, '_clustertag') or (hasattr(self, '_clusterlen') and len(self) != self._clusterlen):
+            self._clusterlen = len(self)
+            self._clustertag = TagCluster(self)
+        return TagCluster(self)
+
     def can_join(self, other_cluster, max_distance=1500):
         """
         Join clusters that have been split or mates that are not directly connected.
@@ -58,22 +67,21 @@ class Cluster(list):
           - clipped reads should overlap (except if a large number of nucleotides have been eroded: that could be an interesting mechanism.)
           - inferred insert should point to same TE # TODO: implement this
         """
-        self_clustertag = TagCluster(self)
         other_clustertag = TagCluster(other_cluster)
         # First check ... are three_p and five_p of cluster overlapping?
-        if not self_clustertag.tsd.three_p and not other_clustertag.tsd.five_p:
-            if self_clustertag.tsd.five_p and other_clustertag.tsd.three_p:
+        if not self.clustertag.tsd.three_p and not other_clustertag.tsd.five_p:
+            if self.clustertag.tsd.five_p and other_clustertag.tsd.three_p:
                 extended_three_p = other_clustertag.tsd.three_p - other_clustertag.tsd.three_p_clip_length
-                extended_five_p = self_clustertag.tsd.five_p_clip_length + self_clustertag.tsd.five_p
+                extended_five_p = self.clustertag.tsd.five_p_clip_length + self.clustertag.tsd.five_p
                 if extended_three_p <= extended_five_p:
                     return True
         # Next check ... can informative parts of mates be assembled into the proper insert sequence
-        if self_clustertag.left_sequences and other_clustertag.left_sequences:
+        if self.clustertag.left_sequences and other_clustertag.left_sequences:
             # A cluster that provides support for a 5p insertion will have the reads always annotated as left sequences.
             # That's a bit confusing, since the mates are to the right of the cluster ... but that's how it is.
-            if (other_clustertag.five_p_breakpoint - self_clustertag.five_p_breakpoint) < max_distance:
+            if (other_clustertag.five_p_breakpoint - self.clustertag.five_p_breakpoint) < max_distance:
                 # We don't want clusters to be spaced too far away. Not sure if this is really a problem in practice.
-                if Cap3Assembly.sequences_contribute_to_same_contig(self_clustertag.left_sequences, other_clustertag.left_sequences):
+                if Cap3Assembly.sequences_contribute_to_same_contig(self.clustertag.left_sequences, other_clustertag.left_sequences):
                     return True
         return False
 
@@ -81,7 +89,7 @@ class Cluster(list):
 class ClusterFinder(object):
     """Find clusters of reads."""
 
-    def __init__(self, input_path, output_path=None):
+    def __init__(self, input_path, output_bam=None, output_gff=None):
         """
         Find readclusters in input_path file.
 
@@ -93,10 +101,12 @@ class ClusterFinder(object):
         and the fact that they support the same same insertion (and can hence contribute to the same contig if assembled).
         """
         self.input_path = input_path
-        self.output_path = output_path
+        self.output_bam = output_bam
+        self.output_gff = output_gff
         self.cluster = self.find_cluster()
         self.join_clusters()
         self.to_bam()
+        self.to_gff()
 
     def find_cluster(self):
         """Find clusters by iterating over input_path and creating clusters if reads are disjointed."""
@@ -135,9 +145,14 @@ class ClusterFinder(object):
 
     def to_bam(self):
         """Write clusters of reads and include cluster number in CD tag."""
-        if self.output_path:
-            with Writer(self.output_path, header=self.header) as writer:
+        if self.output_bam:
+            with Writer(self.output_bam, header=self.header) as writer:
                 for i, cluster in enumerate(self.cluster):
                     for r in cluster:
                         r.set_tag('CD', i)
                         writer.write(r)
+
+    def to_gff(self):
+        """Write clusters as GFF file."""
+        if self.output_gff:
+            write_cluster(self.cluster, self.output_gff)

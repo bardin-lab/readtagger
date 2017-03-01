@@ -13,6 +13,13 @@ def test_clusterfinder_single_cluster(datadir):  # noqa: D103
 
 def test_clusterfinder_multiple_cluster(datadir, tmpdir):  # noqa: D103
     input_path = datadir[EXTENDED]
-    output_path = tmpdir.join('tagged_clusters.bam')
-    cf = ClusterFinder(input_path=input_path, output_path=output_path.strpath)
+    output_bam = tmpdir.join('tagged_clusters.bam')
+    cf = ClusterFinder(input_path=input_path, output_bam=output_bam.strpath)
+    assert len(cf.cluster) == 3
+
+
+def test_clusterfinder_multiple_cluster_gff(datadir, tmpdir):  # noqa: D103
+    input_path = datadir[EXTENDED]
+    output_gff = tmpdir.join('output.gff')
+    cf = ClusterFinder(input_path=input_path, output_gff=output_gff.strpath)
     assert len(cf.cluster) == 3
