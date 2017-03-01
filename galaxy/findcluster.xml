@@ -1,0 +1,47 @@
+<tool id="findcluster" name="Find clusters of reads" version="0.2.0">
+    <description>in bam files</description>
+    <requirements>
+        <requirement type="package" version="0.2.0">readtagger</requirement>
+    </requirements>
+    <version_command>findcluster --version</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+        findcluster
+        --input_path '$input'
+        --output_bam '$output_bam'
+        --output_gff '$output_gff'
+        --sample_name '$input.element_identifier'
+    ]]></command>
+    <inputs>
+        <param name="input" argument="--input_path" type="data" format="bam"/>
+    </inputs>
+    <outputs>
+        <data name="output_bam" format="bam" label="findcluster BAM on $on_string"/>
+        <data name="output_gff" format="gff3" label="findcluster GFF on $on_string"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="input" value="extended_and_annotated_roi.bam" ftype="bam"/>
+            <output name="output_bam" file="three_cluster_out.bam" ftype="bam" lines_diff="2"/>
+            <output name="output_gff" file="three_cluster_out.gff" ftype="gff3" lines_diff="0"/>
+        </test>
+    </tests>
+    <help><![CDATA[
+.. code-block::
+
+    Find clusters of reads that support a TE insertion.
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      --input_path INPUT_PATH
+                            Find cluster in this BAM file. (default: None)
+      --output_bam OUTPUT_BAM
+                            Write out BAM file with cluster information to this
+                            path. Reads will have an additional "CD" tag to
+                            indicate the cluster number (default: None)
+      --output_gff OUTPUT_GFF
+                            Write out GFF file with cluster information to this
+                            path. (default: None)
+      --version             show program's version number and exit
+
+]]></help>
+</tool>
