@@ -1,3 +1,4 @@
+import os
 from cached_property import cached_property
 
 from .bam_io import BamAlignmentReader as Reader
@@ -89,7 +90,7 @@ class Cluster(list):
 class ClusterFinder(object):
     """Find clusters of reads."""
 
-    def __init__(self, input_path, output_bam=None, output_gff=None):
+    def __init__(self, input_path, output_bam=None, output_gff=None, sample_name=None):
         """
         Find readclusters in input_path file.
 
@@ -101,12 +102,24 @@ class ClusterFinder(object):
         and the fact that they support the same same insertion (and can hence contribute to the same contig if assembled).
         """
         self.input_path = input_path
+        self._sample_name = sample_name
         self.output_bam = output_bam
         self.output_gff = output_gff
         self.cluster = self.find_cluster()
         self.join_clusters()
         self.to_bam()
         self.to_gff()
+
+    @cached_property
+    def sample_name(self):
+        """Return sample name if passed in manually, else guess sample name from input file."""
+        if not self._sample_name:
+            basename = os.path.basename(self.input_path)
+            if '.' in basename:
+                basename = basename.rsplit('.', 1)[0]
+            return basename
+        else:
+            return self._sample_name
 
     def find_cluster(self):
         """Find clusters by iterating over input_path and creating clusters if reads are disjointed."""
@@ -155,4 +168,4 @@ class ClusterFinder(object):
     def to_gff(self):
         """Write clusters as GFF file."""
         if self.output_gff:
-            write_cluster(self.cluster, self.output_gff)
+            write_cluster(self.cluster, self.header, self.output_gff, sample=self.sample_name)

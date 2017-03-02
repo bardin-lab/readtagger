@@ -25,7 +25,6 @@ class TagCluster(object):
         # TODO: Sum read support:
         #   - how many reads support TSD?
         #   - how many fragments cover any part of the insertion?
-        #   - how many reads support the left side, how many reads support the right side
 
     @cached_property
     def left_insert(self):
@@ -91,7 +90,7 @@ class TagCluster(object):
                 three_p = self.infer_three_p_from_mates()
             if not five_p:
                 five_p = self.infer_five_p_from_mates()
-            if self.tsd.five_p and self.tsd.three_p:
+            if self.tsd.five_p and self.tsd.three_p and self.tsd.three_p < self.tsd.five_p:
                 # An invalid TSD was found, probably because the inferred TSD is too long.
                 # This could be two close-by insertions that each have support from one side,
                 # and/or --less likely-- a pre-existing duplication of that sequence?
@@ -226,9 +225,17 @@ class TargetSiteDuplication(object):
 
     @cached_property
     def is_valid(self):
-        """Return True if Target Site Duplication is valid."""
+        """
+        Return True if Target Site Duplication is valid.
+
+        A TSD is valid if:
+          - A three prime and five prime site have been found in an instance of this class.
+            This implies that five prime and three prime are defined by split reads
+          - The three prime must be left to the five prime
+          - The length of the TSD must be less then 51 nucleotides
+        """
         # Super arbitrary, but I guess this is necessary
-        if self.three_p and self.five_p and self.three_p != self.five_p and ((self.five_p - self.three_p) <= MAX_TSD_SIZE):
+        if self.three_p and self.five_p and self.three_p != self.five_p and self.three_p < self.five_p and (abs(self.five_p - self.three_p) <= MAX_TSD_SIZE):
             return True
         else:
             return False

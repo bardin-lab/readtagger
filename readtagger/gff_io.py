@@ -4,17 +4,19 @@ from Bio.SeqRecord import SeqRecord
 from Bio.SeqFeature import SeqFeature, FeatureLocation
 
 
-def write_cluster(clusters, output_path):
+def write_cluster(clusters, header, output_path, sample='sample'):
     """Write clusters as GFF entries."""
     with open(output_path, "w") as out_handle:
         for i, cluster in enumerate(clusters):
-            record = get_record(i=i, cluster=cluster)
-            GFF.write(record, out_handle)
+            record = get_record(header=header, cluster=cluster, sample=sample, i=i)
+            GFF.write([record], out_handle)
 
 
-def get_record(i, cluster, sample='sample'):
+def get_record(header, cluster, sample, i):
     """Turn a cluster into a biopython SeqFeature."""
-    rec = SeqRecord(Seq(""), "ID%d" % i)  # seems a bit silly, but OK ...
+    tid = cluster[0].tid
+    chromosome = header['SQ'][tid]['SN']
+    rec = SeqRecord(Seq(""), chromosome)  # seems a bit silly, but OK ...
     left_sequences = list(cluster.clustertag.left_sequences.keys())
     right_sequences = list(cluster.clustertag.right_sequences.keys())
     all_sequences = left_sequences + right_sequences
@@ -34,7 +36,8 @@ def get_record(i, cluster, sample='sample'):
                   "right_support": len(right_sequences),
                   "left_insert": left_contigs,
                   "right_insert": right_contigs,
-                  "ID": "%s_%d" % (sample, i)}
+                  "ID": "%s_%d" % (sample, i),
+                  "valid_TSD": cluster.clustertag.tsd.is_valid}
     start = cluster.clustertag.five_p_breakpoint
     end = cluster.clustertag.three_p_breakpoint
     if not start:
@@ -46,5 +49,5 @@ def get_record(i, cluster, sample='sample'):
     if start == end:
         end += 1
     top_feature = SeqFeature(FeatureLocation(start, end), type="TE", strand=1, qualifiers=qualifiers)
-    rec.features = top_feature
+    rec.features = [top_feature]
     return rec
