@@ -39,8 +39,9 @@ class Cap3Assembly(object):
 
     def assemble(self):
         """Assemble sequences."""
-        args = ['cap3', self.input_path, '-p', '75', '-s', '500', '-z', '2']
-        subprocess.check_call(args, env=os.environ.copy())  # Use check call to ignore stdout of cap3
+        with open(os.devnull, 'w') as DEVNULL:
+            args = ['cap3', self.input_path, '-p', '75', '-s', '500', '-z', '2']
+            subprocess.check_call(args, stdout=DEVNULL, env=os.environ.copy())  # Use check call to ignore stdout of cap3
 
     @staticmethod
     def join_assemblies(assemblies):
