@@ -205,13 +205,14 @@ def stitch_matched_regions(cigartuples):
     [(4, 90), (0, 35)]
     >>> stitch_matched_regions([(4, 90), (0, 15), (1, 10), (0, 19)])
     [(4, 90), (0, 15), (1, 10), (0, 19)]
-
+    >>> stitch_matched_regions([(4, 90), (0, 15), (2, 1), (0, 21), (7, 5)])  # Test that we don't produce an index error.
+    [(4, 90), (0, 35)]
     """
     new_tuples = []
     for i, (op, l) in enumerate(cigartuples):
         if op in {1, 2, 7, 8}:  # Insertion, Deletion, Reference Skip Match, Mismatch, these should never occur in the begging or end of a cigar
             # The following removes the previous match from new_tuples and appends the length to the next item in cigartuples.
-            if new_tuples[-1][0] == 0 and cigartuples[i + 1][0] == 0:
+            if new_tuples[-1][0] == 0 and len(cigartuples) != i + 1 and cigartuples[i + 1][0] == 0:
                 # previous cigar added to new_tuples is a match and next item to iterate over is a match as well
                 previous_tuple = new_tuples.pop()
                 add_length = previous_tuple[1]
