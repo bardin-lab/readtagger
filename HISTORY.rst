@@ -6,7 +6,25 @@ History
 .. to_doc
 
 ---------------------
-0.2.0(2017-02-21)
+0.3.0 (2017-03-02)
+---------------------
+
+* Add a galaxy tool for the findcluster script
+* Add new script that finds clusters of reads and outputs GFF or BAM files with these clusters.
+* Implement writing clusters as GFF files
+* Implement writing out reads with cluster number annotated in CD tag.
+* Implement merging of clusters based on whether reads contribute to common contigs
+* Use cached-property where it makes sense
+* Add module to find, join and annotate clusters of reads
+* Represent cigartuple as namedtuple
+* Add a Roadmap file
+* Add more logic for finding ends of insertions and
+* Manipulate cluster of reads to find TSDs
+* Add module for cap3 assembly and manipulation of assembled reads
+* Fix conda recipe script entrypoints
+
+---------------------
+0.2.0 (2017-02-21)
 ---------------------
 * Reformat help text in galaxy wrappers
 * Add add_matesequence script to add the sequence of the mate of the current read as a tag
