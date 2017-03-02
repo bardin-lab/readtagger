@@ -6,6 +6,11 @@ History
 .. to_doc
 
 ---------------------
+0.3.2 (2017-03-02)
+---------------------
+* Fix another crash when tuple starts with 1,2,7 or 8
+
+---------------------
 0.3.1 (2017-03-02)
 ---------------------
 * Fix a crash when a mismatch is the last item in a cigartuple
