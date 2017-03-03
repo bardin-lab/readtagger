@@ -43,6 +43,12 @@ class Cluster(list):
         return self.overlaps(r) and self.same_chromosome(r)
 
     @property
+    def hash(self):
+        """Calculate a hash based on read name and read sequence for all reads in this cluster."""
+        string_to_hash = "|".join(["%s%s" % (r.query_name, r.query_sequence) for r in self])
+        return hash(string_to_hash)
+
+    @property
     def clustertag(self):
         """Return clustertag for current cluster of reads."""
         if not hasattr(self, '_clustertag') or (hasattr(self, '_clusterlen') and len(self) != self._clusterlen):
@@ -68,6 +74,17 @@ class Cluster(list):
           - clipped reads should overlap (except if a large number of nucleotides have been eroded: that could be an interesting mechanism.)
           - inferred insert should point to same TE # TODO: implement this
         """
+        if hasattr(self, '_cannot_join'):
+            # We already tried joining this cluster with another cluster,
+            # so if we checked if we can try joining the exact same clusters
+            # (self.hash is key in self._cannot_join and other_cluster.hash is value in self._cannot_join)
+            # we know this didn't work and save ourselves the expensive assembly check
+            other_hash = self._cannot_join.get(self.hash)
+            if other_hash == other_cluster.hash:
+                return False
+        return self._can_join(other_cluster, max_distance)
+
+    def _can_join(self, other_cluster, max_distance):
         other_clustertag = TagCluster(other_cluster)
         # First check ... are three_p and five_p of cluster overlapping?
         if not self.clustertag.tsd.three_p and not other_clustertag.tsd.five_p:
@@ -84,6 +101,9 @@ class Cluster(list):
                 # We don't want clusters to be spaced too far away. Not sure if this is really a problem in practice.
                 if Cap3Assembly.sequences_contribute_to_same_contig(self.clustertag.left_sequences, other_clustertag.left_sequences):
                     return True
+        # We know this cluster (self) cannot be joined with other_cluster, so we cache this result,
+        # Since we may ask this question multiple times when joining the clusters.
+        self._cannot_join = {self.hash: other_cluster.hash}
         return False
 
 

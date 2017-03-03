@@ -37,6 +37,18 @@ def test_clusterfinder_multiple_cluster_gff(datadir, tmpdir):  # noqa: D103
     assert len(cf.cluster) == 3
 
 
+def test_clusterfinder_cache(datadir, tmpdir, mocker):  # noqa: D103
+    input_path = datadir[EXTENDED]
+    output_gff = tmpdir.join('output.gff')
+    cf = ClusterFinder(input_path=input_path, output_gff=output_gff.strpath)
+    assert len(cf.cluster) == 3
+    mocker.spy(cf.cluster[0], 'can_join')
+    mocker.spy(cf.cluster[0], '_can_join')
+    cf.join_clusters()
+    assert cf.cluster[0].can_join.call_count == 2
+    assert cf.cluster[0]._can_join.call_count == 0
+
+
 def test_clusterfinder_multiple_cluster_gff_cli(datadir, tmpdir, mocker):  # noqa: D103
     input_path = datadir[EXTENDED]
     output_bam = tmpdir.join('output.bam').strpath
