@@ -64,8 +64,8 @@ class SamTagProcessor(object):
             - CIGAR
             - Whether read us reverse
             - Mapping Quality
-            - qstart
-            - qend
+            - query_alignment_start
+            - query_alignment_end
 
         :param r: AlignedSegment
         :return tags: namedtuple of information to add to tag
@@ -76,8 +76,8 @@ class SamTagProcessor(object):
                                  cigar=r.cigar,
                                  is_reverse=r.is_reverse,
                                  mapq=r.mapping_quality,
-                                 qstart=r.qstart,
-                                 qend=r.qend)
+                                 query_alignment_start=r.query_alignment_start,
+                                 query_alignment_end=r.query_alignment_end)
 
     def is_taggable(self, r):
         """

@@ -13,11 +13,11 @@ class BaseTag(object):
 
     def __new__(cls, tid_to_reference_name):
         """Return a Tag class that knows how to format a tag."""
-        return type('NamedTagTuple', (namedtuple('tag', 'tid reference_start cigar is_reverse mapq qstart qend'),),
+        return type('NamedTagTuple', (namedtuple('tag', 'tid reference_start cigar is_reverse mapq query_alignment_start query_alignment_end'),),
                     {'__str__': lambda self: self.tag_str_template % (self.tid_to_reference_name[self.tid],
                                                                       self.reference_start,
-                                                                      self.qstart,
-                                                                      self.qend,
+                                                                      self.query_alignment_start,
+                                                                      self.query_alignment_end,
                                                                       cigartuples_to_cigarstring(self.cigar),
                                                                       'AS' if self.is_reverse else 'S',
                                                                       self.mapq),
@@ -28,7 +28,7 @@ class BaseTag(object):
 class Tag(object):
     """Collect tag attributes and conversion."""
 
-    def __init__(self, reference_start, cigar, is_reverse, mapq=None, qstart=None, qend=None, tid=None, reference_name=None):
+    def __init__(self, reference_start, cigar, is_reverse, mapq=None, query_alignment_start=None, query_alignment_end=None, tid=None, reference_name=None):
         """
         Return new Tag instance from kwds.
 
@@ -40,8 +40,8 @@ class Tag(object):
         self._cigar = cigar
         self.is_reverse = is_reverse
         self.mapq = mapq
-        self.qstart = qstart
-        self.qend = qend
+        self.query_alignment_start = query_alignment_start
+        self.query_alignment_end = query_alignment_end
         self.tid = tid
         self.reference_name = reference_name
 
@@ -50,7 +50,7 @@ class Tag(object):
         """
         Return cigar regions as list of tuples in foim [(start, end), operation].
 
-        >>> Tag(reference_start=0, cigar='20M30S', is_reverse='True', mapq=60, qstart=0, qend=20, tid=5).cigar_regions
+        >>> Tag(reference_start=0, cigar='20M30S', is_reverse='True', mapq=60, query_alignment_start=0, query_alignment_end=20, tid=5).cigar_regions
         [((0, 20), 0), ((20, 50), 4)]
         """
         return cigar_tuple_to_cigar_length(self.cigar)
@@ -60,7 +60,7 @@ class Tag(object):
         """
         Lazily convert cigarstring to tuple if it doesn't exist.
 
-        >>> Tag(reference_start=0, cigar='20M30S', is_reverse='True', mapq=60, qstart=0, qend=20, tid=5).cigar
+        >>> Tag(reference_start=0, cigar='20M30S', is_reverse='True', mapq=60, query_alignment_start=0, query_alignment_end=20, tid=5).cigar
         [CIGAR(operation=0, length=20), CIGAR(operation=4, length=30)]
         """
         if isinstance(self._cigar, str):
@@ -73,8 +73,8 @@ class Tag(object):
         """
         Return Tag instance from pysam.AlignedSegment Instance.
 
-        >>> AlignedSegment = namedtuple('AlignedSegment', 'tid reference_start cigar is_reverse mapping_quality qstart qend')
-        >>> t = Tag.from_read(AlignedSegment(reference_start=0, cigar='20M30S', is_reverse='True', mapping_quality=60, qstart=0, qend=20, tid=5))
+        >>> from test.helpers import MockAlignedSegment as AlignedSegment
+        >>> t = Tag.from_read(AlignedSegment(cigar='20M30S'))
         >>> isinstance(t, Tag)
         True
         """
@@ -83,8 +83,8 @@ class Tag(object):
                    cigar=r.cigar,
                    is_reverse=r.is_reverse,
                    mapq=r.mapping_quality,
-                   qstart=r.qstart,
-                   qend=r.qend)
+                   query_alignment_start=r.query_alignment_start,
+                   query_alignment_end=r.query_alignment_end)
 
     @staticmethod
     def from_tag_str(tag_str):
@@ -100,8 +100,14 @@ class Tag(object):
         >>> t.is_reverse
         True
         """
-        tag_to_attr = {'R': 'reference_name', 'POS': 'reference_start', 'QSTART': 'qstart', 'QEND': 'qend', 'CIGAR': 'cigar', 'S': 'is_reverse', 'MQ': 'mapq'}
-        integers = ['reference_start', 'qstart', 'qend', 'mapq']
+        tag_to_attr = {'R': 'reference_name',
+                       'POS': 'reference_start',
+                       'QSTART': 'query_alignment_start',
+                       'QEND': 'query_alignment_end',
+                       'CIGAR': 'cigar',
+                       'S': 'is_reverse',
+                       'MQ': 'mapq'}
+        integers = ['reference_start', 'query_alignment_start', 'query_alignment_end', 'mapq']
         tag_d = {tag_to_attr[k]: v for k, v in dict(item.split(':') for item in tag_str.split(',')).items()}
         if tag_d['is_reverse'] == 'S':
             tag_d['is_reverse'] = False
@@ -122,8 +128,8 @@ class Tag(object):
         return {'reference_start': self.reference_start,
                 'cigar': self.cigar,
                 'mapq': self.mapq,
-                'qstart': self.qstart,
-                'qend': self.qend,
+                'query_alignment_start': self.query_alignment_start,
+                'query_alignment_end': self.query_alignment_end,
                 'is_reverse': self.is_reverse,
                 'tid': self.tid}  # Improve this by passing tid or reference name
 
@@ -132,7 +138,7 @@ class Tag(object):
         Convert self to namedtuple.
 
         >>> named_tag_tuple = BaseTag(tid_to_reference_name={5:'3R'})
-        >>> t = Tag(reference_start=0, cigar='20M30S', is_reverse='True', mapq=60, qstart=0, qend=20, tid=5)
+        >>> t = Tag(reference_start=0, cigar='20M30S', is_reverse='True', mapq=60, query_alignment_start=0, query_alignment_end=20, tid=5)
         >>> str(t.to_namedtuple(named_tag_tuple))
         'R:3R,POS:0,QSTART:0,QEND:20,CIGAR:20M30S,S:AS,MQ:60'
         """

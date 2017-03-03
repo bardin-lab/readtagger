@@ -5,6 +5,7 @@ from readtagger.cli import findcluster
 from .helpers import namedtuple_to_argv
 
 INPUT = 'tagged_dm6.bam'
+CORNERCASE = 'cornercase.bam'
 EXTENDED = 'extended_and_annotated_roi.bam'
 
 
@@ -13,6 +14,13 @@ def test_clusterfinder_single_cluster(datadir):  # noqa: D103
     cf = ClusterFinder(input_path=input_path)
     assert len(cf.cluster) == 1
     assert len(cf.cluster[0]) == 27
+
+
+def test_cornercase(datadir, tmpdir):  # noqa: D103
+    input_path = datadir[CORNERCASE]
+    output_gff = tmpdir.join('output.gff').strpath
+    cf = ClusterFinder(input_path=input_path, output_gff=output_gff)
+    assert len(cf.cluster) == 1
 
 
 def test_clusterfinder_multiple_cluster(datadir, tmpdir):  # noqa: D103

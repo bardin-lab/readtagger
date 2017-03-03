@@ -3,6 +3,7 @@ from collections import Counter
 import warnings
 from cached_property import cached_property
 from .cap3 import Cap3Assembly
+from .tags import Tag
 
 MAX_TSD_SIZE = 50
 
@@ -175,14 +176,13 @@ class TargetSiteDuplication(object):
         """
         Return TargetSiteDuplication object for reads in cluster.
 
-        >>> from collections import namedtuple
-        >>> R = namedtuple('AlignedSegment', 'query_name reference_end pos, has_tag query_alignment_start, query_alignment_end query_length')
+        >>> from test.helpers import MockAlignedSegment as R
         >>> # 2 nt 3' clipping
-        >>> r1 = R(query_name='r1', reference_end=10, pos=2, has_tag=lambda x: True, query_alignment_start=0, query_alignment_end=10, query_length=12)
-        >>> r2 = R(query_name='r2', reference_end=12, pos=2, has_tag=lambda x: True, query_alignment_start=0, query_alignment_end=12, query_length=15)
-        >>> r3 = R(query_name='r3', reference_end=12, pos=2, has_tag=lambda x: True, query_alignment_start=0, query_alignment_end=12, query_length=15)
+        >>> r1 = R(query_name='r1', reference_end=10, pos=2, query_alignment_start=0, query_alignment_end=10, query_length=12)
+        >>> r2 = R(query_name='r2', reference_end=12, pos=2, query_alignment_start=0, query_alignment_end=12, query_length=15)
+        >>> r3 = R(query_name='r3', reference_end=12, pos=2, query_alignment_start=0, query_alignment_end=12, query_length=15)
         >>> # 3 nt 3' clipping
-        >>> r4 = R(query_name='r4', reference_end=12, pos=2, has_tag=lambda x: True, query_alignment_start=0, query_alignment_end=12, query_length=15)
+        >>> r4 = R(query_name='r4', reference_end=12, pos=2, query_alignment_start=0, query_alignment_end=12, query_length=15)
         >>> tsd = TargetSiteDuplication(cluster = [r1, r2, r3, r4], include_duplicates=True)
         >>> assert tsd.three_p is None
         >>> tsd.five_p
@@ -190,11 +190,11 @@ class TargetSiteDuplication(object):
         >>> tsd.is_valid
         False
         >>> # 10 nt 5' clipping
-        >>> r5 = R(query_name='r5', reference_end=20, pos=10, has_tag=lambda x: True, query_alignment_start=10, query_alignment_end=20, query_length=20)
-        >>> r6 = R(query_name='r6', reference_end=20, pos=10, has_tag=lambda x: True, query_alignment_start=10, query_alignment_end=20, query_length=20)
-        >>> r7 = R(query_name='r7', reference_end=20, pos=10, has_tag=lambda x: True, query_alignment_start=10, query_alignment_end=20, query_length=20)
+        >>> r5 = R(query_name='r5', reference_end=20, pos=10, query_alignment_start=10, query_alignment_end=20, query_length=20)
+        >>> r6 = R(query_name='r6', reference_end=20, pos=10, query_alignment_start=10, query_alignment_end=20, query_length=20)
+        >>> r7 = R(query_name='r7', reference_end=20, pos=10, query_alignment_start=10, query_alignment_end=20, query_length=20)
         >>> # 12 nt 5' clipping
-        >>> r8 = R(query_name='r8', reference_end=20, pos=12, has_tag=lambda x: True, query_alignment_start=12, query_alignment_end=20, query_length=20)
+        >>> r8 = R(query_name='r8', reference_end=20, pos=12, query_alignment_start=12, query_alignment_end=20, query_length=20)
         >>> tsd = TargetSiteDuplication(cluster = [r5, r6, r7, r8], include_duplicates=True)
         >>> assert tsd.five_p is None
         >>> tsd.three_p
@@ -321,15 +321,31 @@ class TargetSiteDuplication(object):
                     break
         return max_starting_position
 
+    @staticmethod
+    def _hard_clip_left(read):
+        cigar = Tag.from_read(read).cigar
+        if cigar[0][0] == 5:
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def _hard_clip_right(read):
+        cigar = Tag.from_read(read).cigar
+        if cigar[-1][0] == 5:
+            return True
+        else:
+            return False
+
     @cached_property
     def sorted_split_start_positions(self):
         """Return sorted start positions of split reads."""
-        return sorted([r.pos for r in self.split_ads if r.query_alignment_start != 0])  # To only get relevant split start positions
+        return sorted([r.pos for r in self.split_ads if r.query_alignment_start != 0 or self._hard_clip_left(r)])  # To only get relevant split start positions
 
     @cached_property
     def sorted_split_end_positions(self):
         """Return sorted end positions of split reads."""
-        return sorted([r.reference_end for r in self.split_ads if r.query_alignment_end != r.query_length])
+        return sorted([r.reference_end for r in self.split_ads if r.query_alignment_end != r.query_length or self._hard_clip_right(r)])
 
     @cached_property
     def three_p_clip_length(self):
