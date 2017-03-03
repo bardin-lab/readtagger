@@ -9,6 +9,7 @@ History
 0.3.3 (2017-03-02)
 ---------------------
 * Fix a crash when writing GFF for a cluster of hardclipped reads
+* Change confusing variable names and copypasted docstring
 
 ---------------------
 0.3.2 (2017-03-02)

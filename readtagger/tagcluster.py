@@ -350,7 +350,7 @@ class TargetSiteDuplication(object):
     @cached_property
     def three_p_clip_length(self):
         """
-        Return the longest clipped region that extends the five_p breakpoint.
+        Return the longest clipped region that extends the three_p breakpoint.
 
         5p Breakpoint:           v
         3p Breakpoint:               v
@@ -358,12 +358,13 @@ class TargetSiteDuplication(object):
         5p split read:  |  >>>>>>XXXX
         3p split read:  |          XXX>>>>>>>
 
-        In this case return 11 for the 5p breakpoint.
+        In this case return 3 for the three_p breakpoint.
         """
-        clip_length_at_five_p = [r.query_alignment_start for r in self.split_ads if r.pos == self.three_p]
-        if not clip_length_at_five_p:
+        # TODO: This doesn't work for hardclipped reads. Should use left or right clip
+        clip_length_at_three_p = [r.query_alignment_start for r in self.split_ads if r.pos == self.three_p]
+        if not clip_length_at_three_p:
             return 0
-        return max(clip_length_at_five_p)
+        return max(clip_length_at_three_p)
 
     @cached_property
     def five_p_clip_length(self):
@@ -376,8 +377,9 @@ class TargetSiteDuplication(object):
         5p split read:  |  >>>>>>XXXX
         3p split read:  |          XXX>>>>>>>
 
-        In this case return 11 for the 5p breakpoint.
+        In this case return 4 for the 5p breakpoint.
         """
+        # TODO: This doesn't work for hardclipped reads. Should use left or right clip
         clip_length_at_five_p = [r.query_length - r.query_alignment_end for r in self.split_ads if r.reference_end == self.five_p]
         if not clip_length_at_five_p:
             return 0
