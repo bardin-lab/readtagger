@@ -31,7 +31,9 @@ class TagCluster(object):
     def left_insert(self):
         """Return insert sequence as assembled from the left side."""
         if self.left_sequences:
-            return Cap3Assembly(self.left_sequences)
+            if not hasattr(self, '_left_seq_cap3'):
+                self._left_seq_cap3 = Cap3Assembly(self.left_sequences)
+            return self._left_seq_cap3
         else:
             return None
 
@@ -39,7 +41,9 @@ class TagCluster(object):
     def right_insert(self):
         """Return insert sequence as assembled from the right side."""
         if self.right_sequences:
-            return Cap3Assembly(self.right_sequences)
+            if not hasattr(self, '_right_seq_cap3'):
+                self._right_seq_cap3 = Cap3Assembly(self.right_sequences)
+            return self._right_seq_cap3
         else:
             return None
 
@@ -87,9 +91,9 @@ class TagCluster(object):
             # but then I would need to look at reads that are not marked to be in the cluster.
             # I could look at the BD tagged reads though and scan for softclipping ... .
             five_p, three_p = self.tsd.five_p, self.tsd.three_p
-            if not three_p:
+            if three_p is None:
                 three_p = self.infer_three_p_from_mates()
-            if not five_p:
+            if five_p is None:
                 five_p = self.infer_five_p_from_mates()
             if self.tsd.five_p and self.tsd.three_p and self.tsd.three_p < self.tsd.five_p:
                 # An invalid TSD was found, probably because the inferred TSD is too long.
@@ -99,7 +103,7 @@ class TagCluster(object):
                 # points to the same TE? Should I split the cluster? Maybe I should just dump
                 # the cluster reads as a BAM file and inspect them to see what should be done.
                 warn = "Found a cluster with 5p and 3p evidence for TSD, but reads are spaced too far apart.\n"
-                warn += "The custer coordinates are tid: %s, start:%s, end: %s" % (self.cluster[0].tid, self.cluster[0].pos, self.cluster[-1].reference_end)
+                warn += "The cluster coordinates are tid: %s, start:%s, end: %s" % (self.cluster[0].tid, self.cluster[0].pos, self.cluster[-1].reference_end)
                 warnings.warn(warn)
             return five_p, three_p
         return self.tsd.five_p, self.tsd.three_p

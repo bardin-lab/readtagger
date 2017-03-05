@@ -1,11 +1,17 @@
 import os
+import tempfile
 from cached_property import cached_property
+from concurrent.futures import (
+    wait,
+    ThreadPoolExecutor
+)
 
 from .bam_io import BamAlignmentReader as Reader
 from .bam_io import BamAlignmentWriter as Writer
 from .gff_io import write_cluster
 from .tagcluster import TagCluster
 from .cap3 import Cap3Assembly
+from .verify import discard_supplementary
 
 
 class Cluster(list):
@@ -54,7 +60,7 @@ class Cluster(list):
         if not hasattr(self, '_clustertag') or (hasattr(self, '_clusterlen') and len(self) != self._clusterlen):
             self._clusterlen = len(self)
             self._clustertag = TagCluster(self)
-        return TagCluster(self)
+        return self._clustertag
 
     def can_join(self, other_cluster, max_distance=1500):
         """
@@ -74,14 +80,18 @@ class Cluster(list):
           - clipped reads should overlap (except if a large number of nucleotides have been eroded: that could be an interesting mechanism.)
           - inferred insert should point to same TE # TODO: implement this
         """
-        if hasattr(self, '_cannot_join'):
+        if hasattr(self, '_cannot_join_d'):
             # We already tried joining this cluster with another cluster,
             # so if we checked if we can try joining the exact same clusters
             # (self.hash is key in self._cannot_join and other_cluster.hash is value in self._cannot_join)
             # we know this didn't work and save ourselves the expensive assembly check
-            other_hash = self._cannot_join.get(self.hash)
+            other_hash = self._cannot_join_d.get(self.hash)
             if other_hash == other_cluster.hash:
                 return False
+        if hasattr(self, '_can_join_d'):
+            other_hash = self._can_join_d.get(self.hash)
+            if other_hash == other_cluster.hash:
+                return True
         return self._can_join(other_cluster, max_distance)
 
     def _can_join(self, other_cluster, max_distance):
@@ -92,6 +102,7 @@ class Cluster(list):
                 extended_three_p = other_clustertag.tsd.three_p - other_clustertag.tsd.three_p_clip_length
                 extended_five_p = self.clustertag.tsd.five_p_clip_length + self.clustertag.tsd.five_p
                 if extended_three_p <= extended_five_p:
+                    self._can_join_d = {self.hash: other_cluster.hash}
                     return True
         # Next check ... can informative parts of mates be assembled into the proper insert sequence
         if self.clustertag.left_sequences and other_clustertag.left_sequences:
@@ -100,17 +111,26 @@ class Cluster(list):
             if (other_clustertag.five_p_breakpoint - self.clustertag.five_p_breakpoint) < max_distance:
                 # We don't want clusters to be spaced too far away. Not sure if this is really a problem in practice.
                 if Cap3Assembly.sequences_contribute_to_same_contig(self.clustertag.left_sequences, other_clustertag.left_sequences):
+                    self._can_join_d = {self.hash: other_cluster.hash}
                     return True
         # We know this cluster (self) cannot be joined with other_cluster, so we cache this result,
         # Since we may ask this question multiple times when joining the clusters.
-        self._cannot_join = {self.hash: other_cluster.hash}
+        self._cannot_join_d = {self.hash: other_cluster.hash}
         return False
 
 
 class ClusterFinder(object):
     """Find clusters of reads."""
 
-    def __init__(self, input_path, output_bam=None, output_gff=None, sample_name=None):
+    def __init__(self, input_path,
+                 output_bam=None,
+                 output_gff=None,
+                 include_duplicates=False,
+                 sample_name=None,
+                 threads=1,
+                 min_mapq=1,
+                 max_clustersupport=200,
+                 remove_supplementary_without_primary=True):
         """
         Find readclusters in input_path file.
 
@@ -125,7 +145,14 @@ class ClusterFinder(object):
         self._sample_name = sample_name
         self.output_bam = output_bam
         self.output_gff = output_gff
+        self.include_duplicates = include_duplicates
+        self.min_mapq = min_mapq
+        self.max_clustersupport = max_clustersupport
+        self.remove_supplementary_without_primary = remove_supplementary_without_primary
+        self.threads = threads
+        self.tp = ThreadPoolExecutor(threads)  # max theads
         self.cluster = self.find_cluster()
+        self.clean_clusters()
         self.join_clusters()
         self.to_bam()
         self.to_gff()
@@ -141,16 +168,30 @@ class ClusterFinder(object):
         else:
             return self._sample_name
 
+    def _remove_supplementary_without_primary(self):
+        """Remove supplementary reads without primary alignments."""
+        output_path = tempfile.mktemp(dir='.')
+        discard_supplementary(input_path=self.input_path, output_path=output_path)
+        self.input_path = output_path
+
     def find_cluster(self):
         """Find clusters by iterating over input_path and creating clusters if reads are disjointed."""
+        if self.remove_supplementary_without_primary:
+            self._remove_supplementary_without_primary()
         clusters = []
         with Reader(self.input_path) as reader:
             self.header = reader.header
-            r = next(reader)
-            cluster = Cluster()
-            cluster.append(r)
-            clusters.append(cluster)
             for r in reader:
+                if not self.include_duplicates:
+                    if r.is_duplicate:
+                        continue
+                if not r.mapping_quality > self.min_mapq:
+                    continue
+                if not clusters:
+                    cluster = Cluster()
+                    cluster.append(r)
+                    clusters.append(cluster)
+                    continue
                 if clusters[-1].read_is_compatible(r):
                     clusters[-1].append(r)
                 else:
@@ -159,6 +200,10 @@ class ClusterFinder(object):
                     clusters.append(cluster)
         return clusters
 
+    def clean_clusters(self):
+        """Remove clusters that have more reads supporting an insertion than specified in self.max_clustersupport."""
+        self.cluster = [c for c in self.cluster if not sum([len(c.clustertag.left_sequences), len(c.clustertag.right_sequences)]) > self.max_clustersupport]
+
     def join_clusters(self):
         """Iterate over self.cluster and attempt to join consecutive clusters."""
         if len(self.cluster) > 1:
@@ -166,6 +211,7 @@ class ClusterFinder(object):
             new_clusterlength = 0
             while new_clusterlength != cluster_length:
                 # Iterate until the length of the cluster doesn't change anymore.
+                self._cache_join()
                 cluster_length = new_clusterlength
                 prev_cluster = self.cluster[0]
                 for cluster in self.cluster[1:]:
@@ -175,6 +221,14 @@ class ClusterFinder(object):
                     else:
                         prev_cluster = cluster
                 new_clusterlength = len(self.cluster)
+
+    def _cache_join(self):
+        futures = []
+        prev_cluster = self.cluster[0]
+        for cluster in self.cluster[1:]:
+            futures.append(self.tp.submit(prev_cluster.can_join, cluster))
+            prev_cluster = cluster
+        wait(futures)
 
     def to_bam(self):
         """Write clusters of reads and include cluster number in CD tag."""
@@ -188,4 +242,4 @@ class ClusterFinder(object):
     def to_gff(self):
         """Write clusters as GFF file."""
         if self.output_gff:
-            write_cluster(self.cluster, self.header, self.output_gff, sample=self.sample_name)
+            write_cluster(self.cluster, self.header, self.output_gff, sample=self.sample_name, threads=self.threads)

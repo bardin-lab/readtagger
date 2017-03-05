@@ -14,7 +14,7 @@ ENTRY_POINTS = '''
         findcluster=readtagger.cli.findcluster:main
 '''
 
-requirements = ['bcbio-gff', 'biopython', 'cached_property', 'contextlib2', 'pysam', 'six']
+requirements = ['bcbio-gff', 'biopython', 'cached_property', 'contextlib2', 'futures', 'pysam', 'six']
 
 if sys.version_info[0] == 2:
     requirements.append('shutilwhich')
