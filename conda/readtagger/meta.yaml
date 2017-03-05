@@ -15,21 +15,23 @@ requirements:
     - cached-property
     - biopython
     - bcbiogff
+    - futures
     - setuptools
     - contextlib2
     - shutilwhich  # [not py3k]
-    - pysam
+    - pysam >=0.9.4
     - six
 
   run:
     - biopython
     - bcbiogff
+    - futures
     - cached-property
     - cap3
     - sambamba
     - python
     - contextlib2
-    - pysam
+    - pysam >=0.9.4
     - six
     - shutilwhich  # [not py3k]
 
