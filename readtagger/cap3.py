@@ -29,7 +29,7 @@ class Cap3Assembly(object):
         self.write_sequences()
         self.assemble()
         self.assembly = Ace.read(open(os.path.join(self.input_dir, 'multialign.fa.cap.ace')))
-        shutil.rmtree(self.input_dir)
+        shutil.rmtree(self.input_dir, ignore_errors=True)
 
     def write_sequences(self):
         """Take sequences and write them out to temporary file for cap3."""
