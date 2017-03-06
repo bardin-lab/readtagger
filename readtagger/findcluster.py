@@ -122,7 +122,8 @@ class Cluster(list):
 class ClusterFinder(object):
     """Find clusters of reads."""
 
-    def __init__(self, input_path,
+    def __init__(self,
+                 input_path,
                  output_bam=None,
                  output_gff=None,
                  include_duplicates=False,
