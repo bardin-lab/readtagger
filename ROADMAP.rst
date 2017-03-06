@@ -2,19 +2,11 @@ Plans and Ideas for continued development of readtagger
 -------------------------------------------------------
 
 -----------
-v0.3
------------
-* Find clusters of reads from alignment files that are filtered for interesting reads.
-  Start with linked clusters that extend across all reads within matepair distance of cluster extremes.
-* Find TSDs
-* Assemble reads in clusters to find insert sequences
-* Output characterized clusters in GFF format
-
------------
 v0.4
 -----------
-* Output clustered reads in BAM files
-* Quantify readsupport
+* Quantify readsupport on a fragment basis
+* Split clusters into left, right and tsd
+* Blast assembled fragments to better identify insert sequences
 
 -----------
 v0.5
@@ -25,4 +17,9 @@ v0.5
 v0.6
 -----------
 * Refine clusters if heterogeneous fragments are being assembled
-* Blast assembled fragments to better identify insert sequences
+* Genotype insertion calls
+
+-----------
+v0.7
+-----------
+* Attempt to detect deletions or use deletion caller
