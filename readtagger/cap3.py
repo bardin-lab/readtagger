@@ -4,6 +4,7 @@ import shutil
 import subprocess
 import tempfile
 from Bio.Sequencing import Ace
+from .fasta_io import write_sequences
 
 
 class Cap3Assembly(object):
@@ -32,10 +33,8 @@ class Cap3Assembly(object):
         shutil.rmtree(self.input_dir, ignore_errors=True)
 
     def write_sequences(self):
-        """Take sequences and write them out to temporary file for cap3."""
-        with open(self.input_path, 'w') as out:
-            for qname, seq in self.sequences.items():
-                out.write(">%s\n%s\n" % (qname, seq))
+        """Take sequences and write them out to a temporary file for cap3."""
+        write_sequences(sequences=self.sequences, output_path=self.input_path)
 
     def assemble(self):
         """Assemble sequences."""
