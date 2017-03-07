@@ -20,16 +20,16 @@ install:
       wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
     fi
   - bash miniconda.sh -bp $CONDA_PREFIX
+  - export PATH="$CONDA_PREFIX/bin:$PATH"
   - $CONDA_BIN config --set always_yes yes --set changeps1 no
   - $CONDA_BIN --version
   - $CONDA_BIN config --add channels mvdbeek
   - $CONDA_BIN config --add channels bioconda
   - $CONDA_BIN config --add channels conda-forge
-  - $CONDA_BIN install cap3 sambamba samtools conda-build -c bioconda
-  - mkdir ~/bin && cp ~/conda/bin/cap3 ~/conda/bin/samtools ~/conda/bin/sambamba ~/bin
-  - export PATH="~/bin:$PATH"
+  - $CONDA_BIN install blast cap3 sambamba samtools virtualenv conda-build -c bioconda
   - samtools --version
   - pip install tox-travis coveralls anaconda-client
+  - mkdir -p ~/.planemo/ && virtualenv ~/.planemo/gx_venv
   - $CONDA_BIN build --python "$TRAVIS_PYTHON_VERSION" conda/readtagger
 script: tox
 after_success:
