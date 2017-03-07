@@ -11,10 +11,11 @@ ENTRY_POINTS = '''
         readtagger=readtagger.readtagger:main
         allow_dovetailing=readtagger.allow_dovetailing:main
         add_matesequence=readtagger.mateoperations:main
-        findcluster=readtagger.cli.findcluster:main
+        findcluster=readtagger.cli.findcluster:cli
+        write_supplementary_fastq=readtagger.cli.write_supplementary_fastq:cli
 '''
 
-requirements = ['bcbio-gff', 'biopython', 'cached_property', 'contextlib2', 'futures', 'pysam', 'six']
+requirements = ['bcbio-gff', 'biopython', 'cached_property', 'click', 'contextlib2', 'futures', 'pysam', 'six']
 
 if sys.version_info[0] == 2:
     requirements.append('shutilwhich')

@@ -71,4 +71,5 @@ def test_clusterfinder_multiple_cluster_gff_cli(datadir, tmpdir, mocker):  # noq
     args = args_template(input_path=input_path, output_bam=output_bam, output_gff=output_gff)
     argv = namedtuple_to_argv(args)
     mocker.patch('sys.argv', argv)
-    findcluster.main()
+    mocker.patch('sys.exit')
+    findcluster.cli()
