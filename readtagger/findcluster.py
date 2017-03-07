@@ -1,4 +1,5 @@
 import os
+import shutil
 import tempfile
 from cached_property import cached_property
 from concurrent.futures import (
@@ -42,6 +43,7 @@ class ClusterFinder(object):
         self.include_duplicates = include_duplicates
         self.min_mapq = min_mapq
         self.max_clustersupport = max_clustersupport
+        self._tempdir = tempfile.mkdtemp(dir='.')
         self.remove_supplementary_without_primary = remove_supplementary_without_primary
         self.threads = threads
         self.tp = ThreadPoolExecutor(threads)  # max theads
@@ -50,6 +52,7 @@ class ClusterFinder(object):
         self.join_clusters()
         self.to_bam()
         self.to_gff()
+        shutil.rmtree(self._tempdir, ignore_errors=True)
 
     @cached_property
     def sample_name(self):
@@ -64,7 +67,7 @@ class ClusterFinder(object):
 
     def _remove_supplementary_without_primary(self):
         """Remove supplementary reads without primary alignments."""
-        output_path = tempfile.mktemp(dir='.')
+        output_path = os.path.join(self._tempdir, 'clean.bam')
         discard_supplementary(input_path=self.input_path, output_path=output_path)
         self.input_path = output_path
 

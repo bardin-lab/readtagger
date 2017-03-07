@@ -1,0 +1,45 @@
+<tool id="update_mapq" name="Update MAPQ score" version="0.3.4">
+    <description>of supplementary alignments</description>
+    <requirements>
+        <requirement type="package" version="0.3.4">readtagger</requirement>
+    </requirements>
+    <version_command>update_mapq --version</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+        update_mapq --source_path '$source_path' --remapped_path '$remapped_path' --output_path '$output_path'
+    ]]></command>
+    <inputs>
+        <param argument="--source_path" label="Update supplementary MAPQ scores in this BAM file" type="data" format="bam"/>
+        <param argument="--remapped_path" label="Extarct MAPQ scores for secondary alignments from this BAM file." type="data" format="bam"/>
+    </inputs>
+    <outputs>
+        <data name="output_path" format="bam"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="source_path" value="supplementary.bam" ftype="bam"/>
+            <param name="remapped_path" value="remapped_supplementary.bam" ftype="bam"/>
+            <output name="output_path" file="supplementary_new_mapq.bam" ftype="bam"/>
+        </test>
+    </tests>
+    <help><![CDATA[
+.. code-block::
+
+    Usage: update_mapq [OPTIONS]
+
+      Update supplementary read MAPQ score after remapping.
+
+    Options:
+      --source_path PATH    Alignment file where supplementary reads should be
+                            updated with new MAPQ scores  [required]
+      --remapped_path PATH  Alignment file that contains reads that have been
+                            remapped and contain an updated MAPQ score  [required]
+      --output_path PATH    Write all alignments in original_path to this
+                            location. Supplementary reads will take the MAPQ score
+                            as determined by remapping to the alignment file at
+                            `remapped_path`  [required]
+      --version             Show the version and exit.
+      --help                Show this message and exit.
+
+
+    ]]></help>
+</tool>
