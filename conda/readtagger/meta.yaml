@@ -26,6 +26,7 @@ requirements:
   run:
     - biopython
     - bcbiogff
+    - blast
     - click
     - futures
     - cached-property
