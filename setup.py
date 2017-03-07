@@ -13,6 +13,7 @@ ENTRY_POINTS = '''
         add_matesequence=readtagger.mateoperations:main
         findcluster=readtagger.cli.findcluster:cli
         write_supplementary_fastq=readtagger.cli.write_supplementary_fastq:cli
+        update_mapq=readtagger.cli.update_mapq:cli
 '''
 
 requirements = ['bcbio-gff', 'biopython', 'cached_property', 'click', 'contextlib2', 'futures', 'pysam', 'six']
