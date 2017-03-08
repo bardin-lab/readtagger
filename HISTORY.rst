@@ -5,8 +5,19 @@ History
 
 .. to_doc
 
+
 ---------------------
-0.3.3 (2017-03-02)
+0.3.5 (2017-03-08)
+---------------------
+* Install blast in travis environemnt and use conda-compatible virtualenv
+* Add tools to extract supplementary alignments and tool to update MAPQ scores of supplementary alignments
+* Add blast module
+* Move to click as commandline argument parser for find cluster and write_supplementary_fastq
+* Refactor code organization in project.
+* Update ROADMAP.rst
+
+---------------------
+0.3.4 (2017-03-02)
 ---------------------
 * Speed up assembly steps using multithreading
 * Implement a cache for the Cluster.can_join method
