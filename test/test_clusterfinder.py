@@ -15,12 +15,19 @@ def test_clusterfinder_single_cluster(datadir):  # noqa: D103
     input_path = datadir[INPUT]
     cf = ClusterFinder(input_path=input_path)
     assert len(cf.cluster) == 1
-    assert len(cf.cluster[0]) == 18
+    assert len(cf.cluster[0]) == 20
 
 
 def test_clusterfinder_include_duplicates(datadir):  # noqa: D103
     input_path = datadir[INPUT]
     cf = ClusterFinder(input_path=input_path, include_duplicates=True)
+    assert len(cf.cluster) == 1
+    assert len(cf.cluster[0]) == 27
+
+
+def test_clusterfinder_remove_supplementary(datadir):  # noqa: D103
+    input_path = datadir[INPUT]
+    cf = ClusterFinder(input_path=input_path, include_duplicates=True, remove_supplementary_without_primary=True)
     assert len(cf.cluster) == 1
     assert len(cf.cluster[0]) == 25
 
@@ -28,7 +35,7 @@ def test_clusterfinder_include_duplicates(datadir):  # noqa: D103
 def test_cornercase(datadir, tmpdir):  # noqa: D103
     input_path = datadir[CORNERCASE]
     output_gff = tmpdir.join('output.gff').strpath
-    cf = ClusterFinder(input_path=input_path, output_gff=output_gff, min_mapq=-1, remove_supplementary_without_primary=False)
+    cf = ClusterFinder(input_path=input_path, output_gff=output_gff, min_mapq=-1)
     assert len(cf.cluster) == 1
     input_path = datadir[CORNERCASE2]
     cf = ClusterFinder(input_path=input_path, output_gff=output_gff)

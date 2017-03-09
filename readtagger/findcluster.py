@@ -26,7 +26,7 @@ class ClusterFinder(object):
                  threads=1,
                  min_mapq=1,
                  max_clustersupport=200,
-                 remove_supplementary_without_primary=True):
+                 remove_supplementary_without_primary=False):
         """
         Find readclusters in input_path file.
 

@@ -10,6 +10,7 @@ History
 0.3.6 (2017-03-09)
 ---------------------
 * Use query_alignment_sequence instead of query_sequence for compatibility with BWA MEMs -Y option
+* Keep suppl. reads without primary reads by default
 
 ---------------------
 0.3.5 (2017-03-08)
