@@ -15,10 +15,10 @@ def update_mapq(source_path, remapped_path, output_path):
         qname_seq = {}
         for r in remapped:
             if r.query_name not in qname_seq:
-                qname_seq[r.query_name] = {r.query_sequence: r.mapq}
+                qname_seq[r.query_name] = {r.query_alignment_sequence: r.mapq}
             else:
-                qname_seq[r.query_name][r.query_sequence] = r.mapq
+                qname_seq[r.query_name][r.query_alignment_sequence] = r.mapq
         for r in source:
-            if r.query_name in qname_seq and r.query_sequence in qname_seq[r.query_name]:
-                r.mapq = qname_seq[r.query_name][r.query_sequence]
+            if r.query_name in qname_seq and r.query_alignment_sequence in qname_seq[r.query_name]:
+                r.mapq = qname_seq[r.query_name][r.query_alignment_sequence]
             output.write(r)
