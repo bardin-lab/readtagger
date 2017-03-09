@@ -10,7 +10,7 @@ from .fasta_io import write_sequences
 class Blast(object):
     """Hold Blast-related data and methods."""
 
-    def __init__(self, sequences, blastdb):
+    def __init__(self, sequence, blastdb):
         """
         Blast object for `sequences`.
 
@@ -22,13 +22,13 @@ class Blast(object):
         >>> write_sequences({'roo_fragment': roo_seq}, output_path=reference_fasta)
         >>> db = make_blastdb(reference_fasta, dir=tempdir)
         >>> s = 'ATCGAGAGCGATAAATTATATTTAGGATTTTGTTATCTAAGGCGACAGCTCAAAAACATGTAATTTAAGTGCACACTACATGAGTCAGTCACTTGAGATCGTTCCCCGCCTCCTAAAAT'
-        >>> sequences = {'test': s}
-        >>> b = Blast(sequences=sequences, blastdb=db)
+        >>> sequence = {'test': s}
+        >>> b = Blast(sequence=sequence, blastdb=db)
         >>> len(b.blast_result[0].alignments) == 1
         True
         >>> shutil.rmtree(tempdir, ignore_errors=True)
         """
-        self.sequences = sequences
+        self.sequence = sequence
         self.blastdb = blastdb
         self.input_dir = tempfile.mkdtemp(dir='.')
         self.input_path = os.path.join(self.input_dir, 'blast.fa')
@@ -38,7 +38,7 @@ class Blast(object):
     def run(self):
         """Run blast command."""
         outfile = os.path.join(self.input_dir, 'blast_result.xml')
-        write_sequences(sequences=self.sequences, output_path=self.input_path)
+        write_sequences(sequences=self.sequence, output_path=self.input_path)
         cline = NcbiblastnCommandline(cmd='blastn',
                                       query=self.input_path,
                                       db=self.blastdb,
@@ -53,6 +53,6 @@ class Blast(object):
 
 def make_blastdb(reference_fasta, dir='.'):
     """Make a blastdb for insertion_fasta and return path to blastdb."""
-    args = ['makeblastdb', '-in', reference_fasta, '-parse_seqids', '-dbtype', 'nucl', '-out', os.path.join(dir, reference_fasta)]
+    args = ['makeblastdb', '-in', reference_fasta, '-parse_seqids', '-dbtype', 'nucl', '-out', os.path.join(dir, os.path.basename(reference_fasta))]
     subprocess.call(args, env=os.environ.copy())
-    return reference_fasta
+    return os.path.join(dir, os.path.basename(reference_fasta))
