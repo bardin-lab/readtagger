@@ -21,12 +21,14 @@ class ClusterFinder(object):
                  input_path,
                  output_bam=None,
                  output_gff=None,
+                 reference_fasta=None,
+                 blastdb=None,
                  include_duplicates=False,
                  sample_name=None,
                  threads=1,
                  min_mapq=1,
                  max_clustersupport=200,
-                 remove_supplementary_without_primary=False):
+                 remove_supplementary_without_primary=False,):
         """
         Find readclusters in input_path file.
 
@@ -41,6 +43,8 @@ class ClusterFinder(object):
         self._sample_name = sample_name
         self.output_bam = output_bam
         self.output_gff = output_gff
+        self.reference_fasta = reference_fasta
+        self.blastdb = blastdb
         self.include_duplicates = include_duplicates
         self.min_mapq = min_mapq
         self.max_clustersupport = max_clustersupport
@@ -140,4 +144,10 @@ class ClusterFinder(object):
     def to_gff(self):
         """Write clusters as GFF file."""
         if self.output_gff:
-            write_cluster(self.cluster, self.header, self.output_gff, sample=self.sample_name, threads=self.threads)
+            write_cluster(clusters=self.cluster,
+                          header=self.header,
+                          output_path=self.output_gff,
+                          reference_fasta=self.reference_fasta,
+                          blastdb=self.blastdb,
+                          sample=self.sample_name,
+                          threads=self.threads)

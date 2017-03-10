@@ -6,6 +6,9 @@ from .cap3 import Cap3Assembly
 class Cluster(list):
     """A Cluster of reads."""
 
+    left_blast_result = None
+    right_blast_result = None
+
     @cached_property
     def min(self):
         """
@@ -106,3 +109,63 @@ class Cluster(list):
         # Since we may ask this question multiple times when joining the clusters.
         self._cannot_join_d = {self.hash: other_cluster.hash}
         return False
+
+    @cached_property
+    def left_support(self):
+        """Number of supporting reads on the left side of cluster."""
+        return len(list(self.clustertag.left_sequences.keys()))
+
+    @cached_property
+    def right_support(self):
+        """Number of supporting reads on the right side of cluster."""
+        return len(list(self.clustertag.right_sequences.keys()))
+
+    @cached_property
+    def score(self):
+        """Sum of all supporting reads for this cluster."""
+        return self.left_support + self.right_support
+
+    @cached_property
+    def left_contigs(self):
+        """Left contigs for this cluster."""
+        if self.clustertag.left_sequences:
+            return [contig.sequence for contig in self.clustertag.left_insert.assembly.contigs]
+        else:
+            return []
+
+    @cached_property
+    def right_contigs(self):
+        """Right contigs for this cluster."""
+        if self.clustertag.right_sequences:
+            return [contig.sequence for contig in self.clustertag.right_insert.assembly.contigs]
+        else:
+            return []
+
+    @cached_property
+    def start(self):
+        """Start coordinate for this cluster."""
+        return self._start_and_end[0]
+
+    @cached_property
+    def end(self):
+        """End coordinate for this cluster."""
+        return self._start_and_end[1]
+
+    @cached_property
+    def _start_and_end(self):
+        start = self.clustertag.five_p_breakpoint
+        end = self.clustertag.three_p_breakpoint
+        if start is None:
+            start = end
+        if end is None:
+            end = start
+        if start > end:
+            end, start = start, end
+        if start == end:
+            end += 1
+        return start, end
+
+    @cached_property
+    def valid_tsd(self):
+        """Current cluster is a TSD."""
+        return self.clustertag.tsd.is_valid
