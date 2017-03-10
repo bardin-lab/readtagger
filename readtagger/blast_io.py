@@ -44,8 +44,9 @@ class Blast(object):
                                       db=self.blastdb,
                                       out=outfile,
                                       evalue=0.00001,
-                                      max_target_seqs=2,
-                                      max_hsps=2,
+                                      max_target_seqs=5,
+                                      strand='plus',
+                                      max_hsps=5,
                                       outfmt=5)
         self.stdout, self.stderr = cline()
         return list(NCBIXML.parse(open(outfile)))

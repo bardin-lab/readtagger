@@ -80,3 +80,15 @@ def test_clusterfinder_multiple_cluster_gff_cli(datadir, tmpdir, mocker):  # noq
     mocker.patch('sys.argv', argv)
     mocker.patch('sys.exit')
     findcluster.cli()
+
+
+def test_clusterfinder_blast(datadir, tmpdir, mocker):  # noqa: D103
+    input_path = datadir[EXTENDED]
+    output_bam = tmpdir.join('output.bam').strpath
+    output_gff = tmpdir.join('output.gff').strpath
+    args_template = namedtuple('ArgumentParser', 'input_path output_gff output_bam reference_fasta')
+    args = args_template(input_path=input_path, output_bam=output_bam, output_gff=output_gff, reference_fasta='/Users/mvandenb/src/readtagger/all_fbti.fa')
+    argv = namedtuple_to_argv(args)
+    mocker.patch('sys.argv', argv)
+    mocker.patch('sys.exit')
+    findcluster.cli()

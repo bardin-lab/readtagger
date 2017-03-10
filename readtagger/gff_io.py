@@ -1,19 +1,27 @@
+import collections
 from functools import partial
+import yaml
 from concurrent.futures import ThreadPoolExecutor
 from BCBio import GFF
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.SeqFeature import SeqFeature, FeatureLocation
 
+from .hits import BlastProcessor
 
-def write_cluster(clusters, header, output_path, sample='sample', threads=1):
+
+def write_cluster(clusters, header, output_path, reference_fasta=None, blastdb=None, sample='sample', threads=1):
     """Write clusters as GFF entries."""
     with open(output_path, "w") as out_handle:
+        if blastdb or reference_fasta:
+            blast = BlastProcessor(reference_fasta=reference_fasta, blastdb=blastdb)
+        else:
+            blast = None
         tp = ThreadPoolExecutor(threads)
         futures = []
         records = {tid: SeqRecord(Seq(""), header['SQ'][tid]['SN']) for tid in range(len(header['SQ']))}
         for i, cluster in enumerate(clusters):
-            func = partial(get_feature, cluster, sample, i, header)
+            func = partial(get_feature, cluster, sample, i, blast)
             futures.append(tp.submit(func))
         for future in futures:
             tid, feature = future.result()
@@ -22,37 +30,31 @@ def write_cluster(clusters, header, output_path, sample='sample', threads=1):
         tp.shutdown(wait=True)
 
 
-def get_feature(cluster, sample, i, header):
+def get_feature(cluster, sample, i, blast=None):
     """Turn a cluster into a biopython SeqFeature."""
-    left_sequences = list(cluster.clustertag.left_sequences.keys())
-    right_sequences = list(cluster.clustertag.right_sequences.keys())
-    all_sequences = left_sequences + right_sequences
-    if cluster.clustertag.left_insert:
-        left_contigs = (contig.sequence for contig in cluster.clustertag.left_insert.assembly.contigs)
-    else:
-        left_contigs = ()
-    left_contigs = [v for pair in enumerate(left_contigs) for v in pair]
-    if cluster.clustertag.right_insert:
-        right_contigs = (contig.sequence for contig in cluster.clustertag.right_insert.assembly.contigs)
-    else:
-        right_contigs = ()
-    right_contigs = [v for pair in enumerate(right_contigs) for v in pair]
     qualifiers = {"source": "findcluster",
-                  "score": len(all_sequences),
-                  "left_support": len(left_sequences),
-                  "right_support": len(right_sequences),
-                  "left_insert": left_contigs,
-                  "right_insert": right_contigs,
+                  "score": cluster.score,
+                  "left_support": cluster.left_support,
+                  "right_support": cluster.right_support,
+                  "left_insert": cluster.left_contigs,
+                  "right_insert": cluster.right_contigs,
                   "ID": "%s_%d" % (sample, i),
-                  "valid_TSD": cluster.clustertag.tsd.is_valid}
-    start = cluster.clustertag.five_p_breakpoint
-    end = cluster.clustertag.three_p_breakpoint
-    if start is None:
-        start = end
-    if end is None:
-        end = start
-    if start > end:
-        end, start = start, end
-    if start == end:
-        end += 1
-    return cluster[0].tid, SeqFeature(FeatureLocation(start, end), type="TE", strand=1, qualifiers=qualifiers)
+                  "valid_TSD": cluster.valid_tsd}
+    if blast:
+        left_description, right_description, common_inserts = blast.blast_cluster(cluster)
+        qualifiers['left_description'] = yaml.dump(convert(left_description), default_flow_style=False).replace('\n', ' ').replace('-', '')
+        qualifiers['right_description'] = yaml.dump(convert(right_description), default_flow_style=False).replace('\n', ' ').replace('-', '')
+        qualifiers['common_inserts'] = yaml.dump(list(convert(common_inserts)), default_flow_style=False).replace('\n', ' ').replace('-', '')
+
+    return cluster.tid, SeqFeature(FeatureLocation(cluster.start, cluster.end), type="TE", strand=1, qualifiers=qualifiers)
+
+def convert(data):
+    """Convert unicode to bytestring"""
+    if isinstance(data, basestring):
+        return str(data)
+    elif isinstance(data, collections.Mapping):
+        return dict(map(convert, data.iteritems()))
+    elif isinstance(data, collections.Iterable):
+        return type(data)(map(convert, data))
+    else:
+        return data

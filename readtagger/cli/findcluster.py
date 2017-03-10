@@ -22,6 +22,9 @@ from readtagger.readtagger import __VERSION__
 @click.option('--include_duplicates/--no-include_duplicates',
               help='Include reads marked as duplicates when finding clusters.',
               default=False)
+@click.option('--reference_fasta',
+              help='Blast cluster contigs against this fasta file',
+              default=None)
 @click.option('--threads', help='Threads to use for cap3 assembly step', default=1, type=click.IntRange(1, 100))
 @click.version_option(version=__VERSION__)
 def cli(**kwds):
