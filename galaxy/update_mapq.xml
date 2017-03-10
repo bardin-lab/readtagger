@@ -9,7 +9,7 @@
     ]]></command>
     <inputs>
         <param argument="--source_path" label="Update supplementary MAPQ scores in this BAM file" type="data" format="bam"/>
-        <param argument="--remapped_path" label="Extarct MAPQ scores for secondary alignments from this BAM file." type="data" format="bam"/>
+        <param argument="--remapped_path" label="Extract MAPQ scores for secondary alignments from this BAM file." type="data" format="bam"/>
     </inputs>
     <outputs>
         <data name="output_path" format="bam"/>
