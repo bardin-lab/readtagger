@@ -38,8 +38,8 @@ def get_feature(cluster, sample, i, blast=None):
                   "score": cluster.score,
                   "left_support": cluster.left_support,
                   "right_support": cluster.right_support,
-                  "left_insert": cluster.left_contigs,
-                  "right_insert": cluster.right_contigs,
+                  "left_insert": [v for pair in enumerate(cluster.left_contigs) for v in pair],
+                  "right_insert": [v for pair in enumerate(cluster.right_contigs) for v in pair],
                   "ID": "%s_%d" % (sample, i),
                   "valid_TSD": cluster.valid_tsd}
     feature = SeqFeature(FeatureLocation(cluster.start, cluster.end), type="TE", strand=1, qualifiers=qualifiers)
