@@ -22,6 +22,7 @@ requirements:
     - shutilwhich  # [not py3k]
     - pysam >=0.9.4
     - six
+    - temporary
 
   run:
     - biopython
@@ -37,6 +38,7 @@ requirements:
     - pysam >=0.9.4
     - six
     - shutilwhich  # [not py3k]
+    - temporary
 
 test:
   # Python imports
