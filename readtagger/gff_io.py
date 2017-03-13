@@ -11,21 +11,25 @@ from .hits import BlastProcessor
 def write_cluster(clusters, header, output_path, reference_fasta=None, blastdb=None, sample='sample', threads=1):
     """Write clusters as GFF entries."""
     with open(output_path, "w") as out_handle:
-        if blastdb or reference_fasta:
-            blast = BlastProcessor(reference_fasta=reference_fasta, blastdb=blastdb)
-        else:
-            blast = None
-        tp = ThreadPoolExecutor(threads)
-        futures = []
-        records = {tid: SeqRecord(Seq(""), header['SQ'][tid]['SN']) for tid in range(len(header['SQ']))}
-        for i, cluster in enumerate(clusters):
-            func = partial(get_feature, cluster, sample, i, blast)
-            futures.append(tp.submit(func))
-        for future in futures:
-            tid, feature = future.result()
-            records[tid].features.append(feature)
-        GFF.write(records.values(), out_handle)
-        tp.shutdown(wait=True)
+        try:
+            if blastdb or reference_fasta:
+                blast = BlastProcessor(reference_fasta=reference_fasta, blastdb=blastdb)
+            else:
+                blast = None
+            tp = ThreadPoolExecutor(threads)
+            futures = []
+            records = {tid: SeqRecord(Seq(""), header['SQ'][tid]['SN']) for tid in range(len(header['SQ']))}
+            for i, cluster in enumerate(clusters):
+                func = partial(get_feature, cluster, sample, i, blast)
+                futures.append(tp.submit(func))
+            for future in futures:
+                tid, feature = future.result()
+                records[tid].features.append(feature)
+            GFF.write(records.values(), out_handle)
+            tp.shutdown(wait=True)
+        finally:
+            if blast:
+                blast.close()
 
 
 def get_feature(cluster, sample, i, blast=None):
