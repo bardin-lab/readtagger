@@ -7,6 +7,11 @@ History
 
 
 ---------------------
+0.3.8 (2017-03-14)
+---------------------
+* Fix multithreaded blast runs and do not fail on empty Blast output
+
+  ---------------------
 0.3.7 (2017-03-14)
 ---------------------
 * Add reference_fasta for blast functionality in findcluster galaxy wrapper
