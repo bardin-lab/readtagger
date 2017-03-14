@@ -7,6 +7,15 @@ History
 
 
 ---------------------
+0.3.7 (2017-03-14)
+---------------------
+* Add reference_fasta for blast functionality in findcluster galaxy wrapper
+* Cleanup BlastProcessor object at the end of a run
+* New test fixture for downloading reference fasta
+* Implement first draft of blasting cluster contigs
+* Limit clusterfinding to reads with `AD` or `BD` tag
+
+---------------------
 0.3.6 (2017-03-09)
 ---------------------
 * Use query_alignment_sequence instead of query_sequence for compatibility with BWA MEMs -Y option
@@ -158,4 +167,3 @@ History
 0.1.0 (2017-02-05)
 ---------------------
 * Initial version
-
