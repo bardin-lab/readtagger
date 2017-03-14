@@ -33,7 +33,11 @@
             <param name="input" value="extended_and_annotated_roi.bam" ftype="bam"/>
             <param name="reference_fasta" value="reference.fasta" ftype="fasta"/>
             <output name="output_bam" file="three_cluster_out.bam" ftype="bam" lines_diff="2"/>
-            <output name="output_gff" file="three_cluster_blast_out.gff" ftype="gff3" lines_diff="0"/>
+            <output name="output_gff">
+                <assert_contents>
+                    <has_text text="FBti0019066_rover_Gypsy" />
+                </assert_contents>
+            </output>
         </test>
     </tests>
     <help><![CDATA[
