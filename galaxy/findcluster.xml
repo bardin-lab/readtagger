@@ -7,6 +7,9 @@
     <command detect_errors="aggressive"><![CDATA[
         findcluster
         --input_path '$input'
+        #if $reference_fasta:
+            --reference_fasta '$reference_fasta'
+        #end if
         --output_bam '$output_bam'
         --output_gff '$output_gff'
         --sample_name '$input.element_identifier'
@@ -14,6 +17,7 @@
     ]]></command>
     <inputs>
         <param name="input" argument="--input_path" type="data" format="bam"/>
+        <param argument="--reference_fasta" label="Reference Fasta" help="Reconstructed contigs at clusters will be blasted against this sequence." type="data" format="fasta" optional="True"/>
     </inputs>
     <outputs>
         <data name="output_bam" format="bam" label="findcluster BAM on $on_string"/>
@@ -25,24 +29,41 @@
             <output name="output_bam" file="three_cluster_out.bam" ftype="bam" lines_diff="2"/>
             <output name="output_gff" file="three_cluster_out.gff" ftype="gff3" lines_diff="0"/>
         </test>
+        <test>
+            <param name="input" value="extended_and_annotated_roi.bam" ftype="bam"/>
+            <param name="reference_fasta" value="reference.fasta" ftype="fasta"/>
+            <output name="output_bam" file="three_cluster_out.bam" ftype="bam" lines_diff="2"/>
+            <output name="output_gff" file="three_cluster_blast_out.gff" ftype="gff3" lines_diff="0"/>
+        </test>
     </tests>
     <help><![CDATA[
 .. code-block::
 
-    Find clusters of reads that support a TE insertion.
+    Usage: findcluster [OPTIONS]
 
-    optional arguments:
-      -h, --help            show this help message and exit
-      --input_path INPUT_PATH
-                            Find cluster in this BAM file. (default: None)
-      --output_bam OUTPUT_BAM
-                            Write out BAM file with cluster information to this
-                            path. Reads will have an additional "CD" tag to
-                            indicate the cluster number (default: None)
-      --output_gff OUTPUT_GFF
-                            Write out GFF file with cluster information to this
-                            path. (default: None)
-      --version             show program's version number and exit
+      Find clusters of reads that support a TE insertion.
+
+        Options:
+      --input_path PATH               Find cluster in this BAM file.
+      --output_bam PATH               Write out BAM file with cluster information
+                                      to this path. Reads will have an additional
+                                      "CD" tag to indicate the cluster number
+      --output_gff PATH               Write out GFF file with cluster information
+                                      to this path.
+      --sample_name TEXT              Sample name to use when writing out clusters
+                                      in GFF file. Default is to infer the name
+                                      from the input filename.
+      --include_duplicates / --no-include_duplicates
+                                      Include reads marked as duplicates when
+                                      finding clusters.
+      --reference_fasta TEXT          Blast cluster contigs against this fasta
+                                      file
+      --blastdb TEXT                  Blast cluster contigs against this blast
+                                      database
+      --threads INTEGER RANGE         Threads to use for cap3 assembly step
+      --version                       Show the version and exit.
+      --help                          Show this message and exit.
+
 
 ]]></help>
 </tool>
