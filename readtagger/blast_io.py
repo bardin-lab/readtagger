@@ -32,7 +32,7 @@ class Blast(object):
 
     def run(self):
         """Run blast command."""
-        with temporary.temp_dir(make_cwd=True) as temp_dir:
+        with temporary.temp_dir() as temp_dir:
             temp_dir = str(temp_dir)
             if not self.blastdb:
                 self.blastdb = make_blastdb(self.reference_fasta, dir=temp_dir)
@@ -49,7 +49,11 @@ class Blast(object):
                                           max_hsps=5,
                                           outfmt=5)
             self.stdout, self.stderr = cline()
-            return list(NCBIXML.parse(open(outfile)))
+            try:
+                result = list(NCBIXML.parse(open(outfile)))
+            except:
+                result = []
+            return result
 
 
 def make_blastdb(reference_fasta, dir='.'):
