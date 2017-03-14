@@ -32,8 +32,7 @@ class ClusterFinder(object):
         """
         Find readclusters in input_path file.
 
-        This class assumes that all reads in input_path are potentially interesting and that the alignment has been done for paired end reads.
-        You will not want to run this on a full high coverage alignment file, since the clusters will become huge.
+        This class assumes that all reads in input_path that should be clustered have either an 'AD' tag or a 'BD' tag.
         The initial limits of the cluster are defined by the maximum extent of overlapping reads, and each read that is added at the 3 prime end of
         the cluster will extend the cluster.
         The join_cluster method will then join clusters that overlap through their clipped sequences and cluster that can be assembled based on their proximity
@@ -88,6 +87,8 @@ class ClusterFinder(object):
                     if r.is_duplicate:
                         continue
                 if not r.mapping_quality > self.min_mapq:
+                    continue
+                if not (r.has_tag('BD') or r.has_tag('AD')):
                     continue
                 if not clusters:
                     cluster = Cluster()
