@@ -7,6 +7,12 @@ History
 
 
 ---------------------
+0.3.10 (2017-03-26)
+---------------------
+* Revert local conda dependency resolution
+* Fix readtagger.add_mate to work also if one mate is unmapped
+
+---------------------
 0.3.9 (2017-03-26)
 ---------------------
 * Add a genotyping module
