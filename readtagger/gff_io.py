@@ -34,15 +34,20 @@ def write_cluster(clusters, header, output_path, reference_fasta=None, blastdb=N
 
 def get_feature(cluster, sample, i, blast=None):
     """Turn a cluster into a biopython SeqFeature."""
+    genotype = cluster.genotype_likelihood()
     qualifiers = {"source": "findcluster",
                   "score": cluster.score,
                   "left_support": cluster.left_support,
                   "right_support": cluster.right_support,
+                  "non_support": cluster._non_support_evidence,
+                  "genotype": genotype.genotype,
+                  "genotype_likelihoods": [genotype.reference, genotype.heterozygous, genotype.homozygous],
                   "left_insert": [v for pair in enumerate(cluster.left_contigs) for v in pair],
                   "right_insert": [v for pair in enumerate(cluster.right_contigs) for v in pair],
                   "ID": "%s_%d" % (sample, i),
                   "valid_TSD": cluster.valid_tsd}
     feature = SeqFeature(FeatureLocation(cluster.start, cluster.end), type="TE", strand=1, qualifiers=qualifiers)
+
     if blast:
         seqfeature_args = blast.blast_cluster(cluster).to_feature_args()
         base_args = {'location': FeatureLocation(cluster.start, cluster.end), 'strand': 1}

@@ -12,6 +12,7 @@ build:
 requirements:
   build:
     - python
+    - scipy
     - cached-property
     - biopython
     - bcbiogff
@@ -26,6 +27,7 @@ requirements:
 
   run:
     - biopython
+    - scipy
     - bcbiogff
     - blast
     - click

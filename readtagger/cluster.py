@@ -1,6 +1,7 @@
 from cached_property import cached_property
-from .tagcluster import TagCluster
+from .genotype import Genotype
 from .cap3 import Cap3Assembly
+from .tagcluster import TagCluster
 
 
 class Cluster(list):
@@ -39,6 +40,17 @@ class Cluster(list):
     def read_is_compatible(self, r):
         """Determine if read overlaps cluster and is on same chromosome."""
         return self.overlaps(r) and self.same_chromosome(r)
+
+    @property
+    def read_index(self):
+        """Index of read names in cluster."""
+        if not hasattr(self, '_read_index') or (hasattr(self, '_clusterlen') and len(self) != self._clusterlen):
+            self._read_index = set([r.query_name for r in self])
+        return self._read_index
+
+    def read_in_cluster(self, read):
+        """Return whether read.query_name is in cluster."""
+        return read.query_name in self.read_index
 
     @property
     def hash(self):
@@ -113,12 +125,12 @@ class Cluster(list):
     @cached_property
     def left_support(self):
         """Number of supporting reads on the left side of cluster."""
-        return len(list(self.clustertag.left_sequences.keys()))
+        return len(set(list(self.clustertag.left_sequences.keys())))
 
     @cached_property
     def right_support(self):
         """Number of supporting reads on the right side of cluster."""
-        return len(list(self.clustertag.right_sequences.keys()))
+        return len(set(list(self.clustertag.right_sequences.keys())))
 
     @cached_property
     def score(self):
@@ -169,3 +181,42 @@ class Cluster(list):
     def valid_tsd(self):
         """Current cluster is a TSD."""
         return self.clustertag.tsd.is_valid
+
+    def genotype_likelihood(self):
+        r"""
+        Calculate genotype likelihood for current cluster.
+
+        P(g|D) = P(g)P(D\g)/sum(P(g)P(D|g')) where P(D|g) = Pbin(Nalt, Nalt + Nfef)
+        :return:
+        """
+        nref = len(self.non_support_evidence())
+        nalt = len(self.read_index)
+        return Genotype(nref=nref, nalt=nalt)
+
+    def non_support_evidence(self, alignment_file=None, include_duplicates=False):
+        """
+        Get all reads that are close to the insertion site but that do not support the insertion.
+
+        A relevant readpair does not support an insertion if the region between the minimum and maximum of a readpair
+        covers either self.start or self.end but is not listed in self.left_support or self.right_support
+        :return:
+        """
+        if not hasattr(self, '_non_support_evidence') and alignment_file:  # Hacky, there should be a better way to access non_support_evidence
+            upstream = self.start - 500
+            downstream = self.end + 500
+            region = {r.query_name: r for r in alignment_file.fetch(start=upstream,
+                                                                    end=downstream,
+                                                                    tid=self.tid) if r.is_proper_pair and not self.read_in_cluster(r)}
+            non_support_reads = []
+            for r in region.values():
+                if r.is_duplicate and include_duplicates:
+                    min_start = min([r.pos, r.mpos])
+                    max_end = max(r.aend, r.pos + r.isize)
+                    if self.overlaps_cluster(left=min_start, right=max_end):
+                        non_support_reads.append(r)
+            self._non_support_evidence = non_support_reads
+        return self._non_support_evidence
+
+    def overlaps_cluster(self, left, right):
+        """Return whether a read overlaps a cluster."""
+        return left < self.start < right or left < self.end < right

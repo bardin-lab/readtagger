@@ -16,7 +16,7 @@ ENTRY_POINTS = '''
         update_mapq=readtagger.cli.update_mapq:cli
 '''
 
-requirements = ['bcbio-gff', 'biopython', 'cached_property', 'click', 'contextlib2', 'futures', 'pysam', 'six', 'temporary']
+requirements = ['bcbio-gff', 'biopython', 'cached_property', 'click', 'contextlib2', 'futures', 'pysam', 'scipy', 'six', 'temporary']
 
 if sys.version_info[0] == 2:
     requirements.append('shutilwhich')

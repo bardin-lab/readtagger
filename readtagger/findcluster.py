@@ -54,6 +54,7 @@ class ClusterFinder(object):
         self.cluster = self.find_cluster()
         self.clean_clusters()
         self.join_clusters()
+        self.collect_non_evidence()
         self.to_bam()
         self.to_gff()
         shutil.rmtree(self._tempdir, ignore_errors=True)
@@ -132,6 +133,11 @@ class ClusterFinder(object):
             futures.append(self.tp.submit(prev_cluster.can_join, cluster))
             prev_cluster = cluster
         wait(futures)
+
+    def collect_non_evidence(self):
+        """Count reads that overlap cluster site but do not provide evidence for an insertion."""
+        with Reader(self.input_path, with_index=True) as reader:
+            [cluster.non_support_evidence(reader, include_duplicates=self.include_duplicates) for cluster in self.cluster]
 
     def to_bam(self):
         """Write clusters of reads and include cluster number in CD tag."""
