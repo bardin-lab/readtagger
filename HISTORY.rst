@@ -7,34 +7,10 @@ History
 
 
 ---------------------
-0.3.8 (2017-03-14)
+0.3.9 (2017-03-26)
 ---------------------
-* Fix multithreaded blast runs and do not fail on empty Blast output
-
-  ---------------------
-0.3.7 (2017-03-14)
----------------------
-* Add reference_fasta for blast functionality in findcluster galaxy wrapper
-* Cleanup BlastProcessor object at the end of a run
-* New test fixture for downloading reference fasta
-* Implement first draft of blasting cluster contigs
-* Limit clusterfinding to reads with `AD` or `BD` tag
-
----------------------
-0.3.6 (2017-03-09)
----------------------
-* Use query_alignment_sequence instead of query_sequence for compatibility with BWA MEMs -Y option
-* Keep suppl. reads without primary reads by default
-
----------------------
-0.3.5 (2017-03-08)
----------------------
-* Install blast in travis environemnt and use conda-compatible virtualenv
-* Add tools to extract supplementary alignments and tool to update MAPQ scores of supplementary alignments
-* Add blast module
-* Move to click as commandline argument parser for find cluster and write_supplementary_fastq
-* Refactor code organization in project.
-* Update ROADMAP.rst
+* Add a genotyping module
+* Keep tags for alternative alignments if mates are not in a proper pair
 
 ---------------------
 0.3.4 (2017-03-02)
