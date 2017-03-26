@@ -196,6 +196,8 @@ class SamAnnotator(object):
 
     def _process(self, reader, main_writer, discarded_writer, discard_if_proper_pair, verified_writer, allow_dovetailing, discard_bad_alt_tag):
         for read in reader:
+            if allow_dovetailing:
+                read = self.allow_dovetailing(read, self.max_proper_size)
             discarded_tags = []
             verified_tags = []
             verified_tag = None
@@ -209,8 +211,6 @@ class SamAnnotator(object):
                     alt_tag = verified_tag
                 if alt_tag:
                     verified_tag = samtag.format_tags(alt_tag)
-            if allow_dovetailing:
-                read = self.allow_dovetailing(read, self.max_proper_size)
             if verified_tag and discard_if_proper_pair and read.is_proper_pair:
                 discarded_tags.extend(verified_tag)
             elif verified_tag:
@@ -247,7 +247,9 @@ class SamAnnotator(object):
                 keep = alternative_alignment_cigar_is_better(current_cigar=cigar,
                                                              alternative_cigar=alt_tag.cigar,
                                                              same_orientation=same_orientation)
-                if keep:
+                if keep or (s_or_m == 'm' and not read.is_proper_pair):
+                    # either the transposon tag is better, or we are on a different chromosome (perhaps a scaffold),
+                    # in which case we still want to consider the alternative tag
                     verified_alt_tag[s_or_m] = alt_tag
         return verified_alt_tag
 
