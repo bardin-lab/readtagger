@@ -1,7 +1,7 @@
-<tool id="findcluster" name="Find clusters of reads" version="0.3.8">
+<tool id="findcluster" name="Find clusters of reads" version="0.3.9">
     <description>in bam files</description>
     <requirements>
-        <requirement type="package" version="0.3.8">readtagger</requirement>
+        <requirement type="package" version="0.3.9">readtagger</requirement>
     </requirements>
     <version_command>findcluster --version</version_command>
     <command detect_errors="aggressive"><![CDATA[
