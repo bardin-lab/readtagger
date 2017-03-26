@@ -3,6 +3,7 @@ from readtagger.readtagger import SamAnnotator
 from readtagger.readtagger import main
 from .helpers import namedtuple_to_argv
 
+import pysam
 from collections import namedtuple
 
 
@@ -11,6 +12,10 @@ TEST_SAM_B = 'testsam_b.sam'
 
 TEST_BAM_A = 'dm6.bam'
 TEST_BAM_B = 'pasteurianus.bam'
+
+TEST_SAM_ROVER_DM6 = 'rover_single_mate_dm6.sam'
+TEST_SAM_ROVER_FBTI = 'rover_single_mate_fbti.sam'
+
 ARGS_TEMPLATE = namedtuple('args', ['annotate_with',
                                     'tag_file',
                                     'allow_dovetailing',
@@ -22,12 +27,14 @@ ARGS_TEMPLATE = namedtuple('args', ['annotate_with',
 
 
 def test_samtag_processor(datadir):  # noqa: D103
+    # test that tag_mate=False really skips tagging mates
     p_mate_false = get_samtag_processor(datadir, tag_mate=False)
     assert len(p_mate_false.result) == 1
-    assert len(p_mate_false.result.values()) == 1
+    assert len(p_mate_false.result['DISCARD_R1_KEEP_R2:1'].values()) == 1  # DISCARD_R1_KEEP_R2:1 is a readname
     assert True not in next(iter(p_mate_false.result.values()))
     p_mate_true = get_samtag_processor(datadir, tag_mate=True)
-    assert next(iter(p_mate_true.result.values())) == next(iter(p_mate_false.result.values()))
+    # Make sure that the mate gets tagged as well
+    assert len(p_mate_true.result['DISCARD_R1_KEEP_R2:1'].values()) == 2
     # Need some more data to make more meaningful tests
 
 
@@ -86,6 +93,20 @@ def test_main_with_argparse(datadir, tmpdir, mocker):  # noqa: D103
     argv = namedtuple_to_argv(args, 'readtagger.py')
     mocker.patch('sys.argv', argv)
     main()
+
+
+def test_main_rover(datadir, tmpdir, mocker):  # noqa: D103
+    # Annotate dm6 with pasteurianus reads, keep suboptimal tags, discard proper pairs
+    # and test that argparse argument parsing works as expected.
+    discarded, verified, output = get_output_files(tmpdir)
+    annotate_with = str(datadir[TEST_SAM_ROVER_FBTI])
+    tag_file = str(datadir[TEST_SAM_ROVER_DM6])
+    args = ARGS_TEMPLATE(annotate_with=[annotate_with], tag_file=tag_file, allow_dovetailing=True, keep_suboptimal_alternate_tags=False,
+                         discard_if_proper_pair=True, output_file=output.strpath, write_discarded=discarded.strpath, write_verified=verified.strpath)
+    argv = namedtuple_to_argv(args, 'readtagger.py')
+    mocker.patch('sys.argv', argv)
+    main()
+    assert len([r for r in pysam.AlignmentFile(verified.strpath)]) == 1
 
 
 def get_samtag_processor(datadir, tag_mate):  # noqa: D103

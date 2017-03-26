@@ -107,10 +107,18 @@ class SamTagProcessor(object):
 
     def add_mate(self):
         """Iterate over self.result and add mate information."""
-        for tag_d in six.itervalues(self.result):
+        self._result = self.result
+        self.result = {}
+        for top_level_k, tag_d in six.iteritems(self._result):
+            new_tag_d = tag_d.copy()
             for k, v in tag_d.items():
                 if (not k) in tag_d:
                     v['m'] = tag_d[(not k)]['s']
+                    new_tag_d[k] = v
+                else:
+                    new_tag_d[(not k)] = {'m': v['s']}
+                self.result[top_level_k] = new_tag_d
+        del self._result
 
     def format_tags(self, tags):
         """
