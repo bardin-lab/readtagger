@@ -10,6 +10,11 @@ class Cluster(list):
     left_blast_result = None
     right_blast_result = None
 
+    def __init__(self):
+        """Setup Cluster object."""
+        super(Cluster, self).__init__()
+        self._region = {}
+
     @cached_property
     def min(self):
         """
@@ -193,7 +198,7 @@ class Cluster(list):
         nalt = len(self.read_index)
         return Genotype(nref=nref, nalt=nalt)
 
-    def non_support_evidence(self, alignment_file=None, include_duplicates=False):
+    def non_support_evidence(self, include_duplicates=False):
         """
         Get all reads that are close to the insertion site but that do not support the insertion.
 
@@ -201,22 +206,27 @@ class Cluster(list):
         covers either self.start or self.end but is not listed in self.left_support or self.right_support
         :return:
         """
-        if not hasattr(self, '_non_support_evidence') and alignment_file:  # Hacky, there should be a better way to access non_support_evidence
-            upstream = self.start - 500
-            downstream = self.end + 500
-            region = {r.query_name: r for r in alignment_file.fetch(start=upstream,
-                                                                    end=downstream,
-                                                                    tid=self.tid) if r.is_proper_pair and not self.read_in_cluster(r)}
+        if not hasattr(self, '_non_support_evidence'):
             non_support_reads = []
-            for r in region.values():
-                if r.is_duplicate and include_duplicates:
-                    min_start = min([r.pos, r.mpos])
-                    max_end = max(r.aend, r.pos + r.isize)
-                    if self.overlaps_cluster(left=min_start, right=max_end):
-                        non_support_reads.append(r)
+            for r in self._region.values():
+                if r.is_duplicate and not include_duplicates:
+                    continue
+                min_start = min([r.pos, r.mpos])
+                max_end = max(r.aend, r.pos + r.isize)
+                if self.overlaps_cluster(left=min_start, right=max_end):
+                    non_support_reads.append(r)
             self._non_support_evidence = non_support_reads
         return self._non_support_evidence
 
     def overlaps_cluster(self, left, right):
         """Return whether a read overlaps a cluster."""
         return left < self.start < right or left < self.end < right
+
+    def add_flanking_read(self, r):
+        """
+        Add a read that is close to a cluster but that is not part of the cluster.
+
+        We further filter this list to find reads that are evidence against an insertion in `Custer.non_suport_evidence`.
+        """
+        if not self.read_in_cluster(r):
+            self._region[r.query_name] = r

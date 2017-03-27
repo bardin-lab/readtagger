@@ -136,8 +136,19 @@ class ClusterFinder(object):
 
     def collect_non_evidence(self):
         """Count reads that overlap cluster site but do not provide evidence for an insertion."""
-        with Reader(self.input_path, with_index=True) as reader:
-            [cluster.non_support_evidence(reader, include_duplicates=self.include_duplicates) for cluster in self.cluster]
+        regions_d = {}
+        regions = [(cluster.tid, cluster.start - 500, cluster.end + 500, cluster) for cluster in self.cluster]
+        for region in regions:
+            tid, start, end, cluster = region
+            if tid not in regions_d:
+                regions_d[tid] = []
+            regions_d[tid].append((start, end, cluster, []))
+        # stream over chromosomes and collect non support evidence
+        with Reader(self.input_path) as reader:
+            for r in reader:
+                if r.is_proper_pair and not r.is_duplicate:
+                    chr_regions = regions_d[r.tid]
+                    [cluster.add_flanking_read(r) for (start, end, cluster, reads) in chr_regions if start < r.pos < end or start < r.aend < end]  # noqa F812
 
     def to_bam(self):
         """Write clusters of reads and include cluster number in CD tag."""
