@@ -59,11 +59,10 @@ class BamAlignmentWriter(object):
 class BamAlignmentReader(object):
     """Wraps pysam.AlignmentFile with sambamba for reading if input file is a bam file."""
 
-    def __init__(self, path, external_bin='choose_best', with_index=False):
+    def __init__(self, path, external_bin='choose_best'):
         """Use this class with a contexthandler."""
         self.path = path
         self.external_bin = external_bin
-        self.with_index = with_index
 
     @property
     def args(self):
@@ -95,36 +94,19 @@ class BamAlignmentReader(object):
                 self._is_bam = False
         return self._is_bam
 
-    @property
-    def has_index(self):
-        """Check if self.path has an index."""
-        has_index = False
-        try:
-            has_index = pysam.AlignmentFile(self.path).check_index()
-        except Exception:
-            pass
-        return has_index
-
     def close(self):
         """Close filehandles and subprocess safely."""
         self.af.close()
-        if self.is_bam and self.args and not self.with_index:
+        if self.is_bam and self.args:
             self.proc.stdout.close()
             self.proc.wait()
 
     def __enter__(self):
         """Provide context handler entry."""
-        self.af = None
-        if self.is_bam:
-            if self.with_index:
-                # If we're fetching specific regions we can't work with a subprocess stream :(
-                if not self.has_index:
-                    pysam.index(self.path)
-                self.af = pysam.AlignmentFile(self.path)
-            elif self.args:
-                self.proc = subprocess.Popen(self.args, stdout=subprocess.PIPE, env=os.environ.copy(), close_fds=True)
-                self.af = pysam.AlignmentFile(self.proc.stdout)
-        if not self.af:
+        if self.is_bam and self.args:
+            self.proc = subprocess.Popen(self.args, stdout=subprocess.PIPE, env=os.environ.copy(), close_fds=True)
+            self.af = pysam.AlignmentFile(self.proc.stdout)
+        else:
             self.af = pysam.AlignmentFile(self.path)
         return self.af
 
