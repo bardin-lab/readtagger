@@ -7,6 +7,13 @@ History
 
 
 ---------------------
+0.3.11 (2017-03-28)
+---------------------
+* Add a testcase for genotyping module
+* Stream over full alignment file instead of fetching regions,
+  pysam.AlignmentFile.fetch is too slow
+
+---------------------
 0.3.10 (2017-03-26)
 ---------------------
 * Revert local conda dependency resolution
