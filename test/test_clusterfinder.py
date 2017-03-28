@@ -13,6 +13,7 @@ CORNERCASE = 'cornercase.bam'
 CORNERCASE2 = 'cornercase2.bam'
 CORNERCASE3 = 'cornercase3.bam'
 EXTENDED = 'extended_and_annotated_roi.bam'
+COMPLEX = 'extended_annotated_updated_all_reads.bam'
 
 
 def test_clusterfinder_single_cluster(datadir):  # noqa: D103
@@ -96,6 +97,19 @@ def test_clusterfinder_blast(datadir, tmpdir, mocker, reference_fasta):  # noqa:
     mocker.patch('sys.argv', argv)
     mocker.patch('sys.exit')
     findcluster.cli()
+
+
+def test_clusterfinder_complex_genotype(datadir, tmpdir, reference_fasta):  # noqa: D103
+    input_path = datadir[COMPLEX]
+    output_bam = tmpdir.join('output.bam').strpath
+    output_gff = tmpdir.join('output.gff').strpath
+    clusters = ClusterFinder(input_path=input_path, output_bam=output_bam, output_gff=output_gff, reference_fasta=reference_fasta)
+    cluster = clusters.cluster[0]
+    assert len(cluster) == 20
+    genotype = cluster.genotype_likelihood()
+    assert genotype.nref == 18
+    assert genotype.nalt == 20
+    assert genotype.genotype == 'heterozygous'
 
 
 @pytest.fixture(scope='module')

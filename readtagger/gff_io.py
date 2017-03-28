@@ -39,7 +39,7 @@ def get_feature(cluster, sample, i, blast=None):
                   "score": cluster.score,
                   "left_support": cluster.left_support,
                   "right_support": cluster.right_support,
-                  "non_support": cluster.non_support_evidence(),
+                  "non_support": genotype.nref,
                   "genotype": genotype.genotype,
                   "genotype_likelihoods": [genotype.reference, genotype.heterozygous, genotype.homozygous],
                   "left_insert": [v for pair in enumerate(cluster.left_contigs) for v in pair],
