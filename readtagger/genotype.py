@@ -23,21 +23,20 @@ class Genotype(object):
         P(g|D) = P(g)P(D\g)/sum(P(g)P(D|g')) where P(D|g) = Pbin(Nalt, Nalt + Nfef)
         :return:
         """
-        reference = 0.0
+        reference = 0.03
         heterozygous = 0.5
-        homozygous = 1.0
+        homozygous = 0.97
         genotypes = [reference, heterozygous, homozygous]
-        prior = 1.0 / 3.0
+        priors = [0.9, 0.05, 0.05]
         nref = self.nref
         nalt = self.nalt
         pdg = {}
-        for g in genotypes:
+        for g, prior in zip(genotypes, priors):
             # data likelihood P(D\g)
             pbin = scipy.stats.binom_test(nalt, nref + nalt, g, alternative='two-sided')
-            pdg[g] = pbin
-        posterior = {g: prior * pbin for g, pbin in pdg.items()}  # That's not actually the posterior, it's an intermediate before regularization
-        regularization = sum([pbinp for pbinp in posterior.values()])
-        posterior = {g: p / regularization for g, p in posterior.items()}
+            pdg[g] = pbin * prior
+        regularization = sum([pbinp for pbinp in pdg.values()])
+        posterior = {g: p / regularization for g, p in pdg.items()}
         self.reference = posterior[reference]
         self.heterozygous = posterior[heterozygous]
         self.homozygous = posterior[homozygous]
