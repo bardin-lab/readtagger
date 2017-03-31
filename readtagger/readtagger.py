@@ -16,7 +16,7 @@ from .tags import (
     BaseTag,
 )
 
-__VERSION__ = '0.3.11'
+__VERSION__ = '0.3.12'
 
 
 class SamTagProcessor(object):
