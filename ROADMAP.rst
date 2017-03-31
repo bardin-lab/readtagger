@@ -2,13 +2,6 @@ Plans and Ideas for continued development of readtagger
 -------------------------------------------------------
 
 -----------
-v0.4
------------
-* Quantify readsupport on a fragment basis
-* Split clusters into left, right and tsd
-* Blast assembled fragments to better identify insert sequences
-
------------
 v0.5
 -----------
 * Simulate test-data module
