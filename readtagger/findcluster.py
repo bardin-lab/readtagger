@@ -1,3 +1,4 @@
+import multiprocessing as mp
 import os
 import shutil
 import tempfile
@@ -6,10 +7,12 @@ from concurrent.futures import (
     wait,
     ThreadPoolExecutor
 )
+import six
 
 from .bam_io import BamAlignmentReader as Reader
 from .bam_io import BamAlignmentWriter as Writer
 from .cluster import Cluster
+from .cluster import non_evidence
 from .gff_io import write_cluster
 from .verify import discard_supplementary
 
@@ -28,7 +31,7 @@ class ClusterFinder(object):
                  threads=1,
                  min_mapq=1,
                  max_clustersupport=200,
-                 remove_supplementary_without_primary=False,):
+                 remove_supplementary_without_primary=False, ):
         """
         Find readclusters in input_path file.
 
@@ -125,6 +128,8 @@ class ClusterFinder(object):
                     else:
                         prev_cluster = cluster
                 new_clusterlength = len(self.cluster)
+        # We are done, we can give the clusters a numeric index, so that we can distribute the processing and recover the results
+        [c.set_id(i) for i, c in enumerate(self.cluster)]
 
     def _cache_join(self):
         futures = []
@@ -136,19 +141,12 @@ class ClusterFinder(object):
 
     def collect_non_evidence(self):
         """Count reads that overlap cluster site but do not provide evidence for an insertion."""
-        regions_d = {}
-        regions = [(cluster.tid, cluster.start - 500, cluster.end + 500, cluster) for cluster in self.cluster]
-        for region in regions:
-            tid, start, end, cluster = region
-            if tid not in regions_d:
-                regions_d[tid] = []
-            regions_d[tid].append((start, end, cluster, []))
-        # stream over chromosomes and collect non support evidence
-        with Reader(self.input_path) as reader:
-            for r in reader:
-                if r.is_proper_pair and not r.is_duplicate:
-                    chr_regions = regions_d[r.tid]
-                    [cluster.add_flanking_read(r) for (start, end, cluster, reads) in chr_regions if start < r.pos < end or start < r.aend < end]  # noqa F812
+        chunks = Chunks(clusters=self.cluster, header=self.header, input_path=self.input_path)
+        p = mp.Pool(self.threads)
+        results = p.map(non_evidence, chunks.chunks)
+        for result in results:
+            for index, nref in result.items():
+                self.cluster[index].nref = nref
 
     def to_bam(self):
         """Write clusters of reads and include cluster number in CD tag."""
@@ -169,3 +167,46 @@ class ClusterFinder(object):
                           blastdb=self.blastdb,
                           sample=self.sample_name,
                           threads=self.threads)
+
+
+class Chunks(object):
+    """Hold chunks of clusters."""
+
+    def __init__(self, clusters, header, input_path):
+        """Establish chunks of clusters for all clusters in `clusters`."""
+        super(Chunks, self).__init__()
+        self.clusters = clusters  # All clusters
+        self.header = header
+        self.input_path = input_path
+        self.chunks = self._chunks()
+
+    def _chunks(self):
+        regions_d = {}
+        for cluster in self.clusters:
+            if cluster.tid not in regions_d:
+                regions_d[cluster.tid] = []
+            regions_d[cluster.tid].append(cluster)
+        self.regions_d = regions_d  # Chromosome TID as key, clusters as values
+        # stream over chromosomes and collect non support evidence
+        allchunks = self._get_chunks()
+        tasks = []
+        for tid, chromosome_chunks in six.iteritems(allchunks):
+            chromosome = self.header['SQ'][tid]['SN']
+            input_path = self.input_path
+            for chunk in chromosome_chunks:
+                tasks.append({'chromosome': chromosome, 'input_path': input_path, 'chunk': chunk})
+        return tasks
+
+    def _get_chunks(self):
+        """Return a list of chunks per chromosome."""
+        chromosomes = {}
+        for tid, cluster_list in six.iteritems(self.regions_d):
+            chunks = self.chunk(cluster_list)
+            chromosomes[tid] = ([chunk for chunk in chunks])
+        return chromosomes
+
+    @staticmethod
+    def chunk(l, n=500):
+        """Yield successive n-sized chunks from l."""
+        for i in range(0, len(l), n):
+            yield [chunk.serialize() for chunk in l[i:i + n]]

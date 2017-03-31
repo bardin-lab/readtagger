@@ -1,3 +1,4 @@
+import pysam
 from cached_property import cached_property
 from .genotype import Genotype
 from .cap3 import Cap3Assembly
@@ -13,7 +14,8 @@ class Cluster(list):
     def __init__(self):
         """Setup Cluster object."""
         super(Cluster, self).__init__()
-        self._region = {}
+        self.nref = 0
+        self.id = -1
 
     @cached_property
     def min(self):
@@ -52,10 +54,6 @@ class Cluster(list):
         if not hasattr(self, '_read_index') or (hasattr(self, '_clusterlen') and len(self) != self._clusterlen):
             self._read_index = set([r.query_name for r in self])
         return self._read_index
-
-    def read_in_cluster(self, read):
-        """Return whether read.query_name is in cluster."""
-        return read.query_name in self.read_index
 
     @property
     def hash(self):
@@ -143,6 +141,11 @@ class Cluster(list):
         return self.left_support + self.right_support
 
     @cached_property
+    def nalt(self):
+        """Return number of unique read names that support an insertion."""
+        return len(self.read_index)
+
+    @cached_property
     def left_contigs(self):
         """Left contigs for this cluster."""
         if self.clustertag.left_sequences:
@@ -194,39 +197,58 @@ class Cluster(list):
         P(g|D) = P(g)P(D\g)/sum(P(g)P(D|g')) where P(D|g) = Pbin(Nalt, Nalt + Nfef)
         :return:
         """
-        nref = len(self.non_support_evidence())
-        nalt = len(self.read_index)
-        return Genotype(nref=nref, nalt=nalt)
+        return Genotype(nref=self.nref, nalt=self.nalt)
 
-    def non_support_evidence(self, include_duplicates=False):
-        """
-        Get all reads that are close to the insertion site but that do not support the insertion.
+    def set_id(self, id):
+        """Set a numeric id that identifies this cluster."""
+        self.id = id
 
-        A relevant readpair does not support an insertion if the region between the minimum and maximum of a readpair
-        covers either self.start or self.end but is not listed in self.left_support or self.right_support
-        :return:
-        """
-        if not hasattr(self, '_non_support_evidence'):
-            non_support_reads = []
-            for r in self._region.values():
-                if r.is_duplicate and not include_duplicates:
-                    continue
-                min_start = min([r.pos, r.mpos])
-                max_end = max(r.aend, r.pos + r.isize)
-                if self.overlaps_cluster(left=min_start, right=max_end):
-                    non_support_reads.append(r)
-            self._non_support_evidence = non_support_reads
-        return self._non_support_evidence
+    def serialize(self):
+        """Return id, start, end and read_index for multiprocessing."""
+        return (self.id, self.start, self.end, self.read_index.copy())
 
-    def overlaps_cluster(self, left, right):
-        """Return whether a read overlaps a cluster."""
-        return left < self.start < right or left < self.end < right
 
-    def add_flanking_read(self, r):
-        """
-        Add a read that is close to a cluster but that is not part of the cluster.
+def non_evidence(data):
+    """Count all reads that point against evidence for a transposon insertion."""
+    result = {}
+    input_path = data['input_path']
+    chromosome = data['chromosome']
+    chunk = data['chunk']
+    first_chunk = chunk[0]
+    last_chunk = chunk[-1]
+    start = first_chunk[1]
+    min = start - 500
+    if min <= 0:
+        min = 1
+    end = last_chunk[2]
+    max = end + 500
+    f = pysam.AlignmentFile(input_path)
+    try:
+        reads = f.fetch(chromosome, min, max)
+    except Exception:
+        pysam.index(input_path)
+        f = pysam.AlignmentFile(input_path)
+        reads = f.fetch(chromosome, min, max)
+    for r in reads:
+        if not r.is_duplicate and r.is_proper_pair and r.mapq > 0:
+            add_to_clusters(chunk, r, result)
+    f.close()
+    return result
 
-        We further filter this list to find reads that are evidence against an insertion in `Custer.non_suport_evidence`.
-        """
-        if not self.read_in_cluster(r):
-            self._region[r.query_name] = r
+
+def add_to_clusters(chunk, r, result):
+    """Manage non-evidence results."""
+    if r.is_supplementary:
+        min_start = r.pos
+        max_end = r.aend
+    else:
+        min_start = min([r.pos, r.mpos])
+        max_end = max(r.aend, r.pos + r.isize)
+    for index, start, end, read_index in chunk:
+        if (min_start < start < max_end and min_start < end < max_end) and r.query_name not in read_index:
+            # A read is only incompatible if it overlaps both ends
+            read_index.add(r.query_name)  # We count fragments only once
+            if index not in result:
+                result[index] = 1
+            else:
+                result[index] += 1
