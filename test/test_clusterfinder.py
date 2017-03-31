@@ -14,6 +14,7 @@ CORNERCASE2 = 'cornercase2.bam'
 CORNERCASE3 = 'cornercase3.bam'
 EXTENDED = 'extended_and_annotated_roi.bam'
 COMPLEX = 'extended_annotated_updated_all_reads.bam'
+NON_SUPPORT = 'non_support_test.bam'
 
 
 def test_clusterfinder_single_cluster(datadir):  # noqa: D103
@@ -107,9 +108,21 @@ def test_clusterfinder_complex_genotype(datadir, tmpdir, reference_fasta):  # no
     cluster = clusters.cluster[0]
     assert len(cluster) == 20
     genotype = cluster.genotype_likelihood()
-    assert genotype.nref == 18
+    assert genotype.nref == 17
     assert genotype.nalt == 20
     assert genotype.genotype == 'heterozygous'
+
+
+def test_clusterfinder_nonsupport(datadir, tmpdir):  # noqa: D103
+    input_path = datadir[NON_SUPPORT]
+    output_bam = tmpdir.join('output.bam').strpath
+    clusters = ClusterFinder(input_path=input_path, output_bam=output_bam, output_gff=None, reference_fasta=None)
+    cluster = clusters.cluster[-1]
+    assert cluster.nref == 25  # Could also be 26 -- need to figure that out.
+    genotype = cluster.genotype_likelihood()
+    assert genotype.nref == 25
+    assert genotype.nalt == 1
+    assert genotype.genotype == 'reference'
 
 
 @pytest.fixture(scope='module')
