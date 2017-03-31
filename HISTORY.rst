@@ -7,6 +7,12 @@ History
 
 
 ---------------------
+0.3.12 (2017-03-31)
+---------------------
+* Fix and accelerate the calculation of nref (=non support evidence)
+* Update priors and genotype frequrencies to a more realistic model
+
+---------------------
 0.3.11 (2017-03-28)
 ---------------------
 * Add a testcase for genotyping module
