@@ -7,6 +7,11 @@ History
 
 
 ---------------------
+0.3.13 (2017-04-05)
+---------------------
+* Add possibility to output cluster contigs as fasta
+
+---------------------
 0.3.12 (2017-03-31)
 ---------------------
 * Fix and accelerate the calculation of nref (=non support evidence)
