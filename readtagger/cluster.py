@@ -145,6 +145,12 @@ class Cluster(list):
         """Return number of unique read names that support an insertion."""
         return len(self.read_index)
 
+    def _make_contigs(self):
+        for contigs in self.left_contigs:
+            pass
+        for contigs in self.right_contigs:
+            pass
+
     @cached_property
     def left_contigs(self):
         """Left contigs for this cluster."""
@@ -202,6 +208,23 @@ class Cluster(list):
     def set_id(self, id):
         """Set a numeric id that identifies this cluster."""
         self.id = id
+
+    def to_fasta(self):
+        """Write contigs (or reads if no contig) out as fasta items."""
+        fasta_items = []
+        if self.left_contigs:
+            for i, contig in enumerate(self.left_contigs):
+                fasta_items.append(">cluster_%s_left_contig_%s\n%s\n" % (self.id, i, contig))
+        else:
+            for key, seq in self.clustertag.left_sequences.items():
+                fasta_items.append(">cluster_%s_left_sequences_%s\n%s\n" % (self.id, key, seq))
+        if self.right_contigs:
+            for i, contig in enumerate(self.right_contigs):
+                fasta_items.append(">cluster_%s_right_contig_%s\n%s\n" % (self.id, i, contig))
+        else:
+            for key, seq in self.clustertag.right_sequences.items():
+                fasta_items.append(">cluster_%s_left_sequences_%s\n%s\n" % (self.id, key, seq))
+        return fasta_items
 
     def serialize(self):
         """Return id, start, end and read_index for multiprocessing."""

@@ -74,6 +74,7 @@ def test_clusterfinder_cache_threads(datadir, tmpdir, mocker):  # noqa: D103
     cf.join_clusters()
     assert cf.cluster[0].can_join.call_count == 4
     assert cf.cluster[0]._can_join.call_count == 0
+    assert len(cf.cluster) == 3
 
 
 def test_clusterfinder_multiple_cluster_gff_cli(datadir, tmpdir, mocker):  # noqa: D103
@@ -104,13 +105,15 @@ def test_clusterfinder_complex_genotype(datadir, tmpdir, reference_fasta):  # no
     input_path = datadir[COMPLEX]
     output_bam = tmpdir.join('output.bam').strpath
     output_gff = tmpdir.join('output.gff').strpath
-    clusters = ClusterFinder(input_path=input_path, output_bam=output_bam, output_gff=output_gff, reference_fasta=reference_fasta)
+    output_fasta = tmpdir.join('output.fasta').strpath
+    clusters = ClusterFinder(input_path=input_path, output_bam=output_bam, output_gff=output_gff, reference_fasta=reference_fasta, output_fasta=output_fasta)
     cluster = clusters.cluster[0]
     assert len(cluster) == 20
     genotype = cluster.genotype_likelihood()
     assert genotype.nref == 17
     assert genotype.nalt == 20
     assert genotype.genotype == 'heterozygous'
+    assert len(open(output_fasta).readlines()) == 6
 
 
 def test_clusterfinder_nonsupport(datadir, tmpdir):  # noqa: D103

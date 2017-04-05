@@ -5,13 +5,16 @@
     </requirements>
     <version_command>findcluster --version</version_command>
     <command detect_errors="aggressive"><![CDATA[
+        ln -f -s $input input.bam &&
+        ln -f -s $input.metadata.bam_index input.bam.bai &&
         findcluster
-        --input_path '$input'
+        --input_path input.bam
         #if $reference_fasta:
             --reference_fasta '$reference_fasta'
         #end if
         --output_bam '$output_bam'
         --output_gff '$output_gff'
+        --output_fasta '$output_fasta'
         --sample_name '$input.element_identifier'
         --threads "\${GALAXY_SLOTS:-2}"
     ]]></command>
@@ -21,6 +24,7 @@
     </inputs>
     <outputs>
         <data name="output_bam" format="bam" label="findcluster BAM on $on_string"/>
+        <data name="output_fasta" format="fasta" label="findcluster contigs on $on_string"/>
         <data name="output_gff" format="gff3" label="findcluster GFF on $on_string"/>
     </outputs>
     <tests>

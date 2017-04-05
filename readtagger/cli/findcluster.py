@@ -14,6 +14,9 @@ from readtagger.readtagger import __VERSION__
 @click.option('--output_gff',
               help='Write out GFF file with cluster information to this path.',
               type=click.Path(exists=False))
+@click.option('--output_fasta',
+              help='Write out supporting evidence for clusters to this path.',
+              type=click.Path(exists=False))
 @click.option('--sample_name',
               default=None,
               help='Sample name to use when writing out clusters in GFF file. '

@@ -24,6 +24,7 @@ class ClusterFinder(object):
                  input_path,
                  output_bam=None,
                  output_gff=None,
+                 output_fasta=None,
                  reference_fasta=None,
                  blastdb=None,
                  include_duplicates=False,
@@ -45,6 +46,7 @@ class ClusterFinder(object):
         self._sample_name = sample_name
         self.output_bam = output_bam
         self.output_gff = output_gff
+        self.output_fasta = output_fasta
         self.reference_fasta = reference_fasta
         self.blastdb = blastdb
         self.include_duplicates = include_duplicates
@@ -57,6 +59,7 @@ class ClusterFinder(object):
         self.cluster = self.find_cluster()
         self.clean_clusters()
         self.join_clusters()
+        self.to_fasta()
         self.collect_non_evidence()
         self.to_bam()
         self.to_gff()
@@ -143,10 +146,26 @@ class ClusterFinder(object):
         """Count reads that overlap cluster site but do not provide evidence for an insertion."""
         chunks = Chunks(clusters=self.cluster, header=self.header, input_path=self.input_path)
         p = mp.Pool(self.threads)
-        results = p.map(non_evidence, chunks.chunks)
-        for result in results:
+        r = p.map_async(non_evidence, chunks.chunks)
+        for result in r.get():
             for index, nref in result.items():
                 self.cluster[index].nref = nref
+        p.close()
+
+    def _create_contigs(self):
+        futures = []
+        for cluster in self.cluster:
+            futures.append(self.tp.submit(cluster._make_contigs))
+        wait(futures)
+
+    def to_fasta(self):
+        """Write supporting sequences to fasta file for detailed analysis."""
+        if self.output_fasta:
+            self._create_contigs()
+            with open(self.output_fasta, 'w') as out:
+                for cluster in self.cluster:
+                    for seq in cluster.to_fasta():
+                        out.write(seq)
 
     def to_bam(self):
         """Write clusters of reads and include cluster number in CD tag."""
