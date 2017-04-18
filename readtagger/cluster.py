@@ -4,6 +4,8 @@ from .genotype import Genotype
 from .cap3 import Cap3Assembly
 from .tagcluster import TagCluster
 
+import warnings
+
 
 class Cluster(list):
     """A Cluster of reads."""
@@ -245,17 +247,20 @@ def non_evidence(data):
         min = 1
     end = last_chunk[2]
     max = end + 500
-    f = pysam.AlignmentFile(input_path)
     try:
-        reads = f.fetch(chromosome, min, max)
-    except Exception:
-        pysam.index(input_path)
         f = pysam.AlignmentFile(input_path)
-        reads = f.fetch(chromosome, min, max)
-    for r in reads:
-        if not r.is_duplicate and r.is_proper_pair and r.mapq > 0:
-            add_to_clusters(chunk, r, result)
-    f.close()
+        try:
+            reads = f.fetch(chromosome, min, max)
+        except Exception:
+            pysam.index(input_path)
+            f = pysam.AlignmentFile(input_path)
+            reads = f.fetch(chromosome, min, max)
+        for r in reads:
+            if not r.is_duplicate and r.is_proper_pair and r.mapq > 0:
+                add_to_clusters(chunk, r, result)
+        f.close()
+    except ValueError:
+        warnings.warn("Encountered ValueError on chromosome %s for start %s and end %s of chunks %s" % (chromosome, start, end, chunk))
     return result
 
 
