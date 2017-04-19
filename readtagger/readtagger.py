@@ -13,7 +13,7 @@ from .bam_io import (
 )
 from .tags import Tag
 
-__VERSION__ = '0.3.13'
+__VERSION__ = '0.3.14'
 
 
 class TagManager(object):
