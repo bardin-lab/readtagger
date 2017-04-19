@@ -30,6 +30,7 @@ requirements:
     - scipy
     - bcbiogff
     - blast
+    - bwa
     - click
     - futures
     - cached-property
