@@ -10,6 +10,26 @@ if six.PY2:
 import shutil  # noqa: E402
 
 
+def is_file_coordinate_sorted(path):
+    """Determine if first 10000 reads are coordinate sorted."""
+    with pysam.AlignmentFile(path) as f:
+        i = 0
+        current_start = 0
+        current_tid = 0
+        for r in f:
+            if i > 10000:
+                return True
+            if not r.is_unmapped:
+                i += 1
+                if r.reference_start >= current_start and r.tid >= current_tid:
+                    current_start = r.reference_start
+                    current_tid = r.tid
+                    continue
+                else:
+                    return False
+    return True
+
+
 class BamAlignmentWriter(object):
     """Wrap pysam.AlignmentFile with sambamba for multithreaded compressed writing."""
 
@@ -58,11 +78,11 @@ class BamAlignmentWriter(object):
         if self.args:
             self.proc.stdin.close()
             self.proc.wait()
-        try:
-            need_sort = pysam.AlignmentFile(self.path).header['HD']['SO'] != self.sort_order
-        except Exception:
-            need_sort = True
-        if need_sort:
+        if is_file_coordinate_sorted(self.path):
+            sort_order = 'coordinate'
+        else:
+            sort_order = 'queryname'
+        if sort_order != self.sort_order:
             _, newpath = tempfile.mkstemp()
             args = ['samtools', 'sort']
             if self.sort_order == 'queryname':
@@ -141,16 +161,18 @@ class BamAlignmentReader(object):
 
     def __enter__(self):
         """Provide context handler entry."""
-        if self.sort_order == 'queryname':
-            try:
-                need_sort = pysam.AlignmentFile(self.path).header['HD']['SO'] != 'queryname'
-            except Exception:
-                need_sort = True
-            if need_sort:
-                _, newpath = tempfile.mkstemp()
-                args = ['samtools', 'sort', '-n', '-o', newpath, self.path]
-                subprocess.call(args, env=os.environ.copy())
-                self.path = newpath
+        if is_file_coordinate_sorted(self.path):
+            sort_order = 'coordinate'
+        else:
+            sort_order = 'queryname'
+        if sort_order != self.sort_order:
+            _, newpath = tempfile.mkstemp()
+            args = ['samtools', 'sort']
+            if self.sort_order == 'queryname':
+                args.append('-n')
+            args.extend(['-o', newpath, self.path])
+            subprocess.call(args, env=os.environ.copy())
+            self.path = newpath
         if self.is_bam and self.args:
             self.proc = subprocess.Popen(self.args, stdout=subprocess.PIPE, env=os.environ.copy(), close_fds=True)
             self.af = pysam.AlignmentFile(self.proc.stdout)
