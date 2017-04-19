@@ -1,8 +1,10 @@
 import gzip
 import os
 import subprocess
+import tempfile
 import pysam
 import six
+
 if six.PY2:
     import shutilwhich  # noqa: F401
 import shutil  # noqa: E402
@@ -11,17 +13,28 @@ import shutil  # noqa: E402
 class BamAlignmentWriter(object):
     """Wrap pysam.AlignmentFile with sambamba for multithreaded compressed writing."""
 
-    def __init__(self, path, template=None, header=None, threads=2, external_bin='choose_best'):
-        """Use this class with a contexthandler."""
+    def __init__(self, path, template=None, header=None, threads=2, external_bin='choose_best', sort_order='coordinate'):
+        """
+        Write Bam files.
+
+        Use this class with a context handler.
+
+        :param path: Wite bam file to location `path`.
+        :param template: Specify either template or header to write a bam file.
+        :param header: Specify either template or header to write a bam file.
+        :param external_bin: Specify `samtools` to use samtools or `sambamba` or `None` to use pysam for writing to `path`.
+        :param sort_order: Can be `coordinate` or `queryname` and will cause the output file to sorted by this strategy.
+        """
         self.template = template
         self.header = header
         self.path = path
         self.external_bin = external_bin
         self.threads = threads
+        self.sort_order = sort_order
 
     @property
     def args(self):
-        """Figure out in sambamba or samtools are available and return correct arguments."""
+        """Figure out if sambamba or samtools are available and return correct arguments."""
         sambamba_args = ['sambamba', 'view', '-f', 'bam', '-t', "%s" % self.threads, '/dev/stdin', '-o', self.path]
         samtools_args = ['samtools', 'view', '-b', '/dev/stdin', '-o', self.path]
         if self.external_bin == 'sambamba':
@@ -36,11 +49,27 @@ class BamAlignmentWriter(object):
         return None
 
     def close(self):
-        """Close filehandles and suprocess safely."""
+        """
+        Close filehandles and subprocess safely.
+
+        If necessary will sort the the file.
+        """
         self.af.close()
         if self.args:
             self.proc.stdin.close()
             self.proc.wait()
+        try:
+            need_sort = pysam.AlignmentFile(self.path).header['HD']['SO'] != self.sort_order
+        except Exception:
+            need_sort = True
+        if need_sort:
+            _, newpath = tempfile.mkstemp()
+            args = ['samtools', 'sort']
+            if self.sort_order == 'queryname':
+                args.append('-n')
+            args.extend(['-o', newpath, self.path])
+            subprocess.call(args, env=os.environ.copy())
+            shutil.move(newpath, self.path)
 
     def __enter__(self):
         """Provide context handler entry."""
@@ -59,10 +88,19 @@ class BamAlignmentWriter(object):
 class BamAlignmentReader(object):
     """Wraps pysam.AlignmentFile with sambamba for reading if input file is a bam file."""
 
-    def __init__(self, path, external_bin='choose_best'):
-        """Use this class with a contexthandler."""
+    def __init__(self, path, external_bin='choose_best', sort_order='coordinate'):
+        """
+        Read Bam files.
+
+        Use this class with a contexthandler.
+
+        :param path: Path to read bam file from.
+        :param external_bin: Specify `samtools` to use samtools or `sambamba` or `None` to use pysam for writing to `path`.
+        :param sort_order: Can be `coordinate` or `queryname` and will cause the output file to sorted by this strategy.
+        """
         self.path = path
         self.external_bin = external_bin
+        self.sort_order = sort_order
 
     @property
     def args(self):
@@ -103,6 +141,16 @@ class BamAlignmentReader(object):
 
     def __enter__(self):
         """Provide context handler entry."""
+        if self.sort_order == 'queryname':
+            try:
+                need_sort = pysam.AlignmentFile(self.path).header['HD']['SO'] != 'queryname'
+            except Exception:
+                need_sort = True
+            if need_sort:
+                _, newpath = tempfile.mkstemp()
+                args = ['samtools', 'sort', '-n', '-o', newpath, self.path]
+                subprocess.call(args, env=os.environ.copy())
+                self.path = newpath
         if self.is_bam and self.args:
             self.proc = subprocess.Popen(self.args, stdout=subprocess.PIPE, env=os.environ.copy(), close_fds=True)
             self.af = pysam.AlignmentFile(self.proc.stdout)

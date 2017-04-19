@@ -1,58 +1,104 @@
 import argparse
 
-import pysam
-import six
-import warnings
-
-from cached_property import cached_property
 from contextlib2 import ExitStack
 
+from .allow_dovetailing import (
+    allow_dovetailing,
+    get_max_proper_pair_size
+)
 from .cigar import alternative_alignment_cigar_is_better
 from .bam_io import (
     BamAlignmentWriter as Writer,
     BamAlignmentReader as Reader,
 )
-from .tags import (
-    BaseTag,
-)
+from .tags import Tag
 
 __VERSION__ = '0.3.13'
+
+
+class TagManager(object):
+    """Orchestrates SamTagProcessor and SamAnnotator classes, holds reference to input and output files."""
+
+    def __init__(self, source_path,
+                 annotate_path,
+                 output_path='test.bam',
+                 discarded_path=None,
+                 verified_path=None,
+                 tag_mate=True,
+                 allow_dovetailing=False,
+                 max_proper_size=None,
+                 discard_if_proper_pair=False,
+                 discard_bad_alt_tag=True,
+                 tag_prefix_self='A',
+                 tag_prefix_mate='B',
+                 ):
+        """Open input and output files and construct worker classes."""
+        self.source_path = source_path
+        self.annotate_path = annotate_path
+        self.output_path = output_path
+        self.discarded_path = discarded_path
+        self.verified_path = verified_path
+        self.tag_mate = tag_mate
+        self.allow_dovetailing = allow_dovetailing
+        self.max_proper_size = max_proper_size
+        self.discard_if_proper_pair = discard_if_proper_pair
+        self.discard_bad_alt_tag = discard_bad_alt_tag
+        self.tag_prefix_self = tag_prefix_self
+        self.tag_prefix_mate = tag_prefix_mate
+        self.process()
+
+    def process(self):
+        """Create worker objects and stream pairs to SamAnnotator process method."""
+        if self.allow_dovetailing and not self.max_proper_size:
+            with Reader(self.source_path, external_bin=None) as source:
+                self.max_proper_size = get_max_proper_pair_size(source)
+        with Reader(self.annotate_path) as annotate:
+            annotate_header = annotate.header
+        kwds = {'source_bam': {Reader: {'path': self.source_path, 'sort_order': 'queryname'}},
+                'annotate_bam': {Reader: {'path': self.annotate_path, 'sort_order': 'queryname'}},
+                'output_writer': {Writer: {'path': self.output_path, 'header': annotate_header}},
+                'discarded_writer': {Writer: {'path': self.discarded_path, 'header': annotate_header}},
+                'verified_writer': {Writer: {'path': self.verified_path, 'header': annotate_header}}}
+        args = {}
+        with ExitStack() as stack:
+            for arg, cls_arg_d in kwds.items():
+                for cls, cls_args in cls_arg_d.items():
+                    if cls_args['path']:
+                        args[arg] = stack.enter_context(cls(**cls_args))
+                    else:
+                        args[arg] = None
+            samtag_p = SamTagProcessor(source_bam=args['source_bam'], tag_mate=self.tag_mate)
+            sam_annotator = SamAnnotator(annotate_bam=args['annotate_bam'],
+                                         output_writer=args['output_writer'],
+                                         allow_dovetailing=self.allow_dovetailing,
+                                         max_proper_size=self.max_proper_size,
+                                         discard_bad_alt_tag=self.discard_bad_alt_tag,
+                                         discard_if_proper_pair=self.discard_if_proper_pair,
+                                         discarded_writer=args['discarded_writer'],
+                                         verified_writer=args['verified_writer'],
+                                         tag_prefix_self=self.tag_prefix_self,
+                                         tag_prefix_mate=self.tag_prefix_mate
+                                         )
+            for qname, tag_d in samtag_p.process():
+                sam_annotator.process(qname=qname, tag_d=tag_d)
 
 
 class SamTagProcessor(object):
     """Process SAM/AM file for tags of interest and keep a dict of readname, mate identity and tag in self.result."""
 
-    def __init__(self, source_path, tag_prefix_self, tag_prefix_mate, tag_mate=True):
+    def __init__(self, source_bam, tag_mate=True):
         """
         Process SAM/BAM at source path.
 
         :param source_path: Path of filesystem to SAM/BAM file
         :type source_path: basestring
-        :param tag_prefix_self: Tag to use as indicating that the current read is aligned
-        :type tag_prefix_self: basestring
-        :param tag_prefix_mate: Tag to use as indicating that the current mate is aligned
-        :type tag_prefix_mate: basestring
+
         :param tag_mate: Tag mate ?
         :type tag_mate: bool
         """
         self.tag_mate = tag_mate
-        self.tag_prefix_self = tag_prefix_self
-        self.tag_prefix_mate = tag_prefix_mate
-        self.detail_tag_self = tag_prefix_self + 'D'
-        self.detail_tag_mate = tag_prefix_mate + 'D'
-        self.reference_tag_self = tag_prefix_self + 'R'
-        self.reference_tag_mate = tag_prefix_mate + 'R'
-        self.source_path = source_path
-        self.tag_template = BaseTag(tid_to_reference_name=self.tid_to_reference_name)
-        self.result = self.process_source()
-        if self.tag_mate:
-            self.add_mate()
-
-    @cached_property
-    def tid_to_reference_name(self):
-        """Build dictionary for mapping tid to reference name."""
-        with Reader(self.source_path, external_bin=None) as source:
-            return {source.get_tid(rname): rname for rname in (d['SN'] for d in source.header['SQ'])}
+        self.source_alignment = source_bam
+        self.header = source_bam.header
 
     def compute_tag(self, r):
         """
@@ -68,18 +114,12 @@ class SamTagProcessor(object):
             - query_alignment_end
 
         :param r: AlignedSegment
-        :return tags: namedtuple of information to add to tag
-        :rtype namedtuple
+        :rtype Tag
         """
-        return self.tag_template(tid=r.tid,
-                                 reference_start=r.reference_start,
-                                 cigar=r.cigar,
-                                 is_reverse=r.is_reverse,
-                                 mapq=r.mapping_quality,
-                                 query_alignment_start=r.query_alignment_start,
-                                 query_alignment_end=r.query_alignment_end)
+        return Tag.from_read(r, header=self.header)
 
-    def is_taggable(self, r):
+    @staticmethod
+    def is_taggable(r):
         """
         Decide if a read should be the source of a tag.
 
@@ -88,7 +128,28 @@ class SamTagProcessor(object):
         """
         return not r.is_unmapped and not r.is_secondary and not r.is_supplementary and not r.is_qcfail
 
-    def process_source(self):
+    def process(self):
+        """Generator that will return qname and tag_d."""
+        reads = []
+        qname = ''
+        for read in self.source_alignment:
+            if self.is_taggable(read):
+                if qname != read.query_name and reads and qname:
+                    # We got a new read, so we process the revious reads
+                    tag_d = self.process_current_reads(reads)
+                    if self.tag_mate:
+                        tag_d = self.add_mate(tag_d)
+                    yield qname, tag_d
+                    reads = []
+                reads.append(read)
+            qname = read.query_name
+        if reads:
+            tag_d = self.process_current_reads(reads)
+            if self.tag_mate:
+                tag_d = self.add_mate(tag_d)
+            yield qname, tag_d
+
+    def process_current_reads(self, current_reads):
         """
         Iterate over reads in alignment and construct dictionary.
 
@@ -96,29 +157,127 @@ class SamTagProcessor(object):
         ['readname'][Forward or Reverse][Self or Mate][Tag]
         """
         tag_d = {}
-        with Reader(self.source_path) as source_alignment:
-            for r in source_alignment:
-                if self.is_taggable(r):
-                    if r.query_name in tag_d:
-                        tag_d[r.query_name][r.is_read1] = {'s': self.compute_tag(r)}
-                    else:
-                        tag_d[r.query_name] = {r.is_read1: {'s': self.compute_tag(r)}}
+        for r in current_reads:
+            if self.is_taggable(r):
+                tag_d[r.is_read1] = {'s': self.compute_tag(r)}
         return tag_d
 
-    def add_mate(self):
-        """Iterate over self.result and add mate information."""
-        self._result = self.result
-        self.result = {}
-        for top_level_k, tag_d in six.iteritems(self._result):
-            new_tag_d = tag_d.copy()
-            for k, v in tag_d.items():
-                if (not k) in tag_d:
-                    v['m'] = tag_d[(not k)]['s']
-                    new_tag_d[k] = v
+    def add_mate(self, tag_d):
+        """Iterate over tag_d and add mate information."""
+        new_tag_d = tag_d.copy()
+        for k, v in tag_d.items():
+            if (not k) in tag_d:
+                v['m'] = tag_d[(not k)]['s']
+                new_tag_d[k] = v
+            else:
+                new_tag_d[(not k)] = {'m': v['s']}
+        return new_tag_d
+
+
+class SamAnnotator(object):
+    """Use list of SamTagProcessor instances to add tags to a BAM file."""
+
+    def __init__(self,
+                 annotate_bam,
+                 output_writer=None,
+                 allow_dovetailing=False,
+                 max_proper_size=500,
+                 discard_bad_alt_tag=True,
+                 discard_if_proper_pair=False,
+                 discarded_writer=None,
+                 verified_writer=None,
+                 tag_prefix_self='A',
+                 tag_prefix_mate='B', ):
+        """
+        Compare `samtags` with `annotate_file`.
+
+        Produces a new alignment file at output_path.
+        :param annotate_file: pysam.AlignmentFile for bam file to annotate
+        :type annotate_file: pysam.AlignmentFile
+        :param output_writer: pysam.AlignmentFile for output bam file
+        :type output_writer: pysam.AlignmentFile
+        :param discarded_writer: pysam.AlignmentFile for bam file containing reads with discarded tags
+        :type discarded_writer: pysam.AlignmentFile
+        :param verified_writer: pysam.AlignmentFile for output bam file containing only reads with verified tags
+        :type verified_writer: pysam.AlignmentFile
+        :param samtags: list of SamTagProcessor instances
+        :type samtags: List[SamTagProcessor]
+        :param allow_dovetailing: Controls whether or not dovetailing should be allowed
+        :type allow_dovetailing: bool
+        :param tag_prefix_self: Tag to use as indicating that the current read is aligned
+        :type tag_prefix_self: basestring
+        :param tag_prefix_mate: Tag to use as indicating that the current mate is aligned
+        :type tag_prefix_mate: basestring
+        """
+        self.annotate_bam = annotate_bam
+        self.header = annotate_bam.header
+        self.output_writer = output_writer
+        self.discarded_writer = discarded_writer
+        self.verified_writer = verified_writer
+        self.discard_bad_alt_tag = discard_bad_alt_tag
+        self.discard_if_proper_pair = discard_if_proper_pair
+        self.max_proper_size = max_proper_size
+        self.allow_dovetailing = allow_dovetailing
+        self.tag_prefix_self = tag_prefix_self
+        self.tag_prefix_mate = tag_prefix_mate
+        self.detail_tag_self = tag_prefix_self + 'D'
+        self.detail_tag_mate = tag_prefix_mate + 'D'
+        self.reference_tag_self = tag_prefix_self + 'R'
+        self.reference_tag_mate = tag_prefix_mate + 'R'
+        self._read = None
+
+    def process(self, qname, tag_d):
+        """Iterate through reads in self.annotate_bam and process those reads that have the same name as qname."""
+        reads = []
+        if self._read:
+            # We saved the last read from the previous process call
+            if self._read.query_name == qname:
+                reads.append(self._read)
+        for read in self.annotate_bam:
+            if read.query_name == qname:
+                reads.append(read)
+            else:
+                if not reads:
+                    # That should be the first call, when no reads have been found yet and
+                    # we haven't reached the correct reads yet
+                    continue
                 else:
-                    new_tag_d[(not k)] = {'m': v['s']}
-                self.result[top_level_k] = new_tag_d
-        del self._result
+                    # We read past the last read with the same name
+                    return self._process(reads, tag_d)
+        # We should reach this only at the end of a BAM file in rare instances
+        return self._process(reads, tag_d)
+
+    def _process(self, reads, tag_d):
+        for read in reads:
+            if allow_dovetailing:
+                read = allow_dovetailing(read, self.max_proper_size)
+            discarded_tags = []
+            verified_tags = []
+            verified_tag = None
+            alt_tag = tag_d.get(read.is_reverse)
+            if alt_tag and self.discard_bad_alt_tag:
+                verified_tag = self.verify_alt_tag(read, alt_tag)
+                if self.discarded_writer and len(verified_tag) < len(alt_tag):
+                    # we have more alt tags than verified tags,
+                    # so we track the discarded tags
+                    discarded_tag = self.format_tags({k: v for k, v in alt_tag.items() if k not in verified_tag})
+                    discarded_tags.extend(discarded_tag)
+                alt_tag = verified_tag
+            if alt_tag:
+                verified_tag = self.format_tags(alt_tag)
+            if verified_tag and self.discard_if_proper_pair and read.is_proper_pair:
+                discarded_tags.extend(verified_tag)
+            elif verified_tag:
+                verified_tags.extend(verified_tag)
+            if discarded_tags:
+                discarded_read = read.__copy__()
+                discarded_read.tags += discarded_tags
+                self.discarded_writer.write(discarded_read)
+            if verified_tags:
+                read.tags += verified_tags
+                if self.verified_writer:
+                    self.verified_writer.write(read)
+            self.output_writer.write(read)
 
     def format_tags(self, tags):
         """
@@ -129,109 +288,12 @@ class SamTagProcessor(object):
         formatted_tags = []
         for k, v in tags.items():
             if k == 's':
-                formatted_tags.append((self.detail_tag_self, str(v)))
-                formatted_tags.append((self.reference_tag_self, self.tid_to_reference_name[v[0]]))
+                formatted_tags.append((self.detail_tag_self, v.to_string()))
+                formatted_tags.append((self.reference_tag_self, v.reference_name))
             else:
-                formatted_tags.append((self.detail_tag_mate, str(v)))
-                formatted_tags.append(((self.reference_tag_mate, self.tid_to_reference_name[v.tid])))
+                formatted_tags.append((self.detail_tag_mate, v.to_string()))
+                formatted_tags.append(((self.reference_tag_mate, v.reference_name)))
         return formatted_tags
-
-    def get_other_tag(self, other_r):
-        """Take a read object `other_r` and fetch the annotation tag that has been processed in the instance."""
-        other_r_reverse = other_r.is_read1
-        tagged_mates = self.result.get(other_r.query_name)
-        if tagged_mates:
-            return tagged_mates.get(other_r_reverse, None)
-        else:
-            return None
-
-
-class SamAnnotator(object):
-    """Use list of SamTagProcessor instances to add tags to a BAM file."""
-
-    def __init__(self,
-                 annotate_file,
-                 samtags,
-                 output_path="test.bam",
-                 allow_dovetailing=False,
-                 discard_bad_alt_tag=True,
-                 discard_if_proper_pair=False,
-                 discarded_writer=None,
-                 verified_writer=None):
-        """
-        Compare `samtags` with `annotate_file`.
-
-        Produces a new alignment file at output_path.
-        :param annotate_file: 'Path to bam/sam file'
-        :type annotate_file: str
-        :param samtags: list of SamTagProcessor instances
-        :type samtags: List[SamTagProcessor]
-        :param allow_dovetailing: Controls whether or not dovetailing should be allowed
-        :type allow_dovetailing: bool
-        """
-        self.annotate_file = annotate_file
-        self.output_path = output_path
-        self.samtags = samtags
-        if allow_dovetailing:
-            self.max_proper_size = self.get_max_proper_pair_size(pysam.AlignmentFile(annotate_file))
-            if not self.max_proper_size:
-                allow_dovetailing = False
-        self.process(allow_dovetailing, discard_bad_alt_tag, discard_if_proper_pair, discarded_writer, verified_writer)
-
-    @cached_property
-    def header(self):
-        """Return SAM/BAM header."""
-        with Reader(self.annotate_file, external_bin=None) as source:
-            return source.header
-
-    def process(self, allow_dovetailing=False, discard_bad_alt_tag=True, discard_if_proper_pair=False, discarded_writer=None, verified_writer=None):
-        """Iterate over reads and fetch annotation from self.samtags."""
-        kwds = {'reader': {Reader: {'path': self.annotate_file}},
-                'main_writer': {Writer: {'path': self.output_path, 'header': self.header}},
-                'discarded_writer': {Writer: {'path': discarded_writer, 'header': self.header}},
-                'verified_writer': {Writer: {'path': verified_writer, 'header': self.header}}}
-        args = {'allow_dovetailing': allow_dovetailing,
-                'discard_bad_alt_tag': discard_bad_alt_tag,
-                'discard_if_proper_pair': discard_if_proper_pair}
-        with ExitStack() as stack:
-            for arg, cls_arg_d in kwds.items():
-                for cls, cls_args in cls_arg_d.items():
-                    if cls_args['path']:
-                        args[arg] = stack.enter_context(cls(**cls_args))
-                    else:
-                        args[arg] = None
-            self._process(**args)
-
-    def _process(self, reader, main_writer, discarded_writer, discard_if_proper_pair, verified_writer, allow_dovetailing, discard_bad_alt_tag):
-        for read in reader:
-            if allow_dovetailing:
-                read = self.allow_dovetailing(read, self.max_proper_size)
-            discarded_tags = []
-            verified_tags = []
-            verified_tag = None
-            for samtag in self.samtags:
-                alt_tag = samtag.get_other_tag(read)
-                if alt_tag and discard_bad_alt_tag:
-                    verified_tag = self.verify_alt_tag(read, alt_tag)
-                    if discarded_writer and len(verified_tag) < len(alt_tag):
-                        discarded_tag = samtag.format_tags({k: v for k, v in alt_tag.items() if k not in verified_tag})
-                        discarded_tags.extend(discarded_tag)
-                    alt_tag = verified_tag
-                if alt_tag:
-                    verified_tag = samtag.format_tags(alt_tag)
-            if verified_tag and discard_if_proper_pair and read.is_proper_pair:
-                discarded_tags.extend(verified_tag)
-            elif verified_tag:
-                verified_tags.extend(verified_tag)
-            if discarded_tags:
-                discarded_read = read.__copy__()
-                discarded_read.tags += discarded_tags
-                discarded_writer.write(discarded_read)
-            if verified_tags:
-                read.tags += verified_tags
-                if verified_writer:
-                    verified_writer.write(read)
-            main_writer.write(read)
 
     def verify_alt_tag(self, read, alt_tag):
         """
@@ -260,47 +322,6 @@ class SamAnnotator(object):
                     # in which case we still want to consider the alternative tag
                     verified_alt_tag[s_or_m] = alt_tag
         return verified_alt_tag
-
-    @classmethod
-    def get_max_proper_pair_size(cls, alignment_file):
-        """
-        Iterate over the first 1000 properly paired records in alignment_file and get the maximum valid isize for a proper pair.
-
-        :param alignment_file: pysam.AlignmentFile
-        :type alignment_file: pysam.AlignmentFile
-        :rtype int
-        """
-        isize = []
-        for r in alignment_file:
-            if r.is_proper_pair and not r.is_secondary and not r.is_supplementary:
-                isize.append(abs(r.isize))
-            if len(isize) == 1000:
-                alignment_file.reset()
-                return max(isize)
-        alignment_file.reset()
-        if isize:
-            return max(isize)
-        else:
-            warnings.warn("Could not determine maximum allowed insert size for a proper pair. Are there any proper pairs in the input file?")
-            return None
-
-    @classmethod
-    def allow_dovetailing(cls, read, max_proper_size=351, default_max_proper_size=351):
-        """
-        Manipulate is_proper_pair tag to allow dovetailing of reads.
-
-        Precondition is read and mate have the same reference id, are within the maximum proper pair distance
-        and are either in FR or RF orientation.
-        :param read: aligned segment of pysam.AlignmentFile
-        :type read: pysam.AlignedSegment
-        :rtype pysam.AlignedSegment
-        """
-        if max_proper_size is None:
-            warnings.warn("Using default maximum insert size of %d" % default_max_proper_size)
-            max_proper_size = default_max_proper_size
-        if not read.is_proper_pair and not read.is_reverse == read.mate_is_reverse and read.reference_id == read.mrnm and abs(read.isize) <= max_proper_size:
-            read.is_proper_pair = True
-        return read
 
 
 def parse_file_tags(filetags):
@@ -365,16 +386,19 @@ def main(args=None):
     """Main entrypoint."""
     if not args:
         args = parse_args()
-    files_tags = zip(*parse_file_tags(args.annotate_with))
-    samtags = [SamTagProcessor(filepath, tag_prefix_self=tag, tag_prefix_mate=tag_mate) for (filepath, tag, tag_mate) in files_tags]
-    SamAnnotator(annotate_file=args.tag_file,
-                 samtags=samtags,
-                 output_path=args.output_file,
-                 allow_dovetailing=args.allow_dovetailing,
-                 discard_bad_alt_tag=not args.keep_suboptimal_alternate_tags,
-                 discard_if_proper_pair=args.discard_if_proper_pair,
-                 discarded_writer=args.write_discarded,
-                 verified_writer=args.write_verified)
+    filepath, tag, tag_mate = list(zip(*parse_file_tags(args.annotate_with)))[0]
+    TagManager(
+        source_path=filepath,
+        annotate_path=args.tag_file,
+        output_path=args.output_file,
+        discarded_path=args.write_discarded,
+        verified_path=args.write_verified,
+        tag_mate=True,
+        allow_dovetailing=args.allow_dovetailing,
+        discard_if_proper_pair=args.discard_if_proper_pair,
+        discard_bad_alt_tag=not args.keep_suboptimal_alternate_tags,
+        tag_prefix_self=tag,
+        tag_prefix_mate=tag_mate)
 
 
 if __name__ == "__main__":

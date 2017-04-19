@@ -1,6 +1,10 @@
 from readtagger.readtagger import SamTagProcessor
 from readtagger.readtagger import SamAnnotator
 from readtagger.readtagger import main
+from readtagger.bam_io import (
+    BamAlignmentReader as Reader,
+    BamAlignmentWriter as Writer,
+)
 from .helpers import namedtuple_to_argv
 
 import pysam
@@ -29,26 +33,27 @@ ARGS_TEMPLATE = namedtuple('args', ['annotate_with',
 def test_samtag_processor(datadir):  # noqa: D103
     # test that tag_mate=False really skips tagging mates
     p_mate_false = get_samtag_processor(datadir, tag_mate=False)
-    assert len(p_mate_false.result) == 1
-    assert len(p_mate_false.result['DISCARD_R1_KEEP_R2:1'].values()) == 1  # DISCARD_R1_KEEP_R2:1 is a readname
-    assert True not in next(iter(p_mate_false.result.values()))
+    for qname, tag_d in p_mate_false.process():
+        assert qname == 'DISCARD_R1_KEEP_R2:1'
+        assert len(tag_d) == 1
     p_mate_true = get_samtag_processor(datadir, tag_mate=True)
     # Make sure that the mate gets tagged as well
-    assert len(p_mate_true.result['DISCARD_R1_KEEP_R2:1'].values()) == 2
+    for qname, tag_d in p_mate_true.process():
+        assert len(tag_d) == 2
     # Need some more data to make more meaningful tests
 
 
 def test_samtag_annotator(datadir, tmpdir):  # noqa: D103
     p = get_samtag_processor(datadir, tag_mate=True)
     output_path = tmpdir.join('testout.bam')
-    a = SamAnnotator(datadir[TEST_SAM_B],
-                     [p],
-                     output_path=output_path.strpath,
-                     allow_dovetailing=False,
-                     discard_bad_alt_tag=True,
-                     discarded_writer=None,
-                     verified_writer=None)
-    assert isinstance(a, SamAnnotator)
+    with Reader(datadir[TEST_SAM_B], sort_order='queryname') as annotate_bam, Writer(output_path.strpath, header=annotate_bam.header) as output_writer:
+        a = SamAnnotator(annotate_bam=annotate_bam,
+                         output_writer=output_writer,
+                         allow_dovetailing=False,
+                         discard_bad_alt_tag=True,)
+        assert isinstance(a, SamAnnotator)
+        for qname, tag_d in p.process():
+            a.process(qname, tag_d)
     output_path.check()
 
 
@@ -111,12 +116,7 @@ def test_main_rover(datadir, tmpdir, mocker):  # noqa: D103
 
 def get_samtag_processor(datadir, tag_mate):  # noqa: D103
     source_path = datadir[TEST_SAM]
-    tag_prefix_self = 'A'
-    tag_prefix_mate = 'B'
-    p = SamTagProcessor(source_path, tag_prefix_self, tag_prefix_mate, tag_mate)
-    assert hasattr(p, 'result')
-    assert isinstance(p.result, dict)
-    return p
+    return SamTagProcessor(Reader(source_path, sort_order='queryname').__enter__(), tag_mate)
 
 
 def get_output_files(tmpdir):  # noqa: D103

@@ -1,8 +1,50 @@
 import argparse
 import pysam
+
+import warnings
+
 from .bam_io import BamAlignmentWriter as Writer
-from .readtagger import SamAnnotator
-from .readtagger import __VERSION__
+
+
+def get_max_proper_pair_size(alignment_file):
+    """
+    Iterate over the first 1000 properly paired records in alignment_file and get the maximum valid isize for a proper pair.
+
+    :param alignment_file: pysam.AlignmentFile
+    :type alignment_file: pysam.AlignmentFile
+    :rtype int
+    """
+    isize = []
+    for r in alignment_file:
+        if r.is_proper_pair and not r.is_secondary and not r.is_supplementary:
+            isize.append(abs(r.isize))
+        if len(isize) == 1000:
+            alignment_file.reset()
+            return max(isize)
+    alignment_file.reset()
+    if isize:
+        return max(isize)
+    else:
+        warnings.warn("Could not determine maximum allowed insert size for a proper pair. Are there any proper pairs in the input file?")
+        return None
+
+
+def allow_dovetailing(read, max_proper_size=351, default_max_proper_size=351):
+    """
+    Manipulate is_proper_pair tag to allow dovetailing of reads.
+
+    Precondition is read and mate have the same reference id, are within the maximum proper pair distance
+    and are either in FR or RF orientation.
+    :param read: aligned segment of pysam.AlignmentFile
+    :type read: pysam.AlignedSegment
+    :rtype pysam.AlignedSegment
+    """
+    if max_proper_size is None:
+        warnings.warn("Using default maximum insert size of %d" % default_max_proper_size)
+        max_proper_size = default_max_proper_size
+    if not read.is_proper_pair and not read.is_reverse == read.mate_is_reverse and read.reference_id == read.mrnm and abs(read.isize) <= max_proper_size:
+        read.is_proper_pair = True
+    return read
 
 
 def main(args=None):
@@ -15,8 +57,8 @@ def main(args=None):
     if not args:
         args = parse_args()
     with pysam.AlignmentFile(args.input_path) as input, Writer(args.output_path, template=input) as output:
-        max_isize = SamAnnotator.get_max_proper_pair_size(input)
-        [output.write(SamAnnotator.allow_dovetailing(read, max_proper_size=max_isize)) for read in input]
+        max_isize = get_max_proper_pair_size(input)
+        [output.write(allow_dovetailing(read, max_proper_size=max_isize)) for read in input]
 
 
 def parse_args():
@@ -26,6 +68,7 @@ def parse_args():
     :return: args
     :rtype argparse.ArgumentParser
     """
+    from .readtagger import __VERSION__
     parser = argparse.ArgumentParser(description="Allow dovetailing.")
     parser.add_argument('-i', '--input_path', help="Input alignment file to manipulate", required=True)
     parser.add_argument('-o', '--output_path', help="Output alignment file", required=True)

@@ -1,4 +1,3 @@
-from collections import namedtuple
 from cached_property import cached_property
 from .cigar import (
     cigartuples_to_cigarstring,
@@ -8,27 +7,19 @@ from .cigar import (
 )
 
 
-class BaseTag(object):
-    """Generate class template for tags."""
-
-    def __new__(cls, tid_to_reference_name):
-        """Return a Tag class that knows how to format a tag."""
-        return type('NamedTagTuple', (namedtuple('tag', 'tid reference_start cigar is_reverse mapq query_alignment_start query_alignment_end'),),
-                    {'__str__': lambda self: self.tag_str_template % (self.tid_to_reference_name[self.tid],
-                                                                      self.reference_start,
-                                                                      self.query_alignment_start,
-                                                                      self.query_alignment_end,
-                                                                      cigartuples_to_cigarstring(self.cigar),
-                                                                      'AS' if self.is_reverse else 'S',
-                                                                      self.mapq),
-                     'tid_to_reference_name': tid_to_reference_name,
-                     'tag_str_template': "R:%s,POS:%d,QSTART:%d,QEND:%d,CIGAR:%s,S:%s,MQ:%d"})
-
-
 class Tag(object):
     """Collect tag attributes and conversion."""
 
-    def __init__(self, reference_start, cigar, is_reverse, mapq=None, query_alignment_start=None, query_alignment_end=None, tid=None, reference_name=None):
+    def __init__(self,
+                 reference_start,
+                 cigar,
+                 is_reverse,
+                 mapq=None,
+                 query_alignment_start=None,
+                 query_alignment_end=None,
+                 tid=None,
+                 reference_name=None,
+                 header=None):
         """
         Return new Tag instance from kwds.
 
@@ -43,7 +34,19 @@ class Tag(object):
         self.query_alignment_start = query_alignment_start
         self.query_alignment_end = query_alignment_end
         self.tid = tid
-        self.reference_name = reference_name
+        self._reference_name = reference_name
+        self.header = header
+
+    @cached_property
+    def reference_name(self):
+        """Return reference name for this instance."""
+        if self._reference_name:
+            return self._reference_name
+        else:
+            try:
+                return self.header['SQ'][self.tid]['SN']
+            except Exception:
+                return None
 
     @cached_property
     def cigar_regions(self):
@@ -69,7 +72,7 @@ class Tag(object):
         return self._cigar
 
     @staticmethod
-    def from_read(r):
+    def from_read(r, header=None):
         """
         Return Tag instance from pysam.AlignedSegment Instance.
 
@@ -84,7 +87,8 @@ class Tag(object):
                    is_reverse=r.is_reverse,
                    mapq=r.mapping_quality,
                    query_alignment_start=r.query_alignment_start,
-                   query_alignment_end=r.query_alignment_end)
+                   query_alignment_end=r.query_alignment_end,
+                   header=header)
 
     @staticmethod
     def from_tag_str(tag_str):
@@ -133,13 +137,18 @@ class Tag(object):
                 'is_reverse': self.is_reverse,
                 'tid': self.tid}  # Improve this by passing tid or reference name
 
-    def to_namedtuple(self, nt):
+    def to_string(self, header=None):
         """
-        Convert self to namedtuple.
+        Serialize to tag string.
 
-        >>> named_tag_tuple = BaseTag(tid_to_reference_name={5:'3R'})
-        >>> t = Tag(reference_start=0, cigar='20M30S', is_reverse='True', mapq=60, query_alignment_start=0, query_alignment_end=20, tid=5)
-        >>> str(t.to_namedtuple(named_tag_tuple))
-        'R:3R,POS:0,QSTART:0,QEND:20,CIGAR:20M30S,S:AS,MQ:60'
+        :param header:
+        :return:
         """
-        return nt(**self.to_dict())
+        header = header or self.header
+        return "R:%s,POS:%d,QSTART:%d,QEND:%d,CIGAR:%s,S:%s,MQ:%d" % (self.reference_name or header['SQ'][self.tid]['SN'],
+                                                                      self.reference_start,
+                                                                      self.query_alignment_start,
+                                                                      self.query_alignment_end,
+                                                                      cigartuples_to_cigarstring(self.cigar),
+                                                                      'AS' if self.is_reverse else 'S',
+                                                                      self.mapq)
