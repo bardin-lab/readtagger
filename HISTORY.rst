@@ -7,6 +7,13 @@ History
 
 
 ---------------------
+0.3.14 (2017-04-19)
+---------------------
+* Perform readtagging on readname sorted files.
+* Catch possible errors
+* Add BWA alignment module to replace Blast
+
+---------------------
 0.3.13 (2017-04-05)
 ---------------------
 * Add possibility to output cluster contigs as fasta
