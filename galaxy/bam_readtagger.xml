@@ -54,9 +54,9 @@
             </repeat>
             <param name="discarded" value="True"/>
             <param name="verified" value="True"/>
-            <output name="tagged_file" file="dm6_tagged_with_a_pasteurianus.bam" ftype="bam" lines_diff="5"/>
-            <output name="verified_file" file="dm6_tagged_with_a_pasteurianus_verified.bam" ftype="bam" lines_diff="5"/>
-            <output name="discarded_file" file="dm6_tagged_with_a_pasteurianus_discarded.bam" ftype="bam" lines_diff="5"/>
+            <output name="tagged_file" file="dm6_tagged_with_a_pasteurianus.bam" ftype="bam" lines_diff="7"/>
+            <output name="verified_file" file="dm6_tagged_with_a_pasteurianus_verified.bam" ftype="bam" lines_diff="7"/>
+            <output name="discarded_file" file="dm6_tagged_with_a_pasteurianus_discarded.bam" ftype="bam" lines_diff="7"/>
         </test>
         <test> <!-- test that a single read originating from a pasteurianus is annotated in pasteurianus.bam as having homology with dm6, but marked as discarded (should end in discarded bam file) -->
             <param name="tag_file" value="pasteurianus.bam" ftype="bam"/>
@@ -67,9 +67,9 @@
             </repeat>
             <param name="discarded" value="True"/>
             <param name="verified" value="True"/>
-            <output name="tagged_file" file="a_pasteurianus_tagged_with_dm6.bam" ftype="bam" lines_diff="5" />
-            <output name="verified_file" file="a_pasteurianus_tagged_with_dm6_verified.bam" ftype="bam" lines_diff="5"/>
-            <output name="discarded_file" file="a_pasteurianus_tagged_with_dm6_discarded.bam" ftype="bam" lines_diff="5"/>
+            <output name="tagged_file" file="a_pasteurianus_tagged_with_dm6.bam" ftype="bam" lines_diff="7" />
+            <output name="verified_file" file="a_pasteurianus_tagged_with_dm6_verified.bam" ftype="bam" lines_diff="7"/>
+            <output name="discarded_file" file="a_pasteurianus_tagged_with_dm6_discarded.bam" ftype="bam" lines_diff="7"/>
         </test>
         <test> <!-- test that a pair with homology to a TE insertion is discarded, because it is a proper pair -->
             <param name="tag_file" value="proper_pair_discard.bam" ftype="bam"/>
@@ -82,9 +82,9 @@
             <param name="keep_suboptimal" value="True"/>
             <param name="discard_proper_pairs" value="True"/>
             <param name="verified" value="True"/>
-            <output name="tagged_file" file="proper_pair_out_suboptimal_tags.bam" ftype="bam" lines_diff="5" />
-            <output name="verified_file" file="proper_pair_discard_verified_empty.bam" ftype="bam" lines_diff="5"/>
-            <output name="discarded_file" file="proper_pair_discard_out.bam" ftype="bam" lines_diff="5"/>
+            <output name="tagged_file" file="proper_pair_out_suboptimal_tags.bam" ftype="bam" lines_diff="7" />
+            <output name="verified_file" file="proper_pair_discard_verified_empty.bam" ftype="bam" lines_diff="7"/>
+            <output name="discarded_file" file="proper_pair_discard_out.bam" ftype="bam" lines_diff="7"/>
         </test>
     </tests>
     <help><![CDATA[

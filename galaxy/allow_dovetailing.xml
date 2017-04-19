@@ -15,7 +15,7 @@
     <tests>
         <test>
             <param name="input" value="not_a_proper_pair.bam" ftype="bam"/>
-            <output name="output" file="proper_pair.bam" ftype="bam" lines_diff="2"/>
+            <output name="output" file="proper_pair.bam" ftype="bam" lines_diff="4"/>
         </test>
     </tests>
     <help><![CDATA[
