@@ -78,18 +78,23 @@ class BamAlignmentWriter(object):
         if self.args:
             self.proc.stdin.close()
             self.proc.wait()
-        if is_file_coordinate_sorted(self.path):
-            sort_order = 'coordinate'
-        else:
-            sort_order = 'queryname'
-        if sort_order != self.sort_order:
-            _, newpath = tempfile.mkstemp()
-            args = ['samtools', 'sort']
-            if self.sort_order == 'queryname':
-                args.append('-n')
-            args.extend(['-o', newpath, self.path])
-            subprocess.call(args, env=os.environ.copy())
-            shutil.move(newpath, self.path)
+        try:
+            if is_file_coordinate_sorted(self.path):
+                sort_order = 'coordinate'
+            else:
+                sort_order = 'queryname'
+            if sort_order != self.sort_order:
+                _, newpath = tempfile.mkstemp()
+                args = ['samtools', 'sort']
+                if self.sort_order == 'queryname':
+                    args.append('-n')
+                args.extend(['-o', newpath, self.path])
+                subprocess.call(args, env=os.environ.copy())
+                shutil.move(newpath, self.path)
+        except Exception:
+            # If no reads had been written to self.path
+            # and exception will be reaised by is_file_coordinate_sorted.
+            pass
 
     def __enter__(self):
         """Provide context handler entry."""
