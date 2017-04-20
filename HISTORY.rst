@@ -7,6 +7,12 @@ History
 
 
 ---------------------
+0.3.15 (2017-04-20)
+---------------------
+* Do not count reads as support if both AD and BD tag contribute to an insertion
+* Remove sambamba support
+
+---------------------
 0.3.14 (2017-04-19)
 ---------------------
 * Perform readtagging on readname sorted files.
