@@ -33,7 +33,7 @@ def is_file_coordinate_sorted(path):
 class BamAlignmentWriter(object):
     """Wrap pysam.AlignmentFile with sambamba for multithreaded compressed writing."""
 
-    def __init__(self, path, template=None, header=None, threads=2, external_bin='choose_best', sort_order='coordinate'):
+    def __init__(self, path, template=None, header=None, threads=4, external_bin='choose_best', sort_order='coordinate'):
         """
         Write Bam files.
 
@@ -54,18 +54,14 @@ class BamAlignmentWriter(object):
 
     @property
     def args(self):
-        """Figure out if sambamba or samtools are available and return correct arguments."""
-        sambamba_args = ['sambamba', 'view', '-f', 'bam', '-t', "%s" % self.threads, '/dev/stdin', '-o', self.path]
-        samtools_args = ['samtools', 'view', '-b', '/dev/stdin', '-o', self.path]
-        if self.external_bin == 'sambamba':
-            return sambamba_args
-        elif self.external_bin == 'samtools':
+        """Return samtools arguments for writing bam files."""
+        if self.external_bin:
+            if self.threads > 4:
+                threads = 4  # More threads won't speed up writing, will be limited by pysam write speed
+            else:
+                threads = self.threads
+            samtools_args = ['samtools', 'view', '-h', '-@', "%s" % threads, '-b', '/dev/stdin', '-o', self.path]
             return samtools_args
-        elif self.external_bin == 'choose_best':
-            if shutil.which('sambamba'):
-                return sambamba_args
-            if shutil.which('samtools'):
-                return samtools_args
         return None
 
     def close(self):
@@ -85,7 +81,7 @@ class BamAlignmentWriter(object):
                 sort_order = 'queryname'
             if sort_order != self.sort_order:
                 _, newpath = tempfile.mkstemp()
-                args = ['samtools', 'sort']
+                args = ['samtools', 'sort', '-@', "%s" % self.threads]
                 if self.sort_order == 'queryname':
                     args.append('-n')
                 args.extend(['-o', newpath, self.path])
@@ -113,34 +109,31 @@ class BamAlignmentWriter(object):
 class BamAlignmentReader(object):
     """Wraps pysam.AlignmentFile with sambamba for reading if input file is a bam file."""
 
-    def __init__(self, path, external_bin='choose_best', sort_order='coordinate'):
+    def __init__(self, path, external_bin='choose_best', sort_order='coordinate', threads=4):
         """
         Read Bam files.
 
         Use this class with a contexthandler.
 
         :param path: Path to read bam file from.
-        :param external_bin: Specify `samtools` to use samtools or `sambamba` or `None` to use pysam for writing to `path`.
+        :param external_bin: Specify `samtools` to use samtools or `None` to use pysam for writing to `path`.
         :param sort_order: Can be `coordinate` or `queryname` and will cause the output file to sorted by this strategy.
         """
         self.path = path
         self.external_bin = external_bin
         self.sort_order = sort_order
+        self.threads = str(threads)
 
     @property
     def args(self):
         """Figure out in sambamba or samtools are available and return correct arguments."""
-        sambamba_args = ['sambamba', 'view', '-h', self.path]
-        samtools_args = ['samtools', 'view', '-h', self.path]
-        if self.external_bin == 'sambamba':
-            return sambamba_args
-        elif self.external_bin == 'samtools':
+        if self.external_bin:
+            if self.threads > 3:
+                threads = 3  # More threads won't speed up samtools reading
+            else:
+                threads = self.threads
+            samtools_args = ['samtools', 'view', '-@', str(threads), '-h', self.path]
             return samtools_args
-        elif self.external_bin == 'choose_best':
-            if shutil.which('sambamba'):
-                return sambamba_args
-            if shutil.which('samtools'):
-                return samtools_args
         return None
 
     @property
@@ -172,7 +165,7 @@ class BamAlignmentReader(object):
             sort_order = 'queryname'
         if sort_order != self.sort_order:
             _, newpath = tempfile.mkstemp()
-            args = ['samtools', 'sort']
+            args = ['samtools', 'sort', '-@', str(self.threads)]
             if self.sort_order == 'queryname':
                 args.append('-n')
             args.extend(['-o', newpath, self.path])

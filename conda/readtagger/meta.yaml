@@ -35,7 +35,6 @@ requirements:
     - futures
     - cached-property
     - cap3
-    - sambamba
     - python
     - contextlib2
     - pysam >=0.9.4
