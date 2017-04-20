@@ -24,7 +24,7 @@ def test_tagcluster_with_splits(datadir):  # noqa: D103
     assert len(tc.tsd.three_p_support) == 4
     assert len(tc.tsd.five_p_support) == 1
     assert len(tc.tsd.unassigned_support) == 0
-    assert tc.joint_insert.assembly.ncontigs == 1
+    assert tc.joint_insert.assembly.ncontigs == 0
 
 
 def test_tagcluster_without_splits(datadir):  # noqa: D103

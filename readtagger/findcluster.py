@@ -55,7 +55,7 @@ class ClusterFinder(object):
         self._tempdir = tempfile.mkdtemp(dir='.')
         self.remove_supplementary_without_primary = remove_supplementary_without_primary
         self.threads = threads
-        self.tp = ThreadPoolExecutor(threads)  # max theads
+        self.tp = ThreadPoolExecutor(threads)  # max threads
         self.cluster = self.find_cluster()
         self.clean_clusters()
         self.join_clusters()
@@ -112,7 +112,7 @@ class ClusterFinder(object):
 
     def clean_clusters(self):
         """Remove clusters that have more reads supporting an insertion than specified in self.max_clustersupport."""
-        self.cluster = [c for c in self.cluster if not sum([len(c.clustertag.left_sequences), len(c.clustertag.right_sequences)]) > self.max_clustersupport]
+        self.cluster = [c for c in self.cluster if not sum([c.clustertag.left_sequence_count, c.clustertag.right_sequence_count]) > self.max_clustersupport]
 
     def join_clusters(self):
         """Iterate over self.cluster and attempt to join consecutive clusters."""

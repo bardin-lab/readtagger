@@ -155,7 +155,7 @@ class TagCluster(object):
         # TODO: extend this to also return quality values
         right_sequences = {}
         for r in self.cluster:
-            if r.has_tag('BD'):
+            if r.has_tag('BD') and not r.has_tag('AD'):
                 # Exclude reads that have both AD and BD when determining reads that support the right side,
                 # because if they overlap they will already count by their AD Tag below.
                 if r.is_reverse:
@@ -168,3 +168,17 @@ class TagCluster(object):
                 if r.reference_end == self.tsd.three_p or r.pos == self.tsd.three_p:
                     right_sequences[r.query_name] = r.query_sequence
         return right_sequences
+
+    @cached_property
+    def right_sequence_count(self):
+        """Count all unique sequences right of a breakpoint."""
+        qnames = set(qname.rsplit('.1')[0].rsplit('.2')[0] for qname in self.right_sequences)
+        warnings.warn("These seqeunces are on the right: %s" % " ".join(qnames))
+        return len(qnames)
+
+    @cached_property
+    def left_sequence_count(self):
+        """Count all unique sequences right of a breakpoint."""
+        qnames = set(qname.rsplit('.1')[0].rsplit('.2')[0] for qname in self.left_sequences)
+        warnings.warn("These seqeunces are on the left: %s" % " ".join(qnames))
+        return len(qnames)

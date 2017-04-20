@@ -130,12 +130,12 @@ class Cluster(list):
     @cached_property
     def left_support(self):
         """Number of supporting reads on the left side of cluster."""
-        return len(set(list(self.clustertag.left_sequences.keys())))
+        return self.clustertag.left_sequence_count
 
     @cached_property
     def right_support(self):
         """Number of supporting reads on the right side of cluster."""
-        return len(set(list(self.clustertag.right_sequences.keys())))
+        return self.clustertag.right_sequence_count
 
     @cached_property
     def score(self):
