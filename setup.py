@@ -4,7 +4,7 @@ try:
 except ImportError:
     from distutils.core import setup
 
-__VERSION__ = '0.3.14'
+__VERSION__ = '0.3.15'
 
 ENTRY_POINTS = '''
         [console_scripts]

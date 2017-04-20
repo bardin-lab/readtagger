@@ -132,7 +132,7 @@ class BamAlignmentReader(object):
                 threads = 3  # More threads won't speed up samtools reading
             else:
                 threads = self.threads
-            samtools_args = ['samtools', 'view', '-@', "%s" threads, '-h', self.path]
+            samtools_args = ['samtools', 'view', '-@', "%s" % threads, '-h', self.path]
             return samtools_args
         return None
 
