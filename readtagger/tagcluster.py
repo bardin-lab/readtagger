@@ -173,12 +173,10 @@ class TagCluster(object):
     def right_sequence_count(self):
         """Count all unique sequences right of a breakpoint."""
         qnames = set(qname.rsplit('.1')[0].rsplit('.2')[0] for qname in self.right_sequences)
-        warnings.warn("These seqeunces are on the right: %s" % " ".join(qnames))
         return len(qnames)
 
     @cached_property
     def left_sequence_count(self):
         """Count all unique sequences right of a breakpoint."""
         qnames = set(qname.rsplit('.1')[0].rsplit('.2')[0] for qname in self.left_sequences)
-        warnings.warn("These seqeunces are on the left: %s" % " ".join(qnames))
         return len(qnames)
