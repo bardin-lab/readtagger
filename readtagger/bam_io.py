@@ -122,7 +122,7 @@ class BamAlignmentReader(object):
         self.path = path
         self.external_bin = external_bin
         self.sort_order = sort_order
-        self.threads = str(threads)
+        self.threads = threads
 
     @property
     def args(self):
@@ -132,7 +132,7 @@ class BamAlignmentReader(object):
                 threads = 3  # More threads won't speed up samtools reading
             else:
                 threads = self.threads
-            samtools_args = ['samtools', 'view', '-@', str(threads), '-h', self.path]
+            samtools_args = ['samtools', 'view', '-@', "%s" threads, '-h', self.path]
             return samtools_args
         return None
 
@@ -165,7 +165,7 @@ class BamAlignmentReader(object):
             sort_order = 'queryname'
         if sort_order != self.sort_order:
             _, newpath = tempfile.mkstemp()
-            args = ['samtools', 'sort', '-@', str(self.threads)]
+            args = ['samtools', 'sort', '-@', "%s" % self.threads]
             if self.sort_order == 'queryname':
                 args.append('-n')
             args.extend(['-o', newpath, self.path])
