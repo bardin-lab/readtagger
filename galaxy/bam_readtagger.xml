@@ -16,6 +16,7 @@
         $discarded
         $verified
         $discard_proper_pairs
+        --cores "\${GALAXY_SLOTS:-2}"
         -o '$tagged_file'
     ]]></command>
     <inputs>
