@@ -5,6 +5,36 @@ from .cigar import (
     cigar_to_tuple,
     cigartuples_to_named_cigartuples
 )
+from collections import namedtuple
+
+
+class BaseTag(object):
+    """Generate class template for tags."""
+
+    def __new__(cls, header):
+        """Return a Tag class that knows how to format a tag."""
+        return type('NamedTagTuple', (namedtuple('tag', 'tid reference_start cigar is_reverse mapq query_alignment_start query_alignment_end'),),
+                    {'__str__': lambda self: self.tag_str_template % (self.header['SQ'][self.tid]['SN'],
+                                                                      self.reference_start,
+                                                                      self.query_alignment_start,
+                                                                      self.query_alignment_end,
+                                                                      cigartuples_to_cigarstring(self.cigar),
+                                                                      'AS' if self.is_reverse else 'S',
+                                                                      self.mapq),
+                     'reference_name': lambda self: self.header['SQ'][self.tid]['SN'],
+                     'header': header,
+                     'tag_str_template': "R:%s,POS:%d,QSTART:%d,QEND:%d,CIGAR:%s,S:%s,MQ:%d"})
+
+
+def make_tag(template, r):
+    """Return namedtuple of read attributes."""
+    return template(tid=r.tid,
+                    reference_start=r.reference_start,
+                    cigar=r.cigar,
+                    is_reverse=r.is_reverse,
+                    mapq=r.mapping_quality,
+                    query_alignment_start=r.query_alignment_start,
+                    query_alignment_end=r.query_alignment_end)
 
 
 class Tag(object):

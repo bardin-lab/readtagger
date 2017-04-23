@@ -30,17 +30,18 @@ def is_file_coordinate_sorted(path):
     return True
 
 
-def get_queryname_positions(fn, chunk_size=100000):
+def get_queryname_positions(fn, chunk_size=10000):
     """
-    Get positions in order to split alignment file into equal-sized portions
+    Get positions in order to split alignment file into equal-sized portions.
 
     Return a list of tuples, where the first item is the current file position for the first read,
-    the second is the end position and the third is the last query_name of the chunk.
+    and the second item is the last query_name of the chunk.
     """
-    seek_positions = []
     f = pysam.AlignmentFile(fn)
-    start = f.tell()  # byte position
-    r = f.next()
+    start = f.tell()
+    last_pos = start
+    seek_positions = []
+    r = next(f)
     qn = r.query_name
     count = 1
     for r in f:
@@ -49,12 +50,84 @@ def get_queryname_positions(fn, chunk_size=100000):
             # Next query_name
             count += 1
             if count % chunk_size == 0:
-                seek_positions.append((start, end, qn))
-                start = f.tell()
+                # We've reach a chunk, we append the last_pos as a new start
+                seek_positions.append((start, qn))
+                start = last_pos
             qn = current_query_name
-        end = f.tell()
-    seek_positions.append((start, end, qn))
+        last_pos = f.tell()
+    seek_positions.append((start, qn))
     return seek_positions
+
+
+def get_reads(fn, start, last_qname):
+    """Get reads starting at `start` and ending with last_qname."""
+    f = pysam.AlignmentFile(fn)
+    reads = []
+    f.seek(start)
+    for r in f:
+        if r.query_name == last_qname:
+            try:
+                while r.query_name == last_qname:
+                    reads.append(r)
+                    r = next(f)
+            except StopIteration:
+                pass
+            return reads
+        else:
+            reads.append(r)
+    return reads
+
+
+def start_positions_for_last_qnames(fn, last_qnames):
+    """Return start positions that return the first read after the current last qname."""
+    f = pysam.AlignmentFile(fn)
+    start = f.tell()
+    current_last_qname = last_qnames.pop(0)
+    seek_positions = [start]
+    for r in f:
+        if r.query_name == current_last_qname:
+            last_file_pos = f.tell()
+            try:
+                while r.query_name == current_last_qname:
+                    # We've got the last query_name,
+                    # now we want the last file position in which current_last_qname occurs
+                    last_file_pos = f.tell()
+                    r = next(f)
+                seek_positions.append(last_file_pos)
+            except StopIteration:
+                return seek_positions
+            try:
+                current_last_qname = last_qnames.pop(0)
+            except IndexError:
+                # We've reached the end of last_qnames
+                return seek_positions
+    return seek_positions
+
+
+def merge_bam(bam_collection, template_bam, output_path, threads=1):
+    """Merge a readname sorted collection of BAM files."""
+    args = ['samtools', 'merge', '-n', '-f', '-@', "%s" % threads, '-h', template_bam, output_path]
+    args.extend(bam_collection)
+    subprocess.call(args, env=os.environ.copy())
+    [os.remove(bam) for bam in bam_collection]
+    return output_path
+
+
+def sort_bam(inpath, output, sort_order, threads):
+    """Sort bam file at inpath using sort_order and write output to output."""
+    if inpath == output:
+        # We sort 'in place'
+        _, temp_out = tempfile.mkstemp()
+    else:
+        temp_out = output
+    args = ['samtools', 'sort', '-@', "%s" % threads]
+    if sort_order == 'queryname':
+        args.append('-n')
+    args.extend(['-o', temp_out, inpath])
+    subprocess.call(args, env=os.environ.copy())
+    if temp_out != output:
+        shutil.move(temp_out, output)
+    return output
 
 
 class BamAlignmentWriter(object):
@@ -107,16 +180,10 @@ class BamAlignmentWriter(object):
             else:
                 sort_order = 'queryname'
             if sort_order != self.sort_order:
-                _, newpath = tempfile.mkstemp()
-                args = ['samtools', 'sort', '-@', "%s" % self.threads]
-                if self.sort_order == 'queryname':
-                    args.append('-n')
-                args.extend(['-o', newpath, self.path])
-                subprocess.call(args, env=os.environ.copy())
-                shutil.move(newpath, self.path)
+                sort_bam(inpath=self.path, output=self.path, sort_order=self.sort_order, threads=self.threads)
         except Exception:
             # If no reads had been written to self.path
-            # and exception will be reaised by is_file_coordinate_sorted.
+            # an exception will be raised by is_file_coordinate_sorted.
             pass
 
     def __enter__(self):
@@ -191,13 +258,7 @@ class BamAlignmentReader(object):
         else:
             sort_order = 'queryname'
         if sort_order != self.sort_order:
-            _, newpath = tempfile.mkstemp()
-            args = ['samtools', 'sort', '-@', "%s" % self.threads]
-            if self.sort_order == 'queryname':
-                args.append('-n')
-            args.extend(['-o', newpath, self.path])
-            subprocess.call(args, env=os.environ.copy())
-            self.path = newpath
+            self.path = sort_bam(inpath=self.path, output=self.path, sort_order=self.sort_order, threads=self.threads)
         if self.is_bam and self.args:
             self.proc = subprocess.Popen(self.args, stdout=subprocess.PIPE, env=os.environ.copy(), close_fds=True)
             self.af = pysam.AlignmentFile(self.proc.stdout)

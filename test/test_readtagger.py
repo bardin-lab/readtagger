@@ -27,7 +27,8 @@ ARGS_TEMPLATE = namedtuple('args', ['annotate_with',
                                     'discard_if_proper_pair',
                                     'write_discarded',
                                     'write_verified',
-                                    'output_file'])
+                                    'output_file',
+                                    'cores'])
 
 
 def test_samtag_processor(datadir):  # noqa: D103
@@ -63,7 +64,8 @@ def test_main_keep_suboptimal(datadir, tmpdir):  # noqa: D103
     annotate_with = str(datadir[TEST_BAM_B])
     tag_file = str(datadir[TEST_BAM_A])
     args = ARGS_TEMPLATE(annotate_with=[annotate_with], tag_file=tag_file, allow_dovetailing=True, keep_suboptimal_alternate_tags=True,
-                         discard_if_proper_pair=False, output_file=output.strpath, write_discarded=discarded.strpath, write_verified=verified.strpath)
+                         discard_if_proper_pair=False, output_file=output.strpath, write_discarded=discarded.strpath, write_verified=verified.strpath,
+                         cores=1)
     main(args)
 
 
@@ -73,7 +75,8 @@ def test_main_discard_suboptimal(datadir, tmpdir):  # noqa: D103
     annotate_with = str(datadir[TEST_BAM_B])
     tag_file = str(datadir[TEST_BAM_A])
     args = ARGS_TEMPLATE(annotate_with=[annotate_with], tag_file=tag_file, allow_dovetailing=True, keep_suboptimal_alternate_tags=False,
-                         discard_if_proper_pair=False, output_file=output.strpath, write_discarded=discarded.strpath, write_verified=verified.strpath)
+                         discard_if_proper_pair=False, output_file=output.strpath, write_discarded=discarded.strpath, write_verified=verified.strpath,
+                         cores=1)
     main(args)
 
 
@@ -83,7 +86,8 @@ def test_main_discard_suboptimal_discard_if_proper(datadir, tmpdir):  # noqa: D1
     annotate_with = str(datadir[TEST_BAM_B])
     tag_file = str(datadir[TEST_BAM_A])
     args = ARGS_TEMPLATE(annotate_with=[annotate_with], tag_file=tag_file, allow_dovetailing=True, keep_suboptimal_alternate_tags=False,
-                         discard_if_proper_pair=True, output_file=output.strpath, write_discarded=discarded.strpath, write_verified=verified.strpath)
+                         discard_if_proper_pair=True, output_file=output.strpath, write_discarded=discarded.strpath, write_verified=verified.strpath,
+                         cores=1)
     main(args)
 
 
@@ -94,7 +98,8 @@ def test_main_with_argparse(datadir, tmpdir, mocker):  # noqa: D103
     annotate_with = str(datadir[TEST_BAM_B])
     tag_file = str(datadir[TEST_BAM_A])
     args = ARGS_TEMPLATE(annotate_with=[annotate_with], tag_file=tag_file, allow_dovetailing=True, keep_suboptimal_alternate_tags=False,
-                         discard_if_proper_pair=True, output_file=output.strpath, write_discarded=discarded.strpath, write_verified=verified.strpath)
+                         discard_if_proper_pair=True, output_file=output.strpath, write_discarded=discarded.strpath, write_verified=verified.strpath,
+                         cores='1')
     argv = namedtuple_to_argv(args, 'readtagger.py')
     mocker.patch('sys.argv', argv)
     main()
@@ -107,7 +112,8 @@ def test_main_rover(datadir, tmpdir, mocker):  # noqa: D103
     annotate_with = str(datadir[TEST_SAM_ROVER_FBTI])
     tag_file = str(datadir[TEST_SAM_ROVER_DM6])
     args = ARGS_TEMPLATE(annotate_with=[annotate_with], tag_file=tag_file, allow_dovetailing=True, keep_suboptimal_alternate_tags=False,
-                         discard_if_proper_pair=True, output_file=output.strpath, write_discarded=discarded.strpath, write_verified=verified.strpath)
+                         discard_if_proper_pair=True, output_file=output.strpath, write_discarded=discarded.strpath, write_verified=verified.strpath,
+                         cores='1')
     argv = namedtuple_to_argv(args, 'readtagger.py')
     mocker.patch('sys.argv', argv)
     main()
@@ -116,7 +122,8 @@ def test_main_rover(datadir, tmpdir, mocker):  # noqa: D103
 
 def get_samtag_processor(datadir, tag_mate):  # noqa: D103
     source_path = datadir[TEST_SAM]
-    return SamTagProcessor(Reader(source_path, sort_order='queryname').__enter__(), tag_mate)
+    header = pysam.AlignmentFile(source_path).header
+    return SamTagProcessor(Reader(source_path, sort_order='queryname').__enter__(), header=header, tag_mate=tag_mate)
 
 
 def get_output_files(tmpdir):  # noqa: D103
