@@ -30,6 +30,33 @@ def is_file_coordinate_sorted(path):
     return True
 
 
+def get_queryname_positions(fn, chunk_size=100000):
+    """
+    Get positions in order to split alignment file into equal-sized portions
+
+    Return a list of tuples, where the first item is the current file position for the first read,
+    the second is the end position and the third is the last query_name of the chunk.
+    """
+    seek_positions = []
+    f = pysam.AlignmentFile(fn)
+    start = f.tell()  # byte position
+    r = f.next()
+    qn = r.query_name
+    count = 1
+    for r in f:
+        current_query_name = r.query_name
+        if current_query_name != qn:
+            # Next query_name
+            count += 1
+            if count % chunk_size == 0:
+                seek_positions.append((start, end, qn))
+                start = f.tell()
+            qn = current_query_name
+        end = f.tell()
+    seek_positions.append((start, end, qn))
+    return seek_positions
+
+
 class BamAlignmentWriter(object):
     """Wrap pysam.AlignmentFile with sambamba for multithreaded compressed writing."""
 
