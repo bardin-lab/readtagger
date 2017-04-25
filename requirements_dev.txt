@@ -9,4 +9,4 @@ pytest-cov==2.4.0
 pytest-datadir==0.2.0
 pytest-flake8==0.8.1
 pytest-mock==1.6.0
-tox==2.6.0
+tox==2.7.0
