@@ -6,6 +6,11 @@ History
 .. to_doc
 
 ---------------------
+0.3.18 (2017-04-25)
+---------------------
+* Fix small outputs due to switching of `-t` and `-a` options
+
+---------------------
 0.3.17 (2017-04-25)
 ---------------------
 * Fix file seeking
