@@ -47,8 +47,11 @@ def test_samtag_processor(datadir):  # noqa: D103
 def test_samtag_annotator(datadir, tmpdir):  # noqa: D103
     p = get_samtag_processor(datadir, tag_mate=True)
     output_path = tmpdir.join('testout.bam')
-    with Reader(datadir[TEST_SAM_B], sort_order='queryname') as annotate_bam, Writer(output_path.strpath, header=annotate_bam.header) as output_writer:
-        a = SamAnnotator(annotate_bam=annotate_bam,
+    with Reader(datadir[TEST_SAM_B], sort_order='queryname') as annotate_bam:
+        header = annotate_bam.header
+        annotate_reads = [r for r in annotate_bam]
+    with Writer(output_path.strpath, header=header) as output_writer:
+        a = SamAnnotator(annotate_bam=annotate_reads,
                          output_writer=output_writer,
                          allow_dovetailing=False,
                          discard_bad_alt_tag=True,)

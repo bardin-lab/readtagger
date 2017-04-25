@@ -211,7 +211,7 @@ class SamTagProcessor(object):
         for read in self.source_alignment:
             if self.is_taggable(read):
                 if qname != read.query_name and reads and qname:
-                    # We got a new read, so we process the revious reads
+                    # We got a new read, so we process the previous reads
                     tag_d = self.process_current_reads(reads)
                     if self.tag_mate:
                         tag_d = self.add_mate(tag_d)
@@ -303,24 +303,33 @@ class SamAnnotator(object):
 
     def process(self, qname, tag_d):
         """Iterate through reads in self.annotate_bam and process those reads that have the same name as qname."""
+        found_qname = False
         reads = []
-        if self._read:
-            # We saved the last read from the previous process call
-            if self._read.query_name == qname:
-                reads.append(self._read)
-        for read in self.annotate_bam:
+        while True:
+            if self._read:
+                read = self._read
+                if read.query_name == qname:
+                    found_qname = True
+                self._read = None
+                reads.append(read)
+                continue
+            try:
+                read = self.annotate_bam.pop(0)
+            except IndexError:
+                return self._process(reads, tag_d)
             if read.query_name == qname:
                 reads.append(read)
+                found_qname = True
+                continue
+            if not found_qname:
+                # That should be the first call, when no reads have been found yet and
+                # we haven't reached the correct reads yet
+                reads.append(read)
+                continue
             else:
-                if not reads:
-                    # That should be the first call, when no reads have been found yet and
-                    # we haven't reached the correct reads yet
-                    continue
-                else:
-                    # We read past the last read with the same name
-                    return self._process(reads, tag_d)
-        # We should reach this only at the end of a BAM file in rare instances
-        return self._process(reads, tag_d)
+                # We read past the last read with the same name
+                self._read = read
+                return self._process(reads, tag_d)
 
     def _process(self, reads, tag_d):
         for read in reads:

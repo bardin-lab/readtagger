@@ -41,15 +41,14 @@ def get_queryname_positions(fn, chunk_size=10000):
     start = f.tell()
     last_pos = start
     seek_positions = []
-    r = next(f)
-    qn = r.query_name
-    count = 1
+    qn = ''
+    count = 0
     for r in f:
         current_query_name = r.query_name
         if current_query_name != qn:
             # Next query_name
             count += 1
-            if count % chunk_size == 0:
+            if count % chunk_size == 0 and qn:
                 # We've reach a chunk, we append the last_pos as a new start
                 seek_positions.append((start, qn))
                 start = last_pos
@@ -62,8 +61,12 @@ def get_queryname_positions(fn, chunk_size=10000):
 def get_reads(fn, start, last_qname):
     """Get reads starting at `start` and ending with last_qname."""
     f = pysam.AlignmentFile(fn)
+    # The first read returned (even after seeking!) is always the first read in the file.
+    # Calling next once resolves that.
+    if not f.tell() == start:
+        f.next()
+        f.seek(start)
     reads = []
-    f.seek(start)
     for r in f:
         if r.query_name == last_qname:
             try:
@@ -79,7 +82,7 @@ def get_reads(fn, start, last_qname):
 
 
 def start_positions_for_last_qnames(fn, last_qnames):
-    """Return start positions that return the first read after the current last qname."""
+    """Return start positions that returns the first read after the current last qname."""
     f = pysam.AlignmentFile(fn)
     start = f.tell()
     current_last_qname = last_qnames.pop(0)
@@ -106,7 +109,7 @@ def start_positions_for_last_qnames(fn, last_qnames):
 
 def merge_bam(bam_collection, template_bam, output_path, threads=1):
     """Merge a readname sorted collection of BAM files."""
-    args = ['samtools', 'merge', '-n', '-f', '-@', "%s" % threads, '-h', template_bam, output_path]
+    args = ['samtools', 'cat', '-h', template_bam, '-o', output_path]
     args.extend(bam_collection)
     subprocess.call(args, env=os.environ.copy())
     [os.remove(bam) for bam in bam_collection]
