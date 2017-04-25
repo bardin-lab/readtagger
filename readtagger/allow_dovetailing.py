@@ -1,9 +1,13 @@
 import argparse
+import logging
+
 import pysam
 
-import warnings
-
 from .bam_io import BamAlignmentWriter as Writer
+
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s - %(message)s', level=logging.DEBUG)
 
 
 def get_max_proper_pair_size(alignment_file):
@@ -15,17 +19,20 @@ def get_max_proper_pair_size(alignment_file):
     :rtype int
     """
     isize = []
+    msg = "Maximum insert size for a proper pair is %s"
     for r in alignment_file:
         if r.is_proper_pair and not r.is_secondary and not r.is_supplementary:
             isize.append(abs(r.isize))
         if len(isize) == 1000:
             alignment_file.reset()
+            logger.info(msg, max(isize))
             return max(isize)
     alignment_file.reset()
     if isize:
+        logger.info(msg, max(isize))
         return max(isize)
     else:
-        warnings.warn("Could not determine maximum allowed insert size for a proper pair. Are there any proper pairs in the input file?")
+        logger.warn("Could not determine maximum allowed insert size for a proper pair. Are there any proper pairs in the input file?")
         return None
 
 
@@ -40,7 +47,7 @@ def allow_dovetailing(read, max_proper_size=351, default_max_proper_size=351):
     :rtype pysam.AlignedSegment
     """
     if max_proper_size is None:
-        warnings.warn("Using default maximum insert size of %d" % default_max_proper_size)
+        logger.warn("Using default maximum insert size of %d" % default_max_proper_size)
         max_proper_size = default_max_proper_size
     if not read.is_proper_pair and not read.is_reverse == read.mate_is_reverse and read.reference_id == read.mrnm and abs(read.isize) <= max_proper_size:
         read.is_proper_pair = True

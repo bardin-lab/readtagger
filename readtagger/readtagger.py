@@ -1,6 +1,9 @@
 import argparse
+import logging
 import multiprocessing as mp
 import tempfile
+
+import pysam
 
 from .allow_dovetailing import (
     allow_dovetailing,
@@ -20,9 +23,10 @@ from .tags import (
     BaseTag,
     make_tag
 )
-import pysam
 
 __VERSION__ = '0.3.17'
+logger = logging.getLogger(__name__)
+logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s - %(message)s', level=logging.DEBUG)
 
 
 class TagManager(object):
@@ -71,7 +75,7 @@ class TagManager(object):
     def process(self):
         """Create worker objects and stream pairs to SamAnnotator process method."""
         if self.allow_dovetailing and not self.max_proper_size:
-            with Reader(self.source_path, external_bin=None) as source:
+            with Reader(self.annotate_path, external_bin=None) as source:
                 self.max_proper_size = get_max_proper_pair_size(source)
         kwds = {}
         kwds['source_path'] = self.source_path
@@ -86,16 +90,18 @@ class TagManager(object):
         kwds['tag_prefix_self'] = self.tag_prefix_self
         kwds['tag_prefix_mate'] = self.tag_prefix_mate
         kwds['source_header'] = pysam.AlignmentFile(self.source_path).header
-        pos_qname = get_queryname_positions(self.annotate_path)
+        logger.info("Finding position at which to split input files")
+        pos_qname = get_queryname_positions(self.source_path)
         last_qnames = [t[1] for t in pos_qname]
-        starts_source = start_positions_for_last_qnames(self.source_path, last_qnames=last_qnames)
+        starts_annotate = start_positions_for_last_qnames(self.annotate_path, last_qnames=last_qnames)
         mp_args = []
-        for (start_annotate, qname), start_source in zip(pos_qname, starts_source):
+        for (start_source, qname), start_annotate in zip(pos_qname, starts_annotate):
             args = kwds.copy()
             args['start_annotate'] = start_annotate
             args['start_source'] = start_source
             args['qname'] = qname
             mp_args.append(args)
+        logger.info("Split processing into %d chunks", len(mp_args))
         if self.cores > 1:
             p = mp.Pool(self.cores)
             r = p.map_async(multiprocess_worker, mp_args)
@@ -105,6 +111,7 @@ class TagManager(object):
         output_collection = []
         verified_collection = []
         discarded_collection = []
+        logger.info("Writing output")
         for output, discarded, verified in r:
             output_collection.append(output)
             verified_collection.append(verified)
@@ -117,6 +124,7 @@ class TagManager(object):
             sort_bam(inpath=self.verified_path, output=self.verified_path, sort_order='coordinate', threads=self.cores)
         merge_bam(output_collection, template_bam=self.annotate_path, output_path=self.output_path, threads=self.cores)
         sort_bam(self.output_path, output=self.output_path, sort_order='coordinate', threads=self.cores)
+        logger.info("Processing finished")
 
 
 def multiprocess_worker(kwds):
@@ -333,7 +341,7 @@ class SamAnnotator(object):
 
     def _process(self, reads, tag_d):
         for read in reads:
-            if allow_dovetailing:
+            if self.allow_dovetailing:
                 read = allow_dovetailing(read, self.max_proper_size)
             discarded_tags = []
             verified_tags = []
