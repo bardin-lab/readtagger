@@ -6,6 +6,12 @@ History
 .. to_doc
 
 ---------------------
+0.3.17 (2017-04-25)
+---------------------
+* Fix file seeking
+* Update dependencies
+
+---------------------
 0.3.16 (2017-04-23)
 ---------------------
 * Parallelize readtagger
