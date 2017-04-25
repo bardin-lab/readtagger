@@ -22,7 +22,7 @@ from .tags import (
 )
 import pysam
 
-__VERSION__ = '0.3.16'
+__VERSION__ = '0.3.17'
 
 
 class TagManager(object):
