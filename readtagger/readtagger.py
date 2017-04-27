@@ -25,7 +25,7 @@ from .tags import (
     make_tag
 )
 
-__VERSION__ = '0.3.19'
+__VERSION__ = '0.3.20'
 logger = logging.getLogger(__name__)
 logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s - %(message)s', level=logging.DEBUG)
 

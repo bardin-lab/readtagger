@@ -1,7 +1,7 @@
-<tool id="write_supplementary_fastq" name="Extract supplementary alignments" version="0.3.19">
+<tool id="write_supplementary_fastq" name="Extract supplementary alignments" version="0.3.20">
     <description>from SAM/BAM alignment files as FASTQ</description>
     <requirements>
-        <requirement type="package" version="0.3.19">readtagger</requirement>
+        <requirement type="package" version="0.3.20">readtagger</requirement>
     </requirements>
     <version_command>write_supplementary_fastq --version</version_command>
     <command detect_errors="aggressive"><![CDATA[
