@@ -48,7 +48,9 @@ class TagManager(object):
                  ):
         """Open input and output files and construct worker classes."""
         self.source_path = source_path
+        self.source_path_sorted = None
         self.annotate_path = annotate_path
+        self.annotate_path_sorted = None
         self.output_path = output_path
         self.discarded_path = discarded_path
         self.verified_path = verified_path
@@ -67,10 +69,10 @@ class TagManager(object):
         """Coordinate sort input files if necessary."""
         if is_file_coordinate_sorted(self.annotate_path):
             _, path = tempfile.mkstemp()
-            self.annotate_path = sort_bam(self.annotate_path, output=path, sort_order='queryname', threads=self.cores)
+            self.annotate_path_sorted = sort_bam(self.annotate_path, output=path, sort_order='queryname', threads=self.cores)
         if is_file_coordinate_sorted(self.source_path):
             _, path = tempfile.mkstemp()
-            self.source_path = sort_bam(self.source_path, output=path, sort_order='queryname', threads=self.cores)
+            self.source_path_sorted = sort_bam(self.source_path, output=path, sort_order='queryname', threads=self.cores)
 
     def process(self):
         """Create worker objects and stream pairs to SamAnnotator process method."""
@@ -78,8 +80,8 @@ class TagManager(object):
             with Reader(self.annotate_path, external_bin=None) as source:
                 self.max_proper_size = get_max_proper_pair_size(source)
         kwds = {}
-        kwds['source_path'] = self.source_path
-        kwds['annotate_path'] = self.annotate_path
+        kwds['source_path'] = self.source_path_sorted
+        kwds['annotate_path'] = self.annotate_path_sorted
         kwds['discarded_path'] = self.discarded_path
         kwds['verified_path'] = self.verified_path
         kwds['tag_mate'] = self.tag_mate
@@ -89,11 +91,11 @@ class TagManager(object):
         kwds['discard_if_proper_pair'] = self.discard_if_proper_pair
         kwds['tag_prefix_self'] = self.tag_prefix_self
         kwds['tag_prefix_mate'] = self.tag_prefix_mate
-        kwds['source_header'] = pysam.AlignmentFile(self.source_path).header
+        kwds['source_header'] = pysam.AlignmentFile(self.source_path_sorted).header
         logger.info("Finding position at which to split input files")
-        pos_qname = get_queryname_positions(self.source_path)
+        pos_qname = get_queryname_positions(self.source_path_sorted)
         last_qnames = [t[1] for t in pos_qname]
-        starts_annotate = start_positions_for_last_qnames(self.annotate_path, last_qnames=last_qnames)
+        starts_annotate = start_positions_for_last_qnames(self.annotate_path_sorted, last_qnames=last_qnames)
         mp_args = []
         for (start_source, qname), start_annotate in zip(pos_qname, starts_annotate):
             args = kwds.copy()
