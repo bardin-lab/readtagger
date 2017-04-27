@@ -1,6 +1,9 @@
-from readtagger.readtagger import SamTagProcessor
-from readtagger.readtagger import SamAnnotator
-from readtagger.readtagger import main
+from readtagger.readtagger import (
+    SamTagProcessor,
+    SamAnnotator,
+    TagManager,
+    main
+)
 from readtagger.bam_io import (
     BamAlignmentReader as Reader,
     BamAlignmentWriter as Writer,
@@ -13,12 +16,11 @@ from collections import namedtuple
 
 TEST_SAM = 'testsam_a.sam'
 TEST_SAM_B = 'testsam_b.sam'
-
 TEST_BAM_A = 'dm6.bam'
 TEST_BAM_B = 'pasteurianus.bam'
-
 TEST_SAM_ROVER_DM6 = 'rover_single_mate_dm6.sam'
 TEST_SAM_ROVER_FBTI = 'rover_single_mate_fbti.sam'
+EXTENDED = 'extended_annotated_updated_all_reads.bam'
 
 ARGS_TEMPLATE = namedtuple('args', ['annotate_with',
                                     'tag_file',
@@ -109,8 +111,6 @@ def test_main_with_argparse(datadir, tmpdir, mocker):  # noqa: D103
 
 
 def test_main_rover(datadir, tmpdir, mocker):  # noqa: D103
-    # Annotate dm6 with pasteurianus reads, keep suboptimal tags, discard proper pairs
-    # and test that argparse argument parsing works as expected.
     discarded, verified, output = get_output_files(tmpdir)
     annotate_with = str(datadir[TEST_SAM_ROVER_FBTI])
     tag_file = str(datadir[TEST_SAM_ROVER_DM6])
@@ -129,6 +129,23 @@ def test_main_rover(datadir, tmpdir, mocker):  # noqa: D103
     mocker.patch('sys.argv', argv)
     main()
     assert len([r for r in pysam.AlignmentFile(verified.strpath)]) == 1
+
+
+def test_tag_manager_small_chunks(datadir, tmpdir):  # noqa: D103
+    discarded, verified, output = get_output_files(tmpdir)
+    annotate_with = str(datadir[EXTENDED])
+    tag_file = str(datadir[EXTENDED])
+    args = {'source_path': annotate_with,
+            'annotate_path': tag_file,
+            'output_path': output.strpath,
+            'discarded_path': discarded.strpath,
+            'verified_path': verified.strpath,
+            'tag_mate': True,
+            'allow_dovetailing': True,
+            'cores': 1,
+            'chunk_size': 10}
+    TagManager(**args)
+    assert len([r for r in pysam.AlignmentFile(verified.strpath)]) == 90
 
 
 def get_samtag_processor(datadir, tag_mate):  # noqa: D103

@@ -46,6 +46,7 @@ class TagManager(object):
                  tag_prefix_self='A',
                  tag_prefix_mate='B',
                  cores=1,
+                 chunk_size=10000,
                  ):
         """Open input and output files and construct worker classes."""
         self.source_path = source_path
@@ -63,6 +64,7 @@ class TagManager(object):
         self.tag_prefix_self = tag_prefix_self
         self.tag_prefix_mate = tag_prefix_mate
         self.cores = cores
+        self.chunk_size = chunk_size
         self.tempdir = tempfile.mkdtemp()
         self.setup_input_files()
         self.process()
@@ -96,7 +98,7 @@ class TagManager(object):
         kwds['tag_prefix_mate'] = self.tag_prefix_mate
         kwds['source_header'] = pysam.AlignmentFile(self.source_path_sorted).header
         logger.info("Finding position at which to split input files")
-        pos_qname = get_queryname_positions(self.source_path_sorted)
+        pos_qname = get_queryname_positions(self.source_path_sorted, chunk_size=self.chunk_size)
         last_qnames = [t[1] for t in pos_qname]
         starts_annotate = start_positions_for_last_qnames(self.annotate_path_sorted, last_qnames=last_qnames)
         mp_args = []
