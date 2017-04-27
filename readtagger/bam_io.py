@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s - %(message)s', level=logging.DEBUG)
 
 
-def is_file_coordinate_sorted(path):
+def is_file_coordinate_sorted(path, reads_to_check=10000):
     """Determine if first 10000 reads are coordinate sorted."""
     with pysam.AlignmentFile(path) as f:
         i = 0
@@ -124,7 +124,7 @@ def merge_bam(bam_collection, template_bam, output_path, threads=1):
     return output_path
 
 
-def sort_bam(inpath, output, sort_order, threads):
+def sort_bam(inpath, output, sort_order, threads=1):
     """Sort bam file at inpath using sort_order and write output to output."""
     if inpath == output:
         # We sort 'in place'
@@ -248,10 +248,7 @@ class BamAlignmentReader(object):
         if not hasattr(self, '_is_bam'):
             try:
                 g = gzip.GzipFile(self.path)
-                if g.read(3) == 'BAM' or b'BAM':
-                    self._is_bam = True
-                else:
-                    self._is_bam = False
+                self._is_bam = g.read(3) == 'BAM' or b'BAM'
             except Exception:
                 self._is_bam = False
         return self._is_bam
