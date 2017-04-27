@@ -11,6 +11,7 @@ import six
 
 from .bam_io import BamAlignmentReader as Reader
 from .bam_io import BamAlignmentWriter as Writer
+from .bwa import Bwa
 from .cluster import Cluster
 from .cluster import non_evidence
 from .gff_io import write_cluster
@@ -27,6 +28,7 @@ class ClusterFinder(object):
                  output_fasta=None,
                  reference_fasta=None,
                  blastdb=None,
+                 bwa_index=None,
                  include_duplicates=False,
                  sample_name=None,
                  threads=1,
@@ -49,6 +51,7 @@ class ClusterFinder(object):
         self.output_fasta = output_fasta
         self.reference_fasta = reference_fasta
         self.blastdb = blastdb
+        self.bwa_index = bwa_index
         self.include_duplicates = include_duplicates
         self.min_mapq = min_mapq
         self.max_clustersupport = max_clustersupport
@@ -60,6 +63,7 @@ class ClusterFinder(object):
         self.clean_clusters()
         self.join_clusters()
         self.to_fasta()
+        self.align_bwa()
         self.collect_non_evidence()
         self.to_bam()
         self.to_gff()
@@ -166,6 +170,13 @@ class ClusterFinder(object):
                 for cluster in self.cluster:
                     for seq in cluster.to_fasta():
                         out.write(seq)
+
+    def align_bwa(self):
+        """Align cluster contigs or invidiual reads to a reference and write result into cluster."""
+        if self.output_fasta and self.reference_fasta:
+            bwa = Bwa(input_path=self.output_fasta, bwa_index=self.bwa_index, reference_fasta=self.reference_fasta, threads=self.threads)
+            for i, cluster in enumerate(self.cluster):
+                cluster.feature_args = bwa.desciption.get(i)
 
     def to_bam(self):
         """Write clusters of reads and include cluster number in CD tag."""

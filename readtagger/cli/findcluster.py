@@ -31,6 +31,9 @@ from readtagger.readtagger import __VERSION__
 @click.option('--blastdb',
               help='Blast cluster contigs against this blast database',
               default=None)
+@click.option('--bwa_index',
+              help='align cluster contigs against this bwa index',
+              default=None)
 @click.option('--threads', help='Threads to use for cap3 assembly step', default=1, type=click.IntRange(1, 100))
 @click.version_option(version=__VERSION__)
 def cli(**kwds):

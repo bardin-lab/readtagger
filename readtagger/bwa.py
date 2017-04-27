@@ -30,8 +30,7 @@ class Bwa(object):
         self.threads = threads
         self.bwa_run = self.run()
         self.clusters = self.reads_to_clusters()
-        self.best_candidates, self.left_candidates, self.right_candidates = self.describe_clusters()
-        pass
+        self.desciption = self.describe_clusters()
 
     def run(self):
         """Run bwa command."""
@@ -39,7 +38,7 @@ class Bwa(object):
             temp_dir = str(temp_dir)
             if not self.bwa_index:
                 self.bwa_index = make_bwa_index(self.reference_fasta, dir=temp_dir)
-            proc = subprocess.Popen(['bwa', 'mem', '-t', str(self.threads), self.bwa_index, self.input_path],
+            proc = subprocess.Popen(['bwa', 'mem', '-k14', '-A1', '-B1', '-O1', '-E1', '-L0', '-t', str(self.threads), self.bwa_index, self.input_path],
                                     stdout=subprocess.PIPE, env=os.environ.copy(), close_fds=True)
             f = pysam.AlignmentFile(proc.stdout)
             self.header = f.header['SQ']
@@ -51,19 +50,21 @@ class Bwa(object):
         """Map a readname back to a specific cluster contig or sequence."""
         clusters = {}
         for r in self.bwa_run:
-            qname = r.query_name
-            cluster_number = int(qname.split('cluster_')[1].split('_')[0])
-            if cluster_number not in clusters:
-                clusters[cluster_number] = {'left_sequences': {}, 'right_sequences': {}, 'left_contigs': {}, 'right_contigs': {}}
-            for cluster_item in clusters[cluster_number].keys():
-                if cluster_item in qname:
-                    number = int(qname.split('_%s_' % cluster_item)[1])
-                    clusters[cluster_number][cluster_item][number] = r
-                    break
+            if not r.is_unmapped:
+                qname = r.query_name
+                cluster_number = int(qname.split('cluster_')[1].split('_')[0])
+                if cluster_number not in clusters:
+                    clusters[cluster_number] = {'left_sequences': {}, 'right_sequences': {}, 'left_contigs': {}, 'right_contigs': {}}
+                for cluster_item in clusters[cluster_number].keys():
+                    if cluster_item in qname:
+                        number = qname.split('_%s_' % cluster_item)[1]
+                        clusters[cluster_number][cluster_item][number] = r
+                        break
         return clusters
 
     def describe_clusters(self):
         """Return a list of possible matches, sorted by the length of the region that is being covered."""
+        cluster_description = {}
         for cluster_number, cluster in self.clusters.items():
             left = self.split_reads_into_tid_clusters(cluster['left_contigs'] or cluster['left_sequences'])
             right = self.split_reads_into_tid_clusters(cluster['right_contigs'] or cluster['right_sequences'])
@@ -86,7 +87,11 @@ class Bwa(object):
                         end = max_left
                     full_length_fraction = (end - start) / float(length)
                     support = len(set(r.query_name for r in left[common_tid])) + len(set(r.query_name for r in right[common_tid]))
-                    best_candidates.append((self.header[common_tid]['SN'], start, end, full_length_fraction, support))
+                    best_candidates.append({'sbjct': self.header[common_tid]['SN'],
+                                            'sbjct_start': start,
+                                            'sbjct_end': end,
+                                            'fraction_full_length': full_length_fraction,
+                                            'contig_support': support})
             else:
                 for tid, reads in left.items():
                     length = self.header[tid]['LN']
@@ -94,19 +99,53 @@ class Bwa(object):
                     end = max([(r.pos + r.alen) for r in reads])
                     full_length_fraction = (end - start) / float(length)
                     support = len(set(r.query_name for r in reads))
-                    left_candidates.append((self.header[tid]['SN'], start, end, full_length_fraction, support))
+                    left_candidates.append({'sbjct': self.header[tid]['SN'],
+                                            'sbjct_start': start,
+                                            'sbjct_end': end,
+                                            'fraction_full_length': full_length_fraction,
+                                            'read_support': support})
                 for tid, reads in right.items():
                     length = self.header[tid]['LN']
                     start = min([r.pos for r in reads])
                     end = max([(r.pos + r.alen) for r in reads])
                     full_length_fraction = (end - start) / float(length)
                     support = len(set(r.query_name for r in reads))
-                    right_candidates.append((self.header[tid]['SN'], start, end, full_length_fraction, support))
+                    right_candidates.append({'sbjct': self.header[tid]['SN'],
+                                             'sbjct_start': start,
+                                             'sbjct_end': end,
+                                             'fraction_full_length': full_length_fraction,
+                                             'read_support': support})
             # Sort by distance between end and start. That's probably not the best idea ...
-            best_candidates = sorted(best_candidates, key=lambda x: x[2] - x[1])
-            left_candidates = sorted(left_candidates, key=lambda x: x[2] - x[1])
-            right_candidates = sorted(right_candidates, key=lambda x: x[2] - x[1])
-        return best_candidates, left_candidates, right_candidates
+            best_candidates = sorted(best_candidates, key=lambda x: x['sbjct_end'] - x['sbjct_start'])
+            left_candidates = sorted(left_candidates, key=lambda x: x['sbjct_end'] - x['sbjct_start'])
+            right_candidates = sorted(right_candidates, key=lambda x: x['sbjct_end'] - x['sbjct_start'])
+            cluster_description[cluster_number] = self.to_feature_args(best_candidates, left_candidates, right_candidates)
+        return cluster_description
+
+    @staticmethod
+    def to_feature_args(best_candidates, left_candidates, right_candidates):
+        """
+        Format object for output as GFF.
+
+        We output the reconstructed insert as well as the left and right sequences (if there are any).
+        """
+        feature_args = []
+        for reference in best_candidates:
+            reference['source'] = 'predicted_insertion'
+            type_qual = {'type': 'predicted_insertion',
+                         'qualifiers': reference}
+            feature_args.append(type_qual)
+        for reference in left_candidates:
+            reference['source'] = 'left_insertion'
+            type_qual = {'type': 'left_insertion',
+                         'qualifiers': reference}
+            feature_args.append(type_qual)
+        for reference in right_candidates:
+            reference['source'] = 'right_insertion'
+            type_qual = {'type': 'right_insertion',
+                         'qualifiers': reference}
+            feature_args.append(type_qual)
+        return feature_args
 
     def split_reads_into_tid_clusters(self, read_d):
         """Split reads in read_d into clusters based on the read tid."""

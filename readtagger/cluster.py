@@ -18,6 +18,7 @@ class Cluster(list):
         super(Cluster, self).__init__()
         self.nref = 0
         self.id = -1
+        self.feature_args = None
 
     @cached_property
     def min(self):
@@ -216,13 +217,13 @@ class Cluster(list):
         fasta_items = []
         if self.left_contigs:
             for i, contig in enumerate(self.left_contigs):
-                fasta_items.append(">cluster_%s_left_contig_%s\n%s\n" % (self.id, i, contig))
+                fasta_items.append(">cluster_%s_left_contigs_%s\n%s\n" % (self.id, i, contig))
         else:
             for key, seq in self.clustertag.left_sequences.items():
                 fasta_items.append(">cluster_%s_left_sequences_%s\n%s\n" % (self.id, key, seq))
         if self.right_contigs:
             for i, contig in enumerate(self.right_contigs):
-                fasta_items.append(">cluster_%s_right_contig_%s\n%s\n" % (self.id, i, contig))
+                fasta_items.append(">cluster_%s_right_contigs_%s\n%s\n" % (self.id, i, contig))
         else:
             for key, seq in self.clustertag.right_sequences.items():
                 fasta_items.append(">cluster_%s_left_sequences_%s\n%s\n" % (self.id, key, seq))
