@@ -72,7 +72,7 @@ def get_reads(fn, start, last_qname):
     # The first read returned (even after seeking!) is always the first read in the file.
     # Calling next once resolves that.
     if not f.tell() == start:
-        f.next()
+        next(f)
         f.seek(start)
     reads = []
     for r in f:
