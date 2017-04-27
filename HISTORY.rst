@@ -6,6 +6,15 @@ History
 .. to_doc
 
 ---------------------
+0.3.18 (2017-04-27)
+---------------------
+* Skip creating tempdirs in current working directory
+* Remove blast-specific files
+* Switch to using BWA for annotating detected insertions
+* Add more logging and default to not changing sort order unless specifically demanded
+* Do dovetailing on coordinate-sorted file
+
+---------------------
 0.3.18 (2017-04-25)
 ---------------------
 * Fix small outputs due to switching of `-t` and `-a` options
