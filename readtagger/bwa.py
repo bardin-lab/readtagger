@@ -114,10 +114,9 @@ class Bwa(object):
                                                      'fraction_full_length': full_length_fraction,
                                                      'read_support': support})
             # Sort by distance between end and start. That's probably not the best idea ...
-            best_candidates = sorted(best_candidates, key=lambda x: x['sbjct_end'] - x['sbjct_start'])
-            left_candidates = sorted(left_candidates, key=lambda x: x['sbjct_end'] - x['sbjct_start'])
-            right_candidates = sorted(right_candidates, key=lambda x: x['sbjct_end'] - x['sbjct_start'])
-            cluster_description[cluster_number] = self.to_feature_args(best_candidates, left_candidates, right_candidates)
+
+            candidates = [sorted(c, key=lambda x: x['sbjct_end'] - x['sbjct_start']) for c in (best_candidates, left_candidates, right_candidates)]
+            cluster_description[cluster_number] = self.to_feature_args(*candidates)
         return cluster_description
 
     @staticmethod

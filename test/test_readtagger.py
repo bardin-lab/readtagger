@@ -121,6 +121,14 @@ def test_main_rover(datadir, tmpdir, mocker):  # noqa: D103
     mocker.patch('sys.argv', argv)
     main()
     assert len([r for r in pysam.AlignmentFile(verified.strpath)]) == 1
+    # Not test with 2 cores
+    args = ARGS_TEMPLATE(annotate_with=[annotate_with], tag_file=tag_file, allow_dovetailing=True, keep_suboptimal_alternate_tags=False,
+                         discard_if_proper_pair=True, output_file=output.strpath, write_discarded=discarded.strpath, write_verified=verified.strpath,
+                         cores='2')
+    argv = namedtuple_to_argv(args, 'readtagger.py')
+    mocker.patch('sys.argv', argv)
+    main()
+    assert len([r for r in pysam.AlignmentFile(verified.strpath)]) == 1
 
 
 def get_samtag_processor(datadir, tag_mate):  # noqa: D103

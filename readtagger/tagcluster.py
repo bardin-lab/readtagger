@@ -31,8 +31,6 @@ class TagCluster(object):
             if not hasattr(self, '_left_seq_cap3'):
                 self._left_seq_cap3 = Cap3Assembly(self.left_sequences)
             return self._left_seq_cap3
-        else:
-            return None
 
     @cached_property
     def right_insert(self):
@@ -41,20 +39,13 @@ class TagCluster(object):
             if not hasattr(self, '_right_seq_cap3'):
                 self._right_seq_cap3 = Cap3Assembly(self.right_sequences)
             return self._right_seq_cap3
-        else:
-            return None
 
     @cached_property
     def joint_insert(self):
         """Return joint insert sequence."""
         if self.right_sequences and self.left_sequences:
             return Cap3Assembly.join_assemblies([self.left_insert, self.right_insert])
-        elif self.right_sequences:
-            return self.right_insert
-        elif self.left_sequences:
-            return self.left_insert
-        else:
-            return None
+        return self.right_insert or self.left_insert
 
     def find_breakpoint(self):
         """

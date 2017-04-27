@@ -3,6 +3,7 @@ from cached_property import cached_property
 from .tags import Tag
 
 MAX_TSD_SIZE = 50
+HARD_CLIP = 5
 
 
 class TargetSiteDuplication(object):
@@ -160,18 +161,12 @@ class TargetSiteDuplication(object):
     @staticmethod
     def _hard_clip_left(read):
         cigar = Tag.from_read(read).cigar
-        if cigar[0][0] == 5:
-            return True
-        else:
-            return False
+        return cigar[0][0] == HARD_CLIP
 
     @staticmethod
     def _hard_clip_right(read):
         cigar = Tag.from_read(read).cigar
-        if cigar[-1][0] == 5:
-            return True
-        else:
-            return False
+        return cigar[-1][0] == HARD_CLIP
 
     @cached_property
     def sorted_split_start_positions(self):

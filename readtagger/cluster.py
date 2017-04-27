@@ -243,19 +243,19 @@ def non_evidence(data):
     first_chunk = chunk[0]
     last_chunk = chunk[-1]
     start = first_chunk[1]
-    min = start - 500
-    if min <= 0:
-        min = 1
+    min_start = start - 500
+    if min_start <= 0:
+        min_start = 1
     end = last_chunk[2]
-    max = end + 500
+    max_end = end + 500
     try:
         f = pysam.AlignmentFile(input_path)
         try:
-            reads = f.fetch(chromosome, min, max)
+            reads = f.fetch(chromosome, min_start, max_end)
         except Exception:
             pysam.index(input_path)
             f = pysam.AlignmentFile(input_path)
-            reads = f.fetch(chromosome, min, max)
+            reads = f.fetch(chromosome, min_start, max_end)
         for r in reads:
             if not r.is_duplicate and r.is_proper_pair and r.mapq > 0:
                 add_to_clusters(chunk, r, result)
