@@ -1,7 +1,7 @@
-<tool id="allow_dovetailing" name="Allow dovetailing" version="0.3.18">
+<tool id="allow_dovetailing" name="Allow dovetailing" version="0.3.19">
     <description>modifies proper_pair flag in bam files</description>
     <requirements>
-        <requirement type="package" version="0.3.18">readtagger</requirement>
+        <requirement type="package" version="0.3.19">readtagger</requirement>
     </requirements>
     <command detect_errors="aggressive"><![CDATA[
         allow_dovetailing -i '$input' -o '$output'
