@@ -1,4 +1,5 @@
 import gzip
+import logging
 import os
 import subprocess
 import tempfile
@@ -8,6 +9,11 @@ import six
 if six.PY2:
     import shutilwhich  # noqa: F401
 import shutil  # noqa: E402
+
+
+__VERSION__ = '0.3.18'
+logger = logging.getLogger(__name__)
+logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s - %(message)s', level=logging.DEBUG)
 
 
 def is_file_coordinate_sorted(path):
@@ -26,7 +32,9 @@ def is_file_coordinate_sorted(path):
                     current_tid = r.tid
                     continue
                 else:
+                    logger.info("%s is not sorted by coordinate", path)
                     return False
+    logger.info("%s is sorted by coordinate", path)
     return True
 
 
@@ -127,6 +135,7 @@ def sort_bam(inpath, output, sort_order, threads):
     if sort_order == 'queryname':
         args.append('-n')
     args.extend(['-o', temp_out, inpath])
+    logger.info("Sorting bam file with command '%s'", " ".join(args))
     subprocess.call(args, env=os.environ.copy())
     if temp_out != output:
         shutil.move(temp_out, output)
@@ -206,7 +215,7 @@ class BamAlignmentWriter(object):
 class BamAlignmentReader(object):
     """Wraps pysam.AlignmentFile with sambamba for reading if input file is a bam file."""
 
-    def __init__(self, path, external_bin='choose_best', sort_order='coordinate', threads=4):
+    def __init__(self, path, external_bin='choose_best', sort_order=None, threads=4):
         """
         Read Bam files.
 
@@ -256,12 +265,13 @@ class BamAlignmentReader(object):
 
     def __enter__(self):
         """Provide context handler entry."""
-        if is_file_coordinate_sorted(self.path):
-            sort_order = 'coordinate'
-        else:
-            sort_order = 'queryname'
-        if sort_order != self.sort_order:
-            self.path = sort_bam(inpath=self.path, output=self.path, sort_order=self.sort_order, threads=self.threads)
+        if self.sort_order:
+            if is_file_coordinate_sorted(self.path):
+                sort_order = 'coordinate'
+            else:
+                sort_order = 'queryname'
+            if sort_order != self.sort_order:
+                self.path = sort_bam(inpath=self.path, output=self.path, sort_order=self.sort_order, threads=self.threads)
         if self.is_bam and self.args:
             self.proc = subprocess.Popen(self.args, stdout=subprocess.PIPE, env=os.environ.copy(), close_fds=True)
             self.af = pysam.AlignmentFile(self.proc.stdout)
