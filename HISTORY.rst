@@ -5,8 +5,16 @@ History
 
 .. to_doc
 
+
 ---------------------
-0.3.18 (2017-04-27)
+0.3.20 (2017-04-27)
+---------------------
+* Guess the best TE match and write it into GFF Parent
+* Fix case where input files are already sorted
+* Remove blast from requirements
+
+---------------------
+0.3.19 (2017-04-27)
 ---------------------
 * Skip creating tempdirs in current working directory
 * Remove blast-specific files
