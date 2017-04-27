@@ -66,19 +66,20 @@ class Bwa(object):
         """Return a list of possible matches, sorted by the length of the region that is being covered."""
         cluster_description = {}
         for cluster_number, cluster in self.clusters.items():
-            left = self.split_reads_into_tid_clusters(cluster['left_contigs'] or cluster['left_sequences'])
-            right = self.split_reads_into_tid_clusters(cluster['right_contigs'] or cluster['right_sequences'])
-            common_tids = set(left.keys()) & set(right.keys())
+            all_reads = {}
+            all_reads['left'] = self.split_reads_into_tid_clusters(cluster['left_contigs'] or cluster['left_sequences'])
+            all_reads['right'] = self.split_reads_into_tid_clusters(cluster['right_contigs'] or cluster['right_sequences'])
+            common_tids = set(all_reads['left'].keys()) & set(all_reads['right'].keys())
             best_candidates = []
             left_candidates = []
             right_candidates = []
             if common_tids:
                 for common_tid in common_tids:
                     length = self.header[common_tid]['LN']
-                    min_left = min([r.pos for r in left[common_tid]])
-                    min_right = min([r.pos for r in right[common_tid]])
-                    max_left = max([(r.pos + r.alen) for r in left[common_tid]])
-                    max_right = max([(r.pos + r.alen) for r in right[common_tid]])
+                    min_left = min([r.pos for r in all_reads['left'][common_tid]])
+                    min_right = min([r.pos for r in all_reads['right'][common_tid]])
+                    max_left = max([(r.pos + r.alen) for r in all_reads['left'][common_tid]])
+                    max_right = max([(r.pos + r.alen) for r in all_reads['right'][common_tid]])
                     if max_right - min_left >= max_left - min_right:
                         start = min_left
                         end = max_right
@@ -86,35 +87,32 @@ class Bwa(object):
                         start = min_right
                         end = max_left
                     full_length_fraction = (end - start) / float(length)
-                    support = len(set(r.query_name for r in left[common_tid])) + len(set(r.query_name for r in right[common_tid]))
+                    support = len(set(r.query_name for r in all_reads['left'][common_tid])) + len(set(r.query_name for r in all_reads['right'][common_tid]))
                     best_candidates.append({'sbjct': self.header[common_tid]['SN'],
                                             'sbjct_start': start,
                                             'sbjct_end': end,
                                             'fraction_full_length': full_length_fraction,
                                             'contig_support': support})
             else:
-                for tid, reads in left.items():
-                    length = self.header[tid]['LN']
-                    start = min([r.pos for r in reads])
-                    end = max([(r.pos + r.alen) for r in reads])
-                    full_length_fraction = (end - start) / float(length)
-                    support = len(set(r.query_name for r in reads))
-                    left_candidates.append({'sbjct': self.header[tid]['SN'],
-                                            'sbjct_start': start,
-                                            'sbjct_end': end,
-                                            'fraction_full_length': full_length_fraction,
-                                            'read_support': support})
-                for tid, reads in right.items():
-                    length = self.header[tid]['LN']
-                    start = min([r.pos for r in reads])
-                    end = max([(r.pos + r.alen) for r in reads])
-                    full_length_fraction = (end - start) / float(length)
-                    support = len(set(r.query_name for r in reads))
-                    right_candidates.append({'sbjct': self.header[tid]['SN'],
-                                             'sbjct_start': start,
-                                             'sbjct_end': end,
-                                             'fraction_full_length': full_length_fraction,
-                                             'read_support': support})
+                for orientation, tid_reads in all_reads.items():
+                    for tid, reads in tid_reads.items():
+                        length = self.header[tid]['LN']
+                        start = min([r.pos for r in reads])
+                        end = max([(r.pos + r.alen) for r in reads])
+                        full_length_fraction = (end - start) / float(length)
+                        support = len(set(r.query_name for r in reads))
+                        if orientation == 'left':
+                            left_candidates.append({'sbjct': self.header[tid]['SN'],
+                                                    'sbjct_start': start,
+                                                    'sbjct_end': end,
+                                                    'fraction_full_length': full_length_fraction,
+                                                    'read_support': support})
+                        else:
+                            right_candidates.append({'sbjct': self.header[tid]['SN'],
+                                                     'sbjct_start': start,
+                                                     'sbjct_end': end,
+                                                     'fraction_full_length': full_length_fraction,
+                                                     'read_support': support})
             # Sort by distance between end and start. That's probably not the best idea ...
             best_candidates = sorted(best_candidates, key=lambda x: x['sbjct_end'] - x['sbjct_start'])
             left_candidates = sorted(left_candidates, key=lambda x: x['sbjct_end'] - x['sbjct_start'])
@@ -130,21 +128,13 @@ class Bwa(object):
         We output the reconstructed insert as well as the left and right sequences (if there are any).
         """
         feature_args = []
-        for reference in best_candidates:
-            reference['source'] = 'predicted_insertion'
-            type_qual = {'type': 'predicted_insertion',
-                         'qualifiers': reference}
-            feature_args.append(type_qual)
-        for reference in left_candidates:
-            reference['source'] = 'left_insertion'
-            type_qual = {'type': 'left_insertion',
-                         'qualifiers': reference}
-            feature_args.append(type_qual)
-        for reference in right_candidates:
-            reference['source'] = 'right_insertion'
-            type_qual = {'type': 'right_insertion',
-                         'qualifiers': reference}
-            feature_args.append(type_qual)
+        type_candidates = {'predicted_insertion': best_candidates, 'left_insertion': left_candidates, 'right_insertion': right_candidates}
+        for type, candidates in type_candidates.items():
+            for reference in candidates:
+                reference['source'] = type
+                type_qual = {'type': type,
+                             'qualifiers': reference}
+                feature_args.append(type_qual)
         return feature_args
 
     def split_reads_into_tid_clusters(self, read_d):

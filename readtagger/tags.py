@@ -110,6 +110,8 @@ class Tag(object):
         >>> t = Tag.from_read(AlignedSegment(cigar='20M30S'))
         >>> isinstance(t, Tag)
         True
+        >>> t.reference_name == None
+        True
         """
         return Tag(tid=r.tid,
                    reference_start=r.reference_start,
@@ -170,6 +172,10 @@ class Tag(object):
     def to_string(self, header=None):
         """
         Serialize to tag string.
+
+        >>> t = Tag.from_tag_str('R:FBti0019061_rover_Gypsy,POS:7435,QSTART:0,QEND:34,CIGAR:34M91S,S:S,MQ:60')
+        >>> t.to_string() == 'R:FBti0019061_rover_Gypsy,POS:7435,QSTART:0,QEND:34,CIGAR:34M91S,S:S,MQ:60'
+        True
 
         :param header:
         :return:

@@ -23,7 +23,7 @@ def is_file_coordinate_sorted(path, reads_to_check=10000):
         current_start = 0
         current_tid = 0
         for r in f:
-            if i > 10000:
+            if i > reads_to_check:
                 return True
             if not r.is_unmapped:
                 i += 1

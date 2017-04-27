@@ -66,12 +66,12 @@ def test_bamwriter_empty(datadir, tmpdir):  # noqa: D103
 
 def test_bamwriter_switch_output_sorting(datadir, tmpdir):  # noqa: D103
     outfile = tmpdir.join('out.bam')
-    with readtagger.bam_io.BamAlignmentReader(datadir[EXTENDED], external_bin='samtools', sort_order='coordinate') as reader, \
-            readtagger.bam_io.BamAlignmentWriter(outfile.strpath, template=reader, external_bin='samtools', sort_order='queryname') as writer:
+    with readtagger.bam_io.BamAlignmentReader(datadir[EXTENDED], external_bin='samtools', sort_order='coordinate', threads=1) as reader, \
+            readtagger.bam_io.BamAlignmentWriter(outfile.strpath, template=reader, external_bin='samtools', sort_order='queryname', threads=1) as writer:
         for r in reader:
             writer.write(r)
-    with readtagger.bam_io.BamAlignmentReader(datadir[EXTENDED], external_bin='samtools', sort_order='queryname') as reader, \
-            readtagger.bam_io.BamAlignmentWriter(outfile.strpath, template=reader, external_bin='samtools', sort_order='coordinate') as writer:
+    with readtagger.bam_io.BamAlignmentReader(datadir[EXTENDED], external_bin='samtools', sort_order='queryname', threads=5) as reader, \
+            readtagger.bam_io.BamAlignmentWriter(outfile.strpath, template=reader, external_bin='samtools', sort_order='coordinate', threads=5) as writer:
         for r in reader:
             writer.write(r)
 
