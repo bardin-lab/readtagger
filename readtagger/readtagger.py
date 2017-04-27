@@ -77,6 +77,10 @@ class TagManager(object):
         if is_file_coordinate_sorted(self.source_path):
             _, path = tempfile.mkstemp()
             self.source_path_sorted = sort_bam(self.source_path, output=path, sort_order='queryname', threads=self.cores)
+        if not self.annotate_path_sorted:
+            self.annotate_path_sorted = self.annotate_path
+        if not self.source_path_sorted:
+            self.source_path_sorted = self.source_path
 
     def process(self):
         """Create worker objects and stream pairs to SamAnnotator process method."""
