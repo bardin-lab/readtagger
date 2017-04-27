@@ -29,7 +29,6 @@ requirements:
     - biopython
     - scipy
     - bcbiogff
-    - blast
     - bwa
     - click
     - futures
