@@ -176,7 +176,10 @@ class ClusterFinder(object):
         if self.output_fasta and self.reference_fasta:
             bwa = Bwa(input_path=self.output_fasta, bwa_index=self.bwa_index, reference_fasta=self.reference_fasta, threads=self.threads)
             for i, cluster in enumerate(self.cluster):
-                cluster.feature_args = bwa.desciption.get(i)
+                description = bwa.desciption.get(i)
+                if description:
+                    cluster.reference_name = description.pop(-1)
+                cluster.feature_args = description
 
     def to_bam(self):
         """Write clusters of reads and include cluster number in CD tag."""

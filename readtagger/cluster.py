@@ -19,6 +19,7 @@ class Cluster(list):
         self.nref = 0
         self.id = -1
         self.feature_args = None
+        self.reference_name = None
 
     @cached_property
     def min(self):

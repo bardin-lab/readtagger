@@ -114,9 +114,28 @@ class Bwa(object):
                                                      'fraction_full_length': full_length_fraction,
                                                      'read_support': support})
             # Sort by distance between end and start. That's probably not the best idea ...
-
             candidates = [sorted(c, key=lambda x: x['sbjct_end'] - x['sbjct_start']) for c in (best_candidates, left_candidates, right_candidates)]
+            best_candidates, left_candidates, right_candidates = candidates
+            reference_name = None
+            if best_candidates:
+                most_likely_insertion = best_candidates[0]
+                reference_name = most_likely_insertion['sbjct']
+                reference_name = "_".join(reference_name.split('_')[1:-1])
+            else:
+                if left_candidates and right_candidates:
+                    left_reference_names = ["_".join(c['sbjct'].split('_')[1:-1]) for c in left_candidates]
+                    right_reference_names = ["_".join(c['sbjct'].split('_')[1:-1]) for c in right_candidates]
+                    overlapping_reference_names = set(left_reference_names) & set(right_reference_names)
+                    if overlapping_reference_names:
+                        reference_name = overlapping_reference_names[0]
+                if not reference_name:
+                    if left_candidates:
+                        reference_name = "_".join(left_candidates[0]['sbjct'].split('_')[1:-1])
+                    elif right_candidates:
+                        reference_name = "_".join(right_candidates[0]['sbjct'].split('_')[1:-1])
             cluster_description[cluster_number] = self.to_feature_args(*candidates)
+            cluster_description[cluster_number].append(reference_name)
+
         return cluster_description
 
     @staticmethod

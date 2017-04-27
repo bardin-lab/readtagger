@@ -36,7 +36,9 @@ def get_feature(cluster, sample, i):
                   "right_insert": [v for pair in enumerate(cluster.right_contigs) for v in pair],
                   "ID": "%s_%d" % (sample, i),
                   "valid_TSD": cluster.valid_tsd}
-    feature = SeqFeature(FeatureLocation(cluster.start, cluster.end), type="TE", strand=1, qualifiers=qualifiers)
+    if cluster.reference_name:
+        qualifiers['insert_reference'] = cluster.reference_name
+    feature = SeqFeature(FeatureLocation(cluster.start, cluster.end), type=cluster.reference_name or "TE", strand=1, qualifiers=qualifiers)
     if cluster.feature_args:
         seqfeature_args = cluster.feature_args
         base_args = {'location': FeatureLocation(cluster.start, cluster.end), 'strand': 1}
