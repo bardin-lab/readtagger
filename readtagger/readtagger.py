@@ -1,6 +1,7 @@
 import argparse
 import logging
 import multiprocessing as mp
+import os
 import tempfile
 
 import pysam
@@ -62,6 +63,7 @@ class TagManager(object):
         self.tag_prefix_self = tag_prefix_self
         self.tag_prefix_mate = tag_prefix_mate
         self.cores = cores
+        self.tempdir = tempfile.mkdtemp()
         self.setup_input_files()
         self.process()
 
@@ -84,6 +86,7 @@ class TagManager(object):
         kwds['annotate_path'] = self.annotate_path_sorted
         kwds['discarded_path'] = self.discarded_path
         kwds['verified_path'] = self.verified_path
+        kwds['tempdir'] = self.tempdir
         kwds['tag_mate'] = self.tag_mate
         kwds['allow_dovetailing'] = self.allow_dovetailing
         kwds['max_proper_size'] = self.max_proper_size
@@ -136,14 +139,15 @@ def multiprocess_worker(kwds):
     start_annotate = kwds['start_annotate']
     qname = kwds['qname']
     source_header = kwds['source_header']
+    tempdir = kwds['tempdir']
     source_reads = get_reads(kwds['source_path'], start=start_source, last_qname=qname)
     annotate_reads = get_reads(kwds['annotate_path'], start=start_annotate, last_qname=qname)
     annotate_header = pysam.AlignmentFile(kwds['annotate_path']).header
-    discarded_out = "%s_discarded.bam" % qname if kwds['discarded_path'] else None
+    discarded_out = os.path.join(tempdir, "%s_discarded.bam" % qname) if kwds['discarded_path'] else None
     discarded_writer = pysam.AlignmentFile(discarded_out, header=annotate_header, mode='wbu') if discarded_out else None
-    verified_out = "%s_verified.bam" % qname if kwds['verified_path'] else None
+    verified_out = os.path.join(tempdir, "%s_verified.bam" % qname) if kwds['verified_path'] else None
     verified_writer = pysam.AlignmentFile(verified_out, header=annotate_header, mode='wbu') if verified_out else None
-    output_path = "%s_output.bam" % qname
+    output_path = os.path.join(tempdir, "%s_output.bam" % qname)
     output_writer = pysam.AlignmentFile(output_path, header=annotate_header, mode='wbu')
     samtag_p = SamTagProcessor(source_bam=source_reads, header=source_header, tag_mate=kwds['tag_mate'])
     sam_annotator = SamAnnotator(annotate_bam=annotate_reads,

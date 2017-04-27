@@ -25,7 +25,7 @@ class Cap3Assembly(object):
         1
         """
         self.sequences = sequences
-        self.input_dir = tempfile.mkdtemp(dir='.')
+        self.input_dir = tempfile.mkdtemp()
         self.input_path = os.path.join(self.input_dir, 'multialign.fa')
         self.write_sequences()
         self.assemble()

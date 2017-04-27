@@ -55,7 +55,7 @@ class ClusterFinder(object):
         self.include_duplicates = include_duplicates
         self.min_mapq = min_mapq
         self.max_clustersupport = max_clustersupport
-        self._tempdir = tempfile.mkdtemp(dir='.')
+        self._tempdir = tempfile.mkdtemp()
         self.remove_supplementary_without_primary = remove_supplementary_without_primary
         self.threads = threads
         self.tp = ThreadPoolExecutor(threads)  # max threads
