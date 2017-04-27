@@ -10,12 +10,14 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s - %(message)s', level=logging.DEBUG)
 
 
-def get_max_proper_pair_size(alignment_file):
+def get_max_proper_pair_size(alignment_file, reads_to_check=1000):
     """
     Iterate over the first 1000 properly paired records in alignment_file and get the maximum valid isize for a proper pair.
 
     :param alignment_file: pysam.AlignmentFile
     :type alignment_file: pysam.AlignmentFile
+    :param reads_to_check: number of reads to check
+    :type int
     :rtype int
     """
     isize = []
@@ -23,7 +25,7 @@ def get_max_proper_pair_size(alignment_file):
     for r in alignment_file:
         if r.is_proper_pair and not r.is_secondary and not r.is_supplementary:
             isize.append(abs(r.isize))
-        if len(isize) == 1000:
+        if len(isize) == reads_to_check:
             alignment_file.reset()
             logger.info(msg, max(isize))
             return max(isize)
