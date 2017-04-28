@@ -127,7 +127,7 @@ class Bwa(object):
                     right_reference_names = ["_".join(c['sbjct'].split('_')[1:-1]) for c in right_candidates]
                     overlapping_reference_names = set(left_reference_names) & set(right_reference_names)
                     if overlapping_reference_names:
-                        reference_name = overlapping_reference_names[0]
+                        reference_name = overlapping_reference_names.pop()  # A random overlapping name ...
                 if not reference_name:
                     if left_candidates:
                         reference_name = "_".join(left_candidates[0]['sbjct'].split('_')[1:-1])
