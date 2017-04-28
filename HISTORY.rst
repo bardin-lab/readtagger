@@ -7,6 +7,11 @@ History
 
 
 ---------------------
+0.3.21 (2017-04-27)
+---------------------
+* Fix crash when determining reference name
+
+---------------------
 0.3.20 (2017-04-27)
 ---------------------
 * Guess the best TE match and write it into GFF Parent
