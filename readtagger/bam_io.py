@@ -1,3 +1,4 @@
+import copy
 import gzip
 import logging
 import os
@@ -16,8 +17,8 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s - %(message)s', level=logging.DEBUG)
 
 
-def is_file_coordinate_sorted(path, reads_to_check=10000):
-    """Determine if first 10000 reads are coordinate sorted."""
+def is_file_coordinate_sorted(path, reads_to_check=1000):
+    """Determine if first 1000 reads are coordinate sorted."""
     with pysam.AlignmentFile(path) as f:
         i = 0
         current_start = 0
@@ -93,6 +94,7 @@ def start_positions_for_last_qnames(fn, last_qnames):
     """Return start positions that returns the first read after the current last qname."""
     f = pysam.AlignmentFile(fn)
     start = f.tell()
+    last_qnames = copy.deepcopy(last_qnames)
     current_last_qname = last_qnames.pop(0)
     seek_positions = [start]
     for r in f:

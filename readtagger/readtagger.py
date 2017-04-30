@@ -225,7 +225,7 @@ class SamTagProcessor(object):
         return not r.is_unmapped and not r.is_secondary and not r.is_supplementary and not r.is_qcfail
 
     def process(self):
-        """Generator that will return qname and tag_d."""
+        """Generator that will yield qname and tag_d."""
         reads = []
         qname = ''
         for read in self.source_alignment:
