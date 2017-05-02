@@ -11,7 +11,6 @@ if six.PY2:
     import shutilwhich  # noqa: F401
 import shutil  # noqa: E402
 
-
 __VERSION__ = '0.3.18'
 logger = logging.getLogger(__name__)
 logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s - %(message)s', level=logging.DEBUG)
@@ -144,6 +143,52 @@ def sort_bam(inpath, output, sort_order, threads=1):
     return output
 
 
+def index_bam(inpath):
+    """Index BAM file at input."""
+    if not os.path.exists("%s.bai" % inpath):
+        pysam.index(inpath)
+
+
+def split_locations_between_clusters(bamfile, self_tag='AD', other_tag='BD', distance=1000000):
+    """Split a bam file into multiple chunks, where chunks have no tagged reads close to the split."""
+    with pysam.AlignmentFile(bamfile) as f:
+        name_length = [(chrom.values()[1], chrom.values()[0]) for chrom in f.header['SQ']]
+        chunks = []
+        for (name, length) in name_length:
+            chunk = []
+            split_pos = [i for i in range(0, length, distance)]
+            split_pos.append(length)
+            start_end_pos = [list(z) for z in zip(split_pos[:-1], split_pos[1:])]
+            for i, (start, end) in enumerate(start_end_pos):
+                if not end == length:  # i.e this is not the last chunk
+                    end = find_end(f, chrom=name, end=end, self_tag=self_tag, other_tag=other_tag)
+                    start_end_pos[i + 1][0] = end  # Update the next start position with the new end
+                chunk.append("%s:%s-%s" % (name, start, end))
+            chunks.extend(chunk)
+    return chunks
+
+
+def find_end(f, chrom, end, self_tag, other_tag, padding=5000):
+    """Find a position where the distance between tags is high and we can split safely."""
+    min_end = end - padding
+    max_end = end + padding
+    current_end = min_end
+    tagged_reads = [r for r in f.fetch(reference=chrom, start=min_end, end=max_end) if not r.is_unmapped and (r.has_tag(self_tag) or r.has_tag(other_tag))]
+    if not tagged_reads:
+        return end
+    distance_to_tag = tagged_reads[0].reference_start - min_end
+    pos = int((min_end + tagged_reads[0].reference_start) / 2.0)
+    for r in tagged_reads:
+        current_distance = r.reference_start - current_end
+        if current_distance > distance_to_tag:
+            distance_to_tag = current_distance
+            pos = int((r.reference_start + current_end) / 2.0)
+        current_end = r.reference_start
+    if max_end - current_end > distance_to_tag:
+        pos = int((max_end + current_end) / 2.0)
+    return pos
+
+
 class BamAlignmentWriter(object):
     """Wrap pysam.AlignmentFile with sambamba for multithreaded compressed writing."""
 
@@ -217,7 +262,7 @@ class BamAlignmentWriter(object):
 class BamAlignmentReader(object):
     """Wraps pysam.AlignmentFile with sambamba for reading if input file is a bam file."""
 
-    def __init__(self, path, external_bin='choose_best', sort_order=None, threads=4):
+    def __init__(self, path, external_bin='choose_best', sort_order=None, threads=4, region=None):
         """
         Read Bam files.
 
@@ -231,6 +276,20 @@ class BamAlignmentReader(object):
         self.external_bin = external_bin
         self.sort_order = sort_order
         self.threads = threads
+        self.region = region
+        self.setup()
+
+    def setup(self):
+        """Index and sort alignment file if necessary."""
+        if self.sort_order:
+            if is_file_coordinate_sorted(self.path):
+                sort_order = 'coordinate'
+            else:
+                sort_order = 'queryname'
+            if sort_order != self.sort_order:
+                self.path = sort_bam(inpath=self.path, output=self.path, sort_order=self.sort_order, threads=self.threads)
+        if self.region:
+            index_bam(self.path)
 
     @property
     def args(self):
@@ -241,6 +300,8 @@ class BamAlignmentReader(object):
             else:
                 threads = self.threads
             samtools_args = ['samtools', 'view', '-@', "%s" % threads, '-h', self.path]
+            if self.region:
+                samtools_args.append(self.region)
             return samtools_args
         return None
 
@@ -264,13 +325,6 @@ class BamAlignmentReader(object):
 
     def __enter__(self):
         """Provide context handler entry."""
-        if self.sort_order:
-            if is_file_coordinate_sorted(self.path):
-                sort_order = 'coordinate'
-            else:
-                sort_order = 'queryname'
-            if sort_order != self.sort_order:
-                self.path = sort_bam(inpath=self.path, output=self.path, sort_order=self.sort_order, threads=self.threads)
         if self.is_bam and self.args:
             self.proc = subprocess.Popen(self.args, stdout=subprocess.PIPE, env=os.environ.copy(), close_fds=True)
             self.af = pysam.AlignmentFile(self.proc.stdout)

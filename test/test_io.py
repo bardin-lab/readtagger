@@ -24,6 +24,11 @@ def test_bamreader_bam(datadir):  # noqa: D103
         assert len([r for r in reader]) == 2
 
 
+def test_bamreader_region(datadir):  # noqa: D103
+    with readtagger.bam_io.BamAlignmentReader(datadir[TEST_BAM], 'samtools', region='2L:2877890-2878090') as reader:
+        assert len([r for r in reader]) == 2
+
+
 def test_bamreader_sam_threads(datadir):  # noqa: D103
     with readtagger.bam_io.BamAlignmentReader(datadir[TEST_SAM], external_bin='samtools', threads=1) as reader:
         assert len([r for r in reader]) == 2
