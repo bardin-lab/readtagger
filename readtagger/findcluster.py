@@ -5,17 +5,91 @@ import tempfile
 from cached_property import cached_property
 from concurrent.futures import (
     wait,
-    ThreadPoolExecutor
+    ThreadPoolExecutor,
+    ProcessPoolExecutor
 )
 import six
 
-from .bam_io import BamAlignmentReader as Reader
-from .bam_io import BamAlignmentWriter as Writer
-from .bwa import Bwa
+from .bam_io import (
+    BamAlignmentReader as Reader,
+    BamAlignmentWriter as Writer,
+    merge_bam,
+    split_locations_between_clusters
+)
+from .bwa import (
+    Bwa,
+    make_bwa_index
+)
 from .cluster import Cluster
 from .cluster import non_evidence
 from .gff_io import write_cluster
 from .verify import discard_supplementary
+
+
+class ClusterManager(object):
+    """Coordinate multiple ClusterFinder objects when running in multiprocessing mode."""
+
+    def __init__(self, **kwds):
+        """Decide if passing kwds on to ClusterFinder or if splitting input file is required."""
+        if kwds['threads'] > 1:
+            self.threads = kwds['threads']
+            kwds['threads'] = 2
+            self.kwds = kwds
+            self.process_list = []
+            self.process()
+        else:
+            # Delegate to clusterfinder
+            ClusterFinder(**kwds)
+
+    def process(self):
+        """Process input bam in chunks."""
+        with ProcessPoolExecutor(max_workers=self.threads) as executor:
+            futures = []
+            tempdir = tempfile.mkdtemp()
+            print(tempdir)
+            chunks = split_locations_between_clusters(self.kwds['input_path'])
+            if self.kwds['reference_fasta'] and not self.kwds['bwa_index']:
+                self.kwds['bwa_index'] = make_bwa_index(self.kwds['reference_fasta'], dir=tempdir)
+            for i, region in enumerate(chunks):
+                kwds = self.kwds.copy()
+                kwds['region'] = region
+                kwds['output_bam'] = os.path.join(tempdir, "%d.bam" % i)
+                kwds['output_gff'] = os.path.join(tempdir, "%d.gff" % i)
+                kwds['output_fasta'] = os.path.join(tempdir, "%d.fasta" % i)
+                self.process_list.append(kwds)
+                futures.append(executor.submit(wrapper, kwds))
+        self.merge_outputs()
+        shutil.rmtree(tempdir, ignore_errors=True)
+
+    def merge_outputs(self):
+        """Merge outputs produced by working over smaller chunks with ClusterManager."""
+        output_bam = self.kwds.get('output_bam')
+        if output_bam:
+            bam_files = [kwd['output_bam'] for kwd in self.process_list if kwd['output_bam']]
+            merge_bam(bam_collection=bam_files, template_bam=bam_files[0], output_path=self.kwds['output_bam'])
+        output_fasta = self.kwds.get('output_fasta')
+        if output_fasta:
+            fasta_files = [kwd['output_fasta'] for kwd in self.process_list if kwd['output_fasta']]
+            with open(output_fasta, 'wb') as fasta_writer:
+                for fasta in fasta_files:
+                    shutil.copyfileobj(open(fasta, 'rb'), fasta_writer)
+        output_gff = self.kwds.get('output_gff')
+        if output_gff:
+            gff_files = [kwd['output_gff'] for kwd in self.process_list if kwd['output_gff']]
+            wrote_header = False
+            with open(output_gff, 'w') as gff_writer:
+                for gff in gff_files:
+                    with open(gff) as gff_file:
+                        for line in gff_file:
+                            if line.startswith('#') and wrote_header:
+                                continue
+                            gff_writer.write(line)
+                    wrote_header = True
+
+
+def wrapper(kwds):
+    """Launch ClusterFinder instances."""
+    ClusterFinder(**kwds)
 
 
 class ClusterFinder(object):
@@ -34,7 +108,8 @@ class ClusterFinder(object):
                  threads=1,
                  min_mapq=1,
                  max_clustersupport=200,
-                 remove_supplementary_without_primary=False, ):
+                 remove_supplementary_without_primary=False,
+                 region=None):
         """
         Find readclusters in input_path file.
 
@@ -44,6 +119,7 @@ class ClusterFinder(object):
         The join_cluster method will then join clusters that overlap through their clipped sequences and cluster that can be assembled based on their proximity
         and the fact that they support the same same insertion (and can hence contribute to the same contig if assembled).
         """
+        self.region = region
         self.input_path = input_path
         self._sample_name = sample_name
         self.output_bam = output_bam
@@ -91,7 +167,7 @@ class ClusterFinder(object):
         if self.remove_supplementary_without_primary:
             self._remove_supplementary_without_primary()
         clusters = []
-        with Reader(self.input_path) as reader:
+        with Reader(self.input_path, region=self.region) as reader:
             self.header = reader.header
             for r in reader:
                 if not self.include_duplicates:

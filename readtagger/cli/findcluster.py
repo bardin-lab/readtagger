@@ -7,6 +7,9 @@ from readtagger.readtagger import __VERSION__
 @click.option('--input_path',
               help='Find cluster in this BAM file.',
               type=click.Path(exists=True))
+@click.option('--region',
+              help='Find clusters in this Region (Format is chrX:2000-1000).',
+              default=None,)
 @click.option('--output_bam',
               help='Write out BAM file with cluster information to this path. '
                    'Reads will have an additional "CD" tag to indicate the cluster number',
@@ -38,4 +41,4 @@ from readtagger.readtagger import __VERSION__
 @click.version_option(version=__VERSION__)
 def cli(**kwds):
     """Find clusters of reads that support a TE insertion."""
-    return findcluster.ClusterFinder(**kwds)
+    return findcluster.ClusterManager(**kwds)
