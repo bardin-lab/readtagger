@@ -109,7 +109,8 @@ class ClusterFinder(object):
                  min_mapq=1,
                  max_clustersupport=200,
                  remove_supplementary_without_primary=False,
-                 region=None):
+                 region=None,
+                 shm_dir=None):
         """
         Find readclusters in input_path file.
 
@@ -119,6 +120,7 @@ class ClusterFinder(object):
         The join_cluster method will then join clusters that overlap through their clipped sequences and cluster that can be assembled based on their proximity
         and the fact that they support the same same insertion (and can hence contribute to the same contig if assembled).
         """
+        self.shm_dir = shm_dir
         self.region = region
         self.input_path = input_path
         self._sample_name = sample_name
@@ -178,14 +180,14 @@ class ClusterFinder(object):
                 if not (r.has_tag('BD') or r.has_tag('AD')):
                     continue
                 if not clusters:
-                    cluster = Cluster()
+                    cluster = Cluster(shm_dir=self.shm_dir)
                     cluster.append(r)
                     clusters.append(cluster)
                     continue
                 if clusters[-1].read_is_compatible(r):
                     clusters[-1].append(r)
                 else:
-                    cluster = Cluster()
+                    cluster = Cluster(shm_dir=self.shm_dir)
                     cluster.append(r)
                     clusters.append(cluster)
         return clusters

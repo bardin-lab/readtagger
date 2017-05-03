@@ -10,7 +10,7 @@ from .fasta_io import write_sequences
 class Cap3Assembly(object):
     """A class that holds reads of a cluster and assembles them using cap3."""
 
-    def __init__(self, sequences):
+    def __init__(self, sequences, shm_dir=None):
         """Asssemble sequences into contigs.
 
         :param sequences: dictionary with query_name as key and read sequence as value
@@ -25,7 +25,7 @@ class Cap3Assembly(object):
         1
         """
         self.sequences = sequences
-        self.input_dir = tempfile.mkdtemp()
+        self.input_dir = tempfile.mkdtemp(dir=shm_dir)
         self.input_path = os.path.join(self.input_dir, 'multialign.fa')
         self.write_sequences()
         self.assemble()
@@ -43,11 +43,11 @@ class Cap3Assembly(object):
             subprocess.check_call(args, stdout=DEVNULL, env=os.environ.copy())  # Use check call to ignore stdout of cap3
 
     @staticmethod
-    def join_assemblies(assemblies):
+    def join_assemblies(assemblies, shm_dir=None):
         """Get contigs for each assembly and attempt to generate a longer contig."""
         contigs = [contig for cap3obj in assemblies for contig in cap3obj.assembly.contigs]
         sequences = {"Contig_%s" % i: contig.sequence for i, contig in enumerate(contigs)}
-        return Cap3Assembly(sequences)
+        return Cap3Assembly(sequences, shm_dir=shm_dir)
 
     @staticmethod
     def sequences_contribute_to_same_contig(seq1, seq2):

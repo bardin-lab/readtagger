@@ -38,6 +38,7 @@ from readtagger.readtagger import __VERSION__
               help='align cluster contigs against this bwa index',
               default=None)
 @click.option('--threads', help='Threads to use for cap3 assembly step', default=1, type=click.IntRange(1, 100))
+@click.option('--shm_dir', help='Path to shared memory folder', default=None, type=click.Path(exists=True))
 @click.version_option(version=__VERSION__)
 def cli(**kwds):
     """Find clusters of reads that support a TE insertion."""

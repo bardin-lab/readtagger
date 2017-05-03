@@ -14,22 +14,20 @@ class TagCluster(object):
     all sequences pointing into the insertion to assemble the putative inserted sequence, for the left and right side.
     """
 
-    def __init__(self, cluster):
+    def __init__(self, cluster, shm_dir=None):
         """Cluster is an iterable of pysam.AlignedSegment objects."""
         self.cluster = cluster
+        self.shm_dir = shm_dir
         self.tsd = TargetSiteDuplication(self.cluster)
         self.five_p_breakpoint, self.three_p_breakpoint = self.find_breakpoint()
         # TODO: Implement looking up what TE the insert(s) best match to
-        # TODO: Sum read support:
-        #   - how many reads support TSD?
-        #   - how many fragments cover any part of the insertion?
 
     @cached_property
     def left_insert(self):
         """Return insert sequence as assembled from the left side."""
         if self.left_sequences:
             if not hasattr(self, '_left_seq_cap3'):
-                self._left_seq_cap3 = Cap3Assembly(self.left_sequences)
+                self._left_seq_cap3 = Cap3Assembly(self.left_sequences, shm_dir=self.shm_dir)
             return self._left_seq_cap3
 
     @cached_property
@@ -37,14 +35,14 @@ class TagCluster(object):
         """Return insert sequence as assembled from the right side."""
         if self.right_sequences:
             if not hasattr(self, '_right_seq_cap3'):
-                self._right_seq_cap3 = Cap3Assembly(self.right_sequences)
+                self._right_seq_cap3 = Cap3Assembly(self.right_sequences, shm_dir=self.shm_dir)
             return self._right_seq_cap3
 
     @cached_property
     def joint_insert(self):
         """Return joint insert sequence."""
         if self.right_sequences and self.left_sequences:
-            return Cap3Assembly.join_assemblies([self.left_insert, self.right_insert])
+            return Cap3Assembly.join_assemblies([self.left_insert, self.right_insert], shm_dir=self.shm_dir)
         return self.right_insert or self.left_insert
 
     def find_breakpoint(self):

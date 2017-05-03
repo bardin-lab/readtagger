@@ -13,13 +13,14 @@ class Cluster(list):
     left_blast_result = None
     right_blast_result = None
 
-    def __init__(self):
+    def __init__(self, shm_dir):
         """Setup Cluster object."""
         super(Cluster, self).__init__()
         self.nref = 0
         self.id = -1
         self.feature_args = None
         self.reference_name = None
+        self.shm_dir = shm_dir
 
     @cached_property
     def min(self):
@@ -70,7 +71,7 @@ class Cluster(list):
         """Return clustertag for current cluster of reads."""
         if not hasattr(self, '_clustertag') or (hasattr(self, '_clusterlen') and len(self) != self._clusterlen):
             self._clusterlen = len(self)
-            self._clustertag = TagCluster(self)
+            self._clustertag = TagCluster(self, shm_dir=self.shm_dir)
         return self._clustertag
 
     def can_join(self, other_cluster, max_distance=1500):
@@ -106,7 +107,7 @@ class Cluster(list):
         return self._can_join(other_cluster, max_distance)
 
     def _can_join(self, other_cluster, max_distance):
-        other_clustertag = TagCluster(other_cluster)
+        other_clustertag = TagCluster(other_cluster, shm_dir=self.shm_dir)
         # First check ... are three_p and five_p of cluster overlapping?
         if not self.clustertag.tsd.three_p and not other_clustertag.tsd.five_p:
             if self.clustertag.tsd.five_p and other_clustertag.tsd.three_p:
