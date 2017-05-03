@@ -2,6 +2,7 @@ import copy
 import gzip
 import logging
 import os
+import shutil
 import subprocess
 import tempfile
 import pysam
@@ -118,10 +119,11 @@ def start_positions_for_last_qnames(fn, last_qnames):
 
 def merge_bam(bam_collection, template_bam, output_path, threads=1):
     """Merge a readname sorted collection of BAM files."""
+    bam_collection = [bam for bam in bam_collection if os.path.exists(bam)]
     args = ['samtools', 'cat', '-h', template_bam, '-o', output_path]
     args.extend(bam_collection)
     subprocess.call(args, env=os.environ.copy())
-    [os.remove(bam) for bam in bam_collection]
+    [shutil.rmtree(bam, ignore_errors=True) for bam in bam_collection]
     return output_path
 
 
