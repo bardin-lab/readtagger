@@ -72,19 +72,21 @@ class ClusterManager(object):
             fasta_files = [kwd['output_fasta'] for kwd in self.process_list if kwd['output_fasta']]
             with open(output_fasta, 'wb') as fasta_writer:
                 for fasta in fasta_files:
-                    shutil.copyfileobj(open(fasta, 'rb'), fasta_writer)
+                    if os.path.exists(fasta):
+                        shutil.copyfileobj(open(fasta, 'rb'), fasta_writer)
         output_gff = self.kwds.get('output_gff')
         if output_gff:
             gff_files = [kwd['output_gff'] for kwd in self.process_list if kwd['output_gff']]
             wrote_header = False
             with open(output_gff, 'w') as gff_writer:
                 for gff in gff_files:
-                    with open(gff) as gff_file:
-                        for line in gff_file:
-                            if line.startswith('#') and wrote_header:
-                                continue
-                            gff_writer.write(line)
-                    wrote_header = True
+                    if os.path.exists(gff):
+                        with open(gff) as gff_file:
+                            for line in gff_file:
+                                if line.startswith('#') and wrote_header:
+                                    continue
+                                gff_writer.write(line)
+                        wrote_header = True
 
 
 def wrapper(kwds):
