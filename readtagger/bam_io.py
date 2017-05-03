@@ -209,7 +209,7 @@ class BamAlignmentWriter(object):
         self.template = template
         self.header = header
         self.path = path
-        self.external_bin = external_bin
+        self.external_bin = None  # external_bin -- check if failing writes can be prevented by using pysam
         self.threads = threads
         self.sort_order = sort_order
 
