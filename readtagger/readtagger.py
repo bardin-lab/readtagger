@@ -128,12 +128,12 @@ class TagManager(object):
             verified_collection.append(verified)
             discarded_collection.append(discarded)
         if any(discarded_collection):
-            merge_bam(discarded_collection, template_bam=self.annotate_path, output_path=self.discarded_path, threads=self.cores)
+            merge_bam(discarded_collection, template_bam=self.annotate_path, output_path=self.discarded_path)
             sort_bam(inpath=self.discarded_path, output=self.discarded_path, sort_order='coordinate', threads=self.cores)
         if any(verified_collection):
-            merge_bam(verified_collection, template_bam=self.annotate_path, output_path=self.verified_path, threads=self.cores)
+            merge_bam(verified_collection, template_bam=self.annotate_path, output_path=self.verified_path)
             sort_bam(inpath=self.verified_path, output=self.verified_path, sort_order='coordinate', threads=self.cores)
-        merge_bam(output_collection, template_bam=self.annotate_path, output_path=self.output_path, threads=self.cores)
+        merge_bam(output_collection, template_bam=self.annotate_path, output_path=self.output_path)
         sort_bam(self.output_path, output=self.output_path, sort_order='coordinate', threads=self.cores)
         logger.info("Processing finished")
 
@@ -336,7 +336,7 @@ class SamAnnotator(object):
             try:
                 read = self.annotate_bam.pop(0)
             except IndexError:
-                return self._process(reads, tag_d)
+                return self._process(reads, tag_d, qname)
             if read.query_name == qname:
                 reads.append(read)
                 found_qname = True
@@ -349,12 +349,15 @@ class SamAnnotator(object):
             else:
                 # We read past the last read with the same name
                 self._read = read
-                return self._process(reads, tag_d)
+                return self._process(reads, tag_d, qname)
 
-    def _process(self, reads, tag_d):
+    def _process(self, reads, tag_d, qname):
         for read in reads:
             if self.allow_dovetailing:
                 read = allow_dovetailing(read, self.max_proper_size)
+            if read.qname != qname:
+                self.output_writer.write(read)
+                continue
             discarded_tags = []
             verified_tags = []
             verified_tag = None

@@ -10,7 +10,6 @@ import six
 
 if six.PY2:
     import shutilwhich  # noqa: F401
-import shutil  # noqa: E402
 
 __VERSION__ = '0.3.18'
 logger = logging.getLogger(__name__)
@@ -117,7 +116,7 @@ def start_positions_for_last_qnames(fn, last_qnames):
     return seek_positions
 
 
-def merge_bam(bam_collection, template_bam, output_path, threads=1):
+def merge_bam(bam_collection, template_bam, output_path):
     """Merge a readname sorted collection of BAM files."""
     bam_collection = [bam for bam in bam_collection if os.path.exists(bam)]
     args = ['samtools', 'cat', '-h', template_bam, '-o', output_path]
