@@ -156,19 +156,17 @@ def multiprocess_worker(kwds):
     output_path = os.path.join(tempdir, "%s_output.bam" % qname)
     output_writer = pysam.AlignmentFile(output_path, header=annotate_header, mode='wbu')
     samtag_p = SamTagProcessor(source_bam=source_reads, header=source_header, tag_mate=kwds['tag_mate'])
-    sam_annotator = SamAnnotator(annotate_bam=annotate_reads,
-                                 output_writer=output_writer,
-                                 allow_dovetailing=kwds['allow_dovetailing'],
-                                 max_proper_size=kwds['max_proper_size'],
-                                 discard_bad_alt_tag=kwds['discarded_bad_alt_tag'],
-                                 discard_if_proper_pair=kwds['discard_if_proper_pair'],
-                                 discarded_writer=discarded_writer,
-                                 verified_writer=verified_writer,
-                                 tag_prefix_self=kwds['tag_prefix_self'],
-                                 tag_prefix_mate=kwds['tag_prefix_mate']
-                                 )
-    for qname, tag_d in samtag_p.process():
-        sam_annotator.process(qname=qname, tag_d=tag_d)
+    SamAnnotator(samtag_instance=samtag_p,
+                 annotate_bam=annotate_reads,
+                 output_writer=output_writer,
+                 allow_dovetailing=kwds['allow_dovetailing'],
+                 max_proper_size=kwds['max_proper_size'],
+                 discard_bad_alt_tag=kwds['discarded_bad_alt_tag'],
+                 discard_if_proper_pair=kwds['discard_if_proper_pair'],
+                 discarded_writer=discarded_writer,
+                 verified_writer=verified_writer,
+                 tag_prefix_self=kwds['tag_prefix_self'],
+                 tag_prefix_mate=kwds['tag_prefix_mate'])
     if verified_writer:
         verified_writer.close()
     if discarded_writer:
@@ -195,6 +193,9 @@ class SamTagProcessor(object):
         self.source_alignment = source_bam
         self.header = header
         self.template = BaseTag(header=self.header)
+        self.result = self.process_source()
+        if self.tag_mate:
+            self.add_mate()
 
     def compute_tag(self, r):
         """
@@ -224,56 +225,41 @@ class SamTagProcessor(object):
         """
         return not r.is_unmapped and not r.is_secondary and not r.is_supplementary and not r.is_qcfail
 
-    def process(self):
-        """Generator that will yield qname and tag_d."""
-        reads = []
-        qname = ''
-        for read in self.source_alignment:
-            if self.is_taggable(read):
-                if qname != read.query_name and reads and qname:
-                    # We got a new read, so we process the previous reads
-                    tag_d = self.process_current_reads(reads)
-                    if self.tag_mate:
-                        tag_d = self.add_mate(tag_d)
-                    yield qname, tag_d
-                    reads = []
-                reads.append(read)
-            qname = read.query_name
-        if reads:
-            tag_d = self.process_current_reads(reads)
-            if self.tag_mate:
-                tag_d = self.add_mate(tag_d)
-            yield qname, tag_d
-
-    def process_current_reads(self, current_reads):
+    def process_source(self):
         """
         Iterate over reads in alignment and construct dictionary.
-
         The dictionary struture is:
         ['readname'][Forward or Reverse][Self or Mate][Tag]
         """
         tag_d = {}
-        for r in current_reads:
+        for r in self.source_alignment:
             if self.is_taggable(r):
-                tag_d[r.is_read1] = {'s': self.compute_tag(r)}
+                if r.query_name in tag_d:
+                    tag_d[r.query_name][r.is_read1] = {'s': self.compute_tag(r)}
+                else:
+                    tag_d[r.query_name] = {r.is_read1: {'s': self.compute_tag(r)}}
         return tag_d
 
-    def add_mate(self, tag_d):
-        """Iterate over tag_d and add mate information."""
-        new_tag_d = tag_d.copy()
-        for k, v in tag_d.items():
-            if (not k) in tag_d:
-                v['m'] = tag_d[(not k)]['s']
-                new_tag_d[k] = v
-            else:
-                new_tag_d[(not k)] = {'m': v['s']}
-        return new_tag_d
+    def add_mate(self):
+        """Iterate over self.result and add mate information."""
+        self._result = self.result
+        self.result = {}
+        for top_level_k, tag_d in self._result.items():
+            new_tag_d = tag_d.copy()
+            for k, v in tag_d.items():
+                if (not k) in tag_d:
+                    v['m'] = tag_d[(not k)]['s']
+                    new_tag_d[k] = v
+                else:
+                    new_tag_d[(not k)] = {'m': v['s']}
+                self.result[top_level_k] = new_tag_d
 
 
 class SamAnnotator(object):
     """Use list of SamTagProcessor instances to add tags to a BAM file."""
 
     def __init__(self,
+                 samtag_instance,
                  annotate_bam,
                  output_writer=None,
                  allow_dovetailing=False,
@@ -305,6 +291,7 @@ class SamAnnotator(object):
         :param tag_prefix_mate: Tag to use as indicating that the current mate is aligned
         :type tag_prefix_mate: basestring
         """
+        self.samtag_instance = samtag_instance
         self.annotate_bam = annotate_bam
         self.output_writer = output_writer
         self.discarded_writer = discarded_writer
@@ -319,50 +306,18 @@ class SamAnnotator(object):
         self.detail_tag_mate = tag_prefix_mate + 'D'
         self.reference_tag_self = tag_prefix_self + 'R'
         self.reference_tag_mate = tag_prefix_mate + 'R'
-        self._read = None
+        self.process()
 
-    def process(self, qname, tag_d):
-        """Iterate through reads in self.annotate_bam and process those reads that have the same name as qname."""
-        found_qname = False
-        reads = []
-        while True:
-            if self._read:
-                read = self._read
-                if read.query_name == qname:
-                    found_qname = True
-                self._read = None
-                reads.append(read)
-                continue
-            try:
-                read = self.annotate_bam.pop(0)
-            except IndexError:
-                return self._process(reads, tag_d, qname)
-            if read.query_name == qname:
-                reads.append(read)
-                found_qname = True
-                continue
-            if not found_qname:
-                # That should be the first call, when no reads have been found yet and
-                # we haven't reached the correct reads yet
-                reads.append(read)
-                continue
-            else:
-                # We read past the last read with the same name
-                self._read = read
-                return self._process(reads, tag_d, qname)
-
-    def _process(self, reads, tag_d, qname):
-        for read in reads:
+    def process(self):
+        for read in self.annotate_bam:
             if self.allow_dovetailing:
                 read = allow_dovetailing(read, self.max_proper_size)
-            if read.qname != qname:
-                self.output_writer.write(read)
-                continue
             discarded_tags = []
             verified_tags = []
             verified_tag = None
-            alt_tag = tag_d.get(read.is_reverse)
+            alt_tag = self.samtag_instance.result.get(read.query_name, {}).get(read.is_reverse)
             if alt_tag and self.discard_bad_alt_tag:
+                # This is either not the correct read (unlikely because)
                 verified_tag = self.verify_alt_tag(read, alt_tag)
                 if self.discarded_writer and len(verified_tag) < len(alt_tag):
                     # we have more alt tags than verified tags,
