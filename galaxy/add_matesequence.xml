@@ -5,7 +5,7 @@
     </requirements>
     <version_command>add_matesequence --version</version_command>
     <command detect_errors="aggressive"><![CDATA[
-        add_matesequence --file_to_annotate '$file_to_annotate' --annotate_source '$annotate_source' --output_path '$output'
+        add_matesequence --target '$file_to_annotate' --source '$annotate_source' --output_path '$output'
     ]]></command>
     <inputs>
         <param name="file_to_annotate" argument="--file_to_annotate" label="Annotate reads in this file with their mate sequence" type="data" format="bam"/>

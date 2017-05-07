@@ -1,6 +1,6 @@
 import click
 from readtagger.update_mapq import update_mapq
-from readtagger.readtagger import __VERSION__
+from readtagger import VERSION
 
 
 @click.command()
@@ -17,7 +17,7 @@ from readtagger.readtagger import __VERSION__
                    'as determined by remapping to the alignment file at `remapped_path`',
               required=True,
               type=click.Path(exists=False))
-@click.version_option(version=__VERSION__)
+@click.version_option(version=VERSION)
 def cli(**kwargs):
     """Update supplementary read MAPQ score after remapping."""
     return update_mapq(**kwargs)

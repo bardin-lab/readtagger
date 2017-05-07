@@ -10,7 +10,6 @@ from .allow_dovetailing import (
     allow_dovetailing,
     get_max_proper_pair_size
 )
-from .cigar import alternative_alignment_cigar_is_better
 from .bam_io import (
     BamAlignmentReader as Reader,
     get_queryname_positions,
@@ -20,12 +19,14 @@ from .bam_io import (
     merge_bam,
     sort_bam
 )
+from .cigar import alternative_alignment_cigar_is_better
+from .mateoperations import AnnotateMateInformation
 from .tags import (
     BaseTag,
     make_tag
 )
 
-__VERSION__ = '0.3.21'
+from . import VERSION
 logger = logging.getLogger(__name__)
 logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s - %(message)s', level=logging.DEBUG)
 
@@ -148,6 +149,7 @@ def multiprocess_worker(kwds):
     tempdir = kwds['tempdir']
     source_reads = get_reads(kwds['source_path'], start=start_source, last_qname=qname)
     annotate_reads = get_reads(kwds['annotate_path'], start=start_annotate, last_qname=qname)
+    AnnotateMateInformation(source=source_reads, target=annotate_reads)
     annotate_header = pysam.AlignmentFile(kwds['annotate_path']).header
     discarded_out = os.path.join(tempdir, "%s_discarded.bam" % qname) if kwds['discarded_path'] else None
     discarded_writer = pysam.AlignmentFile(discarded_out, header=annotate_header, mode='wbu') if discarded_out else None
@@ -228,8 +230,9 @@ class SamTagProcessor(object):
     def process_source(self):
         """
         Iterate over reads in alignment and construct dictionary.
+
         The dictionary struture is:
-        ['readname'][Forward or Reverse][Self or Mate][Tag]
+        ['readname'][Read1 or Read2][Self or Mate][Tag]
         """
         tag_d = {}
         for r in self.source_alignment:
@@ -309,6 +312,7 @@ class SamAnnotator(object):
         self.process()
 
     def process(self):
+        """Process all reads in self.annotate_bam and self.samtag_instance."""
         for read in self.annotate_bam:
             if self.allow_dovetailing:
                 read = allow_dovetailing(read, self.max_proper_size)
@@ -441,7 +445,7 @@ def parse_args():
     p.add_argument('-wv', '--write_verified', default=False, required=False,
                    help="Write verified reads into separate file")
     p.add_argument('-cores', '--cores', type=int, default=1, help='Number of cores to use for tagging reads.')
-    p.add_argument('--version', action='version', version=__VERSION__)
+    p.add_argument('--version', action='version', version=VERSION)
     return p.parse_args()
 
 

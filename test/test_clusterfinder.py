@@ -14,6 +14,7 @@ CORNERCASE2 = 'cornercase2.bam'
 CORNERCASE3 = 'cornercase3.bam'
 EXTENDED = 'extended_and_annotated_roi.bam'
 COMPLEX = 'extended_annotated_updated_all_reads.bam'
+REORGANIZE_CLUSTER = 'reorganize_cluster.bam'
 NON_SUPPORT = 'non_support_test.bam'
 
 
@@ -126,6 +127,15 @@ def test_clusterfinder_nonsupport(datadir, tmpdir):  # noqa: D103
     assert genotype.nref == 25
     assert genotype.nalt == 1
     assert genotype.genotype == 'reference'
+
+
+def test_clusterfinder_reorganize_cluster(datadir, tmpdir, reference_fasta):  # noqa: D103
+    input_path = datadir[REORGANIZE_CLUSTER]
+    output_gff = tmpdir.join('output.gff').strpath
+    clusters = ClusterFinder(input_path=input_path, output_bam=None, output_gff=output_gff, reference_fasta=reference_fasta)
+    cluster = clusters.cluster[-1]
+    genotype = cluster.genotype_likelihood()
+    assert genotype.genotype == 'homozygous'
 
 
 @pytest.fixture(scope='module')

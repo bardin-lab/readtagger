@@ -77,11 +77,11 @@ def parse_args():
     :return: args
     :rtype argparse.ArgumentParser
     """
-    from .readtagger import __VERSION__
+    from . import VERSION
     parser = argparse.ArgumentParser(description="Allow dovetailing.")
     parser.add_argument('-i', '--input_path', help="Input alignment file to manipulate", required=True)
     parser.add_argument('-o', '--output_path', help="Output alignment file", required=True)
-    parser.add_argument('--version', action='version', version=__VERSION__)
+    parser.add_argument('--version', action='version', version=VERSION)
     args = parser.parse_args()
     return args
 
