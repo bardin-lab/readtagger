@@ -1,4 +1,3 @@
-import multiprocessing as mp
 import os
 import shutil
 import tempfile
@@ -229,12 +228,11 @@ class ClusterFinder(object):
     def collect_non_evidence(self):
         """Count reads that overlap cluster site but do not provide evidence for an insertion."""
         chunks = Chunks(clusters=self.cluster, header=self.header, input_path=self.input_path)
-        p = mp.Pool(self.threads)
-        r = p.map_async(non_evidence, chunks.chunks)
-        for result in r.get():
-            for index, nref in result.items():
-                self.cluster[index].nref = nref
-        p.close()
+        with ProcessPoolExecutor(max_workers=self.threads) as executor:
+            r = executor.map(non_evidence, chunks.chunks)
+            for result in r:
+                for index, nref in result.items():
+                    self.cluster[index].nref = nref
 
     def _create_contigs(self):
         futures = []
