@@ -1,12 +1,11 @@
-import os
-import tempfile
-import pytest
-import requests
 from collections import namedtuple
 from readtagger.findcluster import ClusterFinder
 from readtagger.cli import findcluster
 
-from .helpers import namedtuple_to_argv
+from .helpers import (  # noqa: F401
+    namedtuple_to_argv,
+    reference_fasta
+)
 
 INPUT = 'tagged_dm6.bam'
 CORNERCASE = 'cornercase.bam'
@@ -90,7 +89,7 @@ def test_clusterfinder_multiple_cluster_gff_cli(datadir, tmpdir, mocker):  # noq
     findcluster.cli()
 
 
-def test_clusterfinder_blast(datadir, tmpdir, mocker, reference_fasta):  # noqa: D103
+def test_clusterfinder_blast(datadir, tmpdir, mocker, reference_fasta):  # noqa: D103, F811
     input_path = datadir[EXTENDED]
     output_bam = tmpdir.join('output.bam').strpath
     output_gff = tmpdir.join('output.gff').strpath
@@ -102,7 +101,7 @@ def test_clusterfinder_blast(datadir, tmpdir, mocker, reference_fasta):  # noqa:
     findcluster.cli()
 
 
-def test_clusterfinder_complex_genotype(datadir, tmpdir, reference_fasta):  # noqa: D103
+def test_clusterfinder_complex_genotype(datadir, tmpdir, reference_fasta):  # noqa: D103, F811
     input_path = datadir[COMPLEX]
     output_bam = tmpdir.join('output.bam').strpath
     output_gff = tmpdir.join('output.gff').strpath
@@ -129,27 +128,10 @@ def test_clusterfinder_nonsupport(datadir, tmpdir):  # noqa: D103
     assert genotype.genotype == 'reference'
 
 
-def test_clusterfinder_reorganize_cluster(datadir, tmpdir, reference_fasta):  # noqa: D103
+def test_clusterfinder_reorganize_cluster(datadir, tmpdir, reference_fasta):  # noqa: D103, F811
     input_path = datadir[REORGANIZE_CLUSTER]
     output_gff = tmpdir.join('output.gff').strpath
     clusters = ClusterFinder(input_path=input_path, output_bam=None, output_gff=output_gff, reference_fasta=reference_fasta)
     cluster = clusters.cluster[-1]
     genotype = cluster.genotype_likelihood()
     assert genotype.genotype == 'homozygous'
-
-
-@pytest.fixture(scope='module')
-def reference_fasta():  # noqa: D103
-    filename = tempfile.mkstemp()[1]
-    url = 'https://github.com/bardin-lab/dmel-transposon-reference-data/raw/master/fasta_sequences/dm6_TE_annotations_sequences.fasta'
-    yield download_file(url=url, filename=filename)
-    os.remove(filename)
-
-
-def download_file(url, filename):  # noqa: D103
-    r = requests.get(url, stream=True)
-    with open(filename, 'wb') as f:
-        for chunk in r.iter_content(chunk_size=1024):
-            if chunk:  # filter out keep-alive new chunks
-                f.write(chunk)
-    return filename

@@ -1,5 +1,10 @@
+import os
+import requests
+import tempfile
 from collections import namedtuple
 from itertools import chain
+
+import pytest
 
 MockAlignedSegmentTemplate = namedtuple('AlignedSegment',
                                         ['cigar',
@@ -67,3 +72,20 @@ CCTCTGCGTAGGCCATTTACTTTAAGATGCGATTCTCATGTCACCTATTTAAACCGAAGA\
 TATTTCCAAATAAAATCAGTTTTTTTACAAAAACTCAACGAGTAAAGTCTTCTTATTTGG\
 GATTTTACATTTGGTCAATCGAGCCTTTAATCGACTCTGCAGTTTCCCCCTACCAAAGGT\
 AAGGAACTCAGAGAAAGGCCAGCTCCTTTAAGCATCTTACAGCTAAAGGTAGCAAAAATA'''
+
+
+@pytest.fixture(scope='module')
+def reference_fasta():  # noqa: D103
+    filename = tempfile.mkstemp()[1]
+    url = 'https://github.com/bardin-lab/dmel-transposon-reference-data/raw/master/fasta_sequences/dm6_TE_annotations_sequences.fasta'
+    yield download_file(url=url, filename=filename)
+    os.remove(filename)
+
+
+def download_file(url, filename):  # noqa: D103
+    r = requests.get(url, stream=True)
+    with open(filename, 'wb') as f:
+        for chunk in r.iter_content(chunk_size=1024):
+            if chunk:  # filter out keep-alive new chunks
+                f.write(chunk)
+    return filename
