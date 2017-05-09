@@ -7,6 +7,23 @@ History
 
 
 ---------------------
+0.3.23 (2017-05-09)
+---------------------
+* Expose reference fasta option in bam_readtagger.xml
+
+---------------------
+0.3.22 (2017-05-09)
+---------------------
+* Move readtagger CLI form argparse to click
+* Index bamfile if neccesary
+* Replace multipocessing pool with ProcessPoolExecutor
+* Set the matesequence while tagging reads
+* Fix false positives in readtagger module
+* Do cap3 assembly in shared memory if passing --shm_dir or if SHM_DIR environment variable is defined
+* Parallelize findlcluster by splitting input bam
+* Add check_call.py script for rapidly verifying IGV screenshots
+
+---------------------
 0.3.21 (2017-04-27)
 ---------------------
 * Fix crash when determining reference name
