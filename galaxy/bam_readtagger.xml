@@ -7,12 +7,12 @@
         <requirement type="package" version="0.3.21">readtagger</requirement>
     </requirements>
     <command detect_errors="aggressive"><![CDATA[
-        readtagger -t '$tag_file' -a
+        readtagger -t '$tag_file' -s
         #for $element in $alignment_series
             '$element.annotate_with':$element.r_tag:$element.m_tag
         #end for
         $allow_dovetailing
-        $keep_suboptimal
+        $discard_suboptimal
         $discarded
         $verified
         $discard_proper_pairs
@@ -30,11 +30,11 @@
                 <expand macro="tag_options"/>
             </param>
         </repeat>
-        <param argument="--allow_dovetailing" type="boolean" truevalue="-d" falsevalue="" label="Allow dovetailing" help="Check this to label reads as proper_pair even if the mates of a pair overlap each other"/>
-        <param argument="-k" name="keep_suboptimal" type="boolean" truevalue="-k" falsevalue="" label="Keep suboptimal alternative tags" help="Check this to also keep alternative tags that cannot explain the current read cigar"/>
-        <param argument="-dp" name="discard_proper_pairs" type="boolean" truevalue="-dp" falsevalue="" label="Discard alternative tags for proper pairs" help="Check this to discard alternative tags for reads in proper pairs"/>
-        <param argument="-wd" name="discarded" type="boolean" truevalue="-wd discarded.bam" falsevalue="" label="Check this to produce an output file containing only the reads with tags that failed validation"/>
-        <param argument="-wv" name="verified" type="boolean" truevalue="-wv verified.bam" falsevalue="" label="Check this to produce an output file containing only the reads with tags that pass validation"/>
+        <param argument="--allow_dovetailing" type="boolean" truevalue="--allow_dovetailing" falsevalue="--no_allow_dovetailing" checked="True" label="Allow dovetailing" help="Check this to label reads as proper_pair even if the mates of a pair overlap each other"/>
+        <param argument="--discard_suboptimal_alternate_tags" name="discard_suboptimal" type="boolean" checked="True" truevalue="--discard_suboptimal_alternate_tags" falsevalue="--no_discard_suboptimal" label="Discard suboptimal alternative tags" help="Check this to discard alternative tags that cannot explain the current read cigar"/>
+        <param argument="--discard_if_proper_pair" name="discard_proper_pairs" type="boolean" truevalue="--discard_if_proper_pair" falsevalue="--no_discard_if_proper_pair" label="Discard alternative tags for proper pairs" checked="True" help="Check this to discard alternative tags for reads in proper pairs"/>
+        <param argument="--discarded_path" name="discarded" type="boolean" truevalue="--discarded_path discarded.bam" falsevalue="" label="Check this to produce an output file containing only the reads with tags that failed validation"/>
+        <param argument="--verified_path" name="verified" type="boolean" truevalue="--verified_path verified.bam" falsevalue="" label="Check this to produce an output file containing only the reads with tags that pass validation"/>
     </inputs>
     <outputs>
         <data name="tagged_file" format="bam" label="Tagged reads on $on_string"/>
