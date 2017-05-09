@@ -1,10 +1,6 @@
-import argparse
-
 import pysam
 from cached_property import cached_property
 from six import string_types
-
-from . import VERSION
 
 
 class AnnotateMateInformation(object):
@@ -65,29 +61,3 @@ class AnnotateMateInformation(object):
             read.set_tag(self.mate_sequence_tag, mate_seq)
             if self.output_path:
                 self.writer.write(read)
-
-
-def parse_args():
-    """Parse commandline arguments."""
-    p = argparse.ArgumentParser(description='Annotate reads with Mate Sequence in tag field',
-                                formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    p.add_argument('-t', '--target', help='Annotate reads in this file with their mate sequence', required=True)
-    p.add_argument('-s', '--source', help='Use this file to find the mate sequence (can be same file as file_to_annotate)', required=True)
-    p.add_argument('-o', '--output_path', help='Write resulting BAM file to this path', required=True)
-    p.add_argument('-ms', '--mate_sequence_tag', help='Use this tag to store the mate sequence', default='MS')
-    p.add_argument('--version', action='version', version=VERSION)
-    return p.parse_args()
-
-
-def main(args=None):
-    """Annotate reads with Mate Sequence in tag field."""
-    if not args:
-        args = parse_args()
-    AnnotateMateInformation(target=args.target,
-                            source=args.source,
-                            output_path=args.output_path,
-                            mate_sequence_tag=args.mate_sequence_tag)
-
-
-if __name__ == "__main__":
-    main()

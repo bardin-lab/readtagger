@@ -1,4 +1,3 @@
-import argparse
 import logging
 import multiprocessing as mp
 import os
@@ -19,14 +18,15 @@ from .bam_io import (
     merge_bam,
     sort_bam
 )
+from .bwa import make_bwa_index
 from .cigar import alternative_alignment_cigar_is_better
 from .mateoperations import AnnotateMateInformation
 from .tags import (
     BaseTag,
     make_tag
 )
+from .tag_softclip import TagSoftClip
 
-from . import VERSION
 logger = logging.getLogger(__name__)
 logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s - %(message)s', level=logging.DEBUG)
 
@@ -35,7 +35,7 @@ class TagManager(object):
     """Orchestrates SamTagProcessor and SamAnnotator classes, holds reference to input and output files."""
 
     def __init__(self, source_path,
-                 annotate_path,
+                 target_path,
                  output_path='test.bam',
                  discarded_path=None,
                  verified_path=None,
@@ -43,7 +43,9 @@ class TagManager(object):
                  allow_dovetailing=False,
                  max_proper_size=None,
                  discard_if_proper_pair=False,
-                 discard_bad_alt_tag=True,
+                 discard_suboptimal_alternate_tags=True,
+                 reference_fasta=None,
+                 bwa_index=None,
                  tag_prefix_self='A',
                  tag_prefix_mate='B',
                  cores=1,
@@ -52,7 +54,7 @@ class TagManager(object):
         """Open input and output files and construct worker classes."""
         self.source_path = source_path
         self.source_path_sorted = None
-        self.annotate_path = annotate_path
+        self.annotate_path = target_path
         self.annotate_path_sorted = None
         self.output_path = output_path
         self.discarded_path = discarded_path
@@ -61,7 +63,9 @@ class TagManager(object):
         self.allow_dovetailing = allow_dovetailing
         self.max_proper_size = max_proper_size
         self.discard_if_proper_pair = discard_if_proper_pair
-        self.discard_bad_alt_tag = discard_bad_alt_tag
+        self.discard_suboptimal_alternate_tags = discard_suboptimal_alternate_tags
+        self.reference_fasta = reference_fasta
+        self.bwa_index = bwa_index
         self.tag_prefix_self = tag_prefix_self
         self.tag_prefix_mate = tag_prefix_mate
         self.cores = cores
@@ -88,16 +92,20 @@ class TagManager(object):
         if self.allow_dovetailing and not self.max_proper_size:
             with Reader(self.annotate_path, external_bin=None) as source:
                 self.max_proper_size = get_max_proper_pair_size(source)
+        if not self.bwa_index and self.reference_fasta:
+            tempdir = tempfile.mkdtemp()
+            self.bwa_index = make_bwa_index(reference_fasta=self.reference_fasta, dir=tempdir)
         kwds = {}
         kwds['source_path'] = self.source_path_sorted
         kwds['annotate_path'] = self.annotate_path_sorted
         kwds['discarded_path'] = self.discarded_path
         kwds['verified_path'] = self.verified_path
+        kwds['bwa_index'] = self.bwa_index
         kwds['tempdir'] = self.tempdir
         kwds['tag_mate'] = self.tag_mate
         kwds['allow_dovetailing'] = self.allow_dovetailing
         kwds['max_proper_size'] = self.max_proper_size
-        kwds['discarded_bad_alt_tag'] = self.discard_bad_alt_tag
+        kwds['discard_suboptimal_alternate_tags'] = self.discard_suboptimal_alternate_tags
         kwds['discard_if_proper_pair'] = self.discard_if_proper_pair
         kwds['tag_prefix_self'] = self.tag_prefix_self
         kwds['tag_prefix_mate'] = self.tag_prefix_mate
@@ -149,6 +157,9 @@ def multiprocess_worker(kwds):
     tempdir = kwds['tempdir']
     source_reads = get_reads(kwds['source_path'], start=start_source, last_qname=qname)
     annotate_reads = get_reads(kwds['annotate_path'], start=start_annotate, last_qname=qname)
+    bwa_index = kwds.get('bwa_index')
+    if bwa_index:
+        TagSoftClip(source=annotate_reads, bwa_index=bwa_index, threads=2, min_clip_length=20)
     AnnotateMateInformation(source=source_reads, target=annotate_reads)
     annotate_header = pysam.AlignmentFile(kwds['annotate_path']).header
     discarded_out = os.path.join(tempdir, "%s_discarded.bam" % qname) if kwds['discarded_path'] else None
@@ -163,7 +174,7 @@ def multiprocess_worker(kwds):
                  output_writer=output_writer,
                  allow_dovetailing=kwds['allow_dovetailing'],
                  max_proper_size=kwds['max_proper_size'],
-                 discard_bad_alt_tag=kwds['discarded_bad_alt_tag'],
+                 discard_suboptimal_alternate_tags=kwds['discard_suboptimal_alternate_tags'],
                  discard_if_proper_pair=kwds['discard_if_proper_pair'],
                  discarded_writer=discarded_writer,
                  verified_writer=verified_writer,
@@ -267,7 +278,7 @@ class SamAnnotator(object):
                  output_writer=None,
                  allow_dovetailing=False,
                  max_proper_size=500,
-                 discard_bad_alt_tag=True,
+                 discard_suboptimal_alternate_tags=True,
                  discard_if_proper_pair=False,
                  discarded_writer=None,
                  verified_writer=None,
@@ -299,7 +310,7 @@ class SamAnnotator(object):
         self.output_writer = output_writer
         self.discarded_writer = discarded_writer
         self.verified_writer = verified_writer
-        self.discard_bad_alt_tag = discard_bad_alt_tag
+        self.discard_suboptimal_alternate_tags = discard_suboptimal_alternate_tags
         self.discard_if_proper_pair = discard_if_proper_pair
         self.max_proper_size = max_proper_size
         self.allow_dovetailing = allow_dovetailing
@@ -320,7 +331,7 @@ class SamAnnotator(object):
             verified_tags = []
             verified_tag = None
             alt_tag = self.samtag_instance.result.get(read.query_name, {}).get(read.is_reverse)
-            if alt_tag and self.discard_bad_alt_tag:
+            if alt_tag and self.discard_suboptimal_alternate_tags:
                 # This is either not the correct read (unlikely because)
                 verified_tag = self.verify_alt_tag(read, alt_tag)
                 if self.discarded_writer and len(verified_tag) < len(alt_tag):
@@ -388,86 +399,3 @@ class SamAnnotator(object):
                     # in which case we still want to consider the alternative tag
                     verified_alt_tag[s_or_m] = alt_tag
         return verified_alt_tag
-
-
-def parse_file_tags(filetags):
-    """
-    Parse list of filetags from commandline.
-
-    :param filetags: list of strings with filepath.
-                     optionally appended by the first letter that should be used for read and mate
-    :return: annotate_with, tag_prefix, tag_prefix_mate
-
-    >>> filetags = ['file_a:A:B', 'file_b:C:D', 'file_c']
-    >>> annotate_with, tag_prefix, tag_prefix_mate = parse_file_tags(filetags)
-    >>> annotate_with == ['file_a', 'file_b', 'file_c'] and tag_prefix == ['A', 'C', 'A'] and tag_prefix_mate == ['B', 'D', 'B']
-    True
-    >>>
-    """
-    annotate_with = []
-    tag_prefix = []
-    tag_prefix_mate = []
-    if not isinstance(filetags, list):
-        filetags = [filetags]
-    for filetag in filetags:
-        if ':' in filetag:
-            filepath, tag, tag_mate = filetag.split(':')
-            annotate_with.append(filepath)
-            tag_prefix.append(tag.upper())
-            tag_prefix_mate.append(tag_mate.upper())
-        else:
-            annotate_with.append(filetag)
-            tag_prefix.append('A')  # Default is A for read, B for mate
-            tag_prefix_mate.append('B')
-    return annotate_with, tag_prefix, tag_prefix_mate
-
-
-def parse_args():
-    """Parse commandline arguments."""
-    p = argparse.ArgumentParser(description="Tag reads in an alignment file based on other alignment files",
-                                formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    p.add_argument('-t', '--tag_file', help="Tag reads in this file.", required=True)
-    p.add_argument('-a', '--annotate_with',
-                   help="Tag reads in readfile if reads are aligned in these files."
-                        "Append `:A:B` to tag first letter of tag describing read as A, "
-                        "and first letter of tag describing the mate as B",
-                   nargs="+",
-                   required=True)
-    p.add_argument('-o', '--output_file', help="Write bam file to this path", required=True)
-    p.add_argument('-d', '--allow_dovetailing',
-                   action='store_true',
-                   help="Sets the proper pair flag (0x0002) to true if reads dovetail [reads reach into or surpass the mate sequence].")
-    p.add_argument('-dp', '--discard_if_proper_pair', action='store_true', help="Discard an alternative flag if the current read is in a proper pair.")
-    p.add_argument('-k', '--keep_suboptimal_alternate_tags', action='store_true',
-                   help="By default cigarstrings of the alternative tags are compared and alternates that are not explaining the current cigar "
-                        "strings are discarded. Use this option to keep the alternative tags (effectively restoring the behaviour of readtagger < 0.1.4)")
-    p.add_argument('-wd', '--write_discarded', default=False, required=False, help="Write discarded reads into separate file")
-    p.add_argument('-wv', '--write_verified', default=False, required=False,
-                   help="Write verified reads into separate file")
-    p.add_argument('-cores', '--cores', type=int, default=1, help='Number of cores to use for tagging reads.')
-    p.add_argument('--version', action='version', version=VERSION)
-    return p.parse_args()
-
-
-def main(args=None):
-    """Main entrypoint."""
-    if not args:
-        args = parse_args()
-    filepath, tag, tag_mate = list(zip(*parse_file_tags(args.annotate_with)))[0]
-    TagManager(
-        source_path=filepath,
-        annotate_path=args.tag_file,
-        output_path=args.output_file,
-        discarded_path=args.write_discarded,
-        verified_path=args.write_verified,
-        tag_mate=True,
-        allow_dovetailing=args.allow_dovetailing,
-        discard_if_proper_pair=args.discard_if_proper_pair,
-        discard_bad_alt_tag=not args.keep_suboptimal_alternate_tags,
-        tag_prefix_self=tag,
-        tag_prefix_mate=tag_mate,
-        cores=args.cores)
-
-
-if __name__ == "__main__":
-    main()
