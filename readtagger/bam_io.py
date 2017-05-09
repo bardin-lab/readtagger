@@ -152,6 +152,7 @@ def index_bam(inpath):
 
 def split_locations_between_clusters(bamfile, self_tag='AD', other_tag='BD', distance=1000000):
     """Split a bam file into multiple chunks, where chunks have no tagged reads close to the split."""
+    # TODO: modify this so we don't split small chromosomes, instead we should "merge" small chromosomes
     index_bam(bamfile)
     with pysam.AlignmentFile(bamfile) as f:
         name_length = [(chrom.values()[1], chrom.values()[0]) for chrom in f.header['SQ']]
