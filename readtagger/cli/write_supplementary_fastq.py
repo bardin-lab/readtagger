@@ -1,6 +1,6 @@
 import click
 from readtagger.write_supplementary_fastq import write_supplementary_fastq
-from readtagger.readtagger import VERSION
+from readtagger import VERSION
 
 
 @click.command()
