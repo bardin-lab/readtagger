@@ -7,7 +7,7 @@ import temporary
 class Bwa(object):
     """Hold Blast-related data and methods."""
 
-    def __init__(self, input_path, bwa_index=None, reference_fasta=None, threads=1):
+    def __init__(self, input_path, bwa_index=None, reference_fasta=None, threads=1, describe_alignment=True):
         """
         BWA object for `sequences`.
 
@@ -28,9 +28,11 @@ class Bwa(object):
         self.bwa_index = bwa_index
         self.reference_fasta = reference_fasta
         self.threads = threads
+        self.describe_alignment = describe_alignment
         self.bwa_run = self.run()
-        self.clusters = self.reads_to_clusters()
-        self.desciption = self.describe_clusters()
+        if self.describe_alignment:
+            self.clusters = self.reads_to_clusters()
+            self.desciption = self.describe_clusters()
 
     def run(self):
         """Run bwa command."""
@@ -41,7 +43,7 @@ class Bwa(object):
             proc = subprocess.Popen(['bwa', 'mem', '-k14', '-A1', '-B1', '-O1', '-E1', '-L0', '-t', str(self.threads), self.bwa_index, self.input_path],
                                     stdout=subprocess.PIPE, env=os.environ.copy(), close_fds=True)
             f = pysam.AlignmentFile(proc.stdout)
-            self.header = f.header['SQ']
+            self.header = f.header
             reads = [r for r in f]
             proc.stdout.close()
             return reads
@@ -75,7 +77,7 @@ class Bwa(object):
             right_candidates = []
             if common_tids:
                 for common_tid in common_tids:
-                    length = self.header[common_tid]['LN']
+                    length = self.header['SQ'][common_tid]['LN']
                     min_left = min([r.pos for r in all_reads['left'][common_tid]])
                     min_right = min([r.pos for r in all_reads['right'][common_tid]])
                     max_left = max([(r.pos + r.alen) for r in all_reads['left'][common_tid]])
@@ -88,7 +90,7 @@ class Bwa(object):
                         end = max_left
                     full_length_fraction = (end - start) / float(length)
                     support = len(set(r.query_name for r in all_reads['left'][common_tid])) + len(set(r.query_name for r in all_reads['right'][common_tid]))
-                    best_candidates.append({'sbjct': self.header[common_tid]['SN'],
+                    best_candidates.append({'sbjct': self.header['SQ'][common_tid]['SN'],
                                             'sbjct_start': start,
                                             'sbjct_end': end,
                                             'fraction_full_length': full_length_fraction,
@@ -96,19 +98,19 @@ class Bwa(object):
             else:
                 for orientation, tid_reads in all_reads.items():
                     for tid, reads in tid_reads.items():
-                        length = self.header[tid]['LN']
+                        length = self.header['SQ'][tid]['LN']
                         start = min([r.pos for r in reads])
                         end = max([(r.pos + r.alen) for r in reads])
                         full_length_fraction = (end - start) / float(length)
                         support = len(set(r.query_name for r in reads))
                         if orientation == 'left':
-                            left_candidates.append({'sbjct': self.header[tid]['SN'],
+                            left_candidates.append({'sbjct': self.header['SQ'][tid]['SN'],
                                                     'sbjct_start': start,
                                                     'sbjct_end': end,
                                                     'fraction_full_length': full_length_fraction,
                                                     'read_support': support})
                         else:
-                            right_candidates.append({'sbjct': self.header[tid]['SN'],
+                            right_candidates.append({'sbjct': self.header['SQ'][tid]['SN'],
                                                      'sbjct_start': start,
                                                      'sbjct_end': end,
                                                      'fraction_full_length': full_length_fraction,
@@ -169,8 +171,8 @@ class Bwa(object):
 def make_bwa_index(reference_fasta, dir='.'):
     """Make a bwa index for reference_fasta and return path to the index's basename."""
     fasta_basename = os.path.basename(reference_fasta)
-    target_fasta = os.path.join(dir, fasta_basename)
-    os.symlink(reference_fasta, target_fasta)
+    target_fasta = os.path.abspath(os.path.join(dir, fasta_basename))
+    os.symlink(os.path.abspath(reference_fasta), target_fasta)
     args = ['bwa', 'index', target_fasta]
     subprocess.call(args, env=os.environ.copy())
-    return os.path.abspath(target_fasta)
+    return target_fasta

@@ -45,7 +45,6 @@ class ClusterManager(object):
         with ProcessPoolExecutor(max_workers=self.threads) as executor:
             futures = []
             tempdir = tempfile.mkdtemp()
-            print(tempdir)
             chunks = split_locations_between_clusters(self.kwds['input_path'])
             if self.kwds['reference_fasta'] and not self.kwds['bwa_index']:
                 self.kwds['bwa_index'] = make_bwa_index(self.kwds['reference_fasta'], dir=tempdir)
