@@ -8,9 +8,10 @@ __VERSION__ = '0.3.21'
 
 ENTRY_POINTS = '''
         [console_scripts]
-        readtagger=readtagger.readtagger:main
+        annotate_softclipped_reads=readtagger.cli.annotate_softclipped_reads:tag
+        readtagger=readtagger.cli.readtagger_cli:main
         allow_dovetailing=readtagger.allow_dovetailing:main
-        add_matesequence=readtagger.mateoperations:main
+        add_matesequence=readtagger.cli.add_matesequence:main
         findcluster=readtagger.cli.findcluster:cli
         write_supplementary_fastq=readtagger.cli.write_supplementary_fastq:cli
         update_mapq=readtagger.cli.update_mapq:cli
