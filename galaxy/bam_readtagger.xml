@@ -11,6 +11,9 @@
         #for $element in $alignment_series
             '$element.annotate_with':$element.r_tag:$element.m_tag
         #end for
+        #if $reference_fasta:
+            --reference_fasta '$reference_fasta'
+        #end if
         $allow_dovetailing
         $discard_suboptimal
         $discarded
@@ -30,6 +33,7 @@
                 <expand macro="tag_options"/>
             </param>
         </repeat>
+        <param argument="--reference_fasta" type="data" format="fasta" label="Reference fasta for realigning clipped reads" optional="True" help="This file is optional. If you provide it, clipped sequences are extracted and aligned against this fasta file."/>
         <param argument="--allow_dovetailing" type="boolean" truevalue="--allow_dovetailing" falsevalue="--no_allow_dovetailing" checked="True" label="Allow dovetailing" help="Check this to label reads as proper_pair even if the mates of a pair overlap each other"/>
         <param argument="--discard_suboptimal_alternate_tags" name="discard_suboptimal" type="boolean" checked="True" truevalue="--discard_suboptimal_alternate_tags" falsevalue="--no_discard_suboptimal" label="Discard suboptimal alternative tags" help="Check this to discard alternative tags that cannot explain the current read cigar"/>
         <param argument="--discard_if_proper_pair" name="discard_proper_pairs" type="boolean" truevalue="--discard_if_proper_pair" falsevalue="--no_discard_if_proper_pair" label="Discard alternative tags for proper pairs" checked="True" help="Check this to discard alternative tags for reads in proper pairs"/>
