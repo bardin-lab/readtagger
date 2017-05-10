@@ -330,7 +330,7 @@ class SamAnnotator(object):
             discarded_tags = []
             verified_tags = []
             verified_tag = None
-            alt_tag = self.samtag_instance.result.get(read.query_name, {}).get(read.is_reverse)
+            alt_tag = self.samtag_instance.result.get(read.query_name, {}).get(read.is_read1)
             if alt_tag and self.discard_suboptimal_alternate_tags:
                 # This is either not the correct read (unlikely because)
                 verified_tag = self.verify_alt_tag(read, alt_tag)

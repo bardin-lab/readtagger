@@ -156,7 +156,7 @@ def test_tag_manager_small_chunks(datadir, tmpdir, reference_fasta):  # noqa: D1
             'cores': 1,
             'chunk_size': 10}
     TagManager(**args)
-    assert len([r for r in pysam.AlignmentFile(verified.strpath)]) == 68
+    assert len([r for r in pysam.AlignmentFile(verified.strpath)]) == 2
 
 
 def test_tag_manager_big_chunks(datadir, tmpdir):  # noqa: D103
@@ -173,7 +173,7 @@ def test_tag_manager_big_chunks(datadir, tmpdir):  # noqa: D103
             'cores': 1,
             'chunk_size': 1000}
     TagManager(**args)
-    assert len([r for r in pysam.AlignmentFile(verified.strpath)]) == 68
+    assert len([r for r in pysam.AlignmentFile(verified.strpath)]) == 2
 
 
 def get_samtag_processor(datadir, tag_mate):  # noqa: D103
