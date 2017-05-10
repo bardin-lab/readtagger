@@ -1,6 +1,6 @@
+import copy
 import tempfile
 
-import numpy as np
 import pysam
 from six import string_types
 
@@ -9,7 +9,6 @@ from .cigar import (
     cigar_tuple_to_cigar_length,
 )
 from .tags import Tag
-
 
 SOFT_CLIP = 4  # This is the cigar operation for softclipped reads
 
@@ -37,7 +36,6 @@ class TagSoftClip(object):
         self.min_clip_length = min_clip_length
         _, self.fastq_tmp = tempfile.mkstemp()
         self.setup()
-        self.qual_to_sanger = np.vectorize(self.phred_qual_to_sanger_string)
         self.write_clipped_portion()
         self.bwa = self.align_clipped_portion()
         self.aligned_clipped_reads = self.process_aligned_clipped_reads()
@@ -104,7 +102,7 @@ class TagSoftClip(object):
 
     def make_tag(self, start, end, original_read, annotated_clipped_read):
         """Make a tag from the clipped alignment that can be added to the original read."""
-        cigar = annotated_clipped_read.cigar
+        cigar = copy.copy(annotated_clipped_read.cigar)
         if start == 0:
             # The clipped portion started at 0, so in terms of the original read
             # we should have an alignment in the beginning of the read and a softclipped
@@ -117,16 +115,22 @@ class TagSoftClip(object):
             cigar.insert(0, (SOFT_CLIP, start))
         if original_read.is_reverse != annotated_clipped_read.is_reverse:
             cigar = cigar[::-1]
-        annotated_clipped_read.cigar = cigar
-        return Tag.from_read(annotated_clipped_read, header=self.bwa.header).to_string()
+        return Tag(tid=annotated_clipped_read.tid,
+                   reference_start=annotated_clipped_read.reference_start,
+                   cigar=cigar,
+                   is_reverse=annotated_clipped_read.is_reverse,
+                   mapq=annotated_clipped_read.mapping_quality,
+                   query_alignment_start=annotated_clipped_read.query_alignment_start,
+                   query_alignment_end=annotated_clipped_read.query_alignment_end,
+                   ).to_string(header=self.bwa.header)
 
     def clip_to_fastq(self, read, start, end):
         """Select relevant portion of read to output as fastq."""
         seq_to_check = read.query_sequence[start:end]
-        qual = self.qual_to_sanger(read.query_qualities[start:end]).tostring()
+        qual = self.phred_qual_to_sanger_string(read.query_qualities[start:end])
         return "@%s|%s|%s\n%s\n+\n%s\n" % (read.query_name, start, end, seq_to_check, qual)
 
     @staticmethod
     def phred_qual_to_sanger_string(qual):
-        """Transform phred-scaled quality values to string representation."""
-        return chr(qual + 33)
+        """Transform phred-scaled quality values to sanger string representation."""
+        return "".join([chr(x + 33) for x in qual])
