@@ -7,6 +7,12 @@ History
 
 
 ---------------------
+0.3.24 (2017-05-11)
+---------------------
+* Split cluster if there are multiple polarity switches between Forward and Reverse orientation
+* Manipulate copy of cigarlist to avoid numpy issue
+
+---------------------
 0.3.23 (2017-05-09)
 ---------------------
 * Expose reference fasta option in bam_readtagger.xml
