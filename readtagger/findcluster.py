@@ -213,6 +213,11 @@ class ClusterFinder(object):
                     else:
                         prev_cluster = cluster
                 new_clusterlength = len(self.cluster)
+        for index, cluster in enumerate(self.cluster):
+            cluster_a, cluster_b = cluster.split_cluster_at_polarity_switch()
+            if cluster_a:
+                self.cluster[index] = cluster_a
+                self.cluster.insert(index + 1, cluster_b)
         # We are done, we can give the clusters a numeric index, so that we can distribute the processing and recover the results
         [c.set_id(i) for i, c in enumerate(self.cluster)]
 

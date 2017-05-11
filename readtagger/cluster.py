@@ -1,3 +1,5 @@
+from itertools import groupby
+
 import pysam
 from cached_property import cached_property
 from .genotype import Genotype
@@ -52,6 +54,27 @@ class Cluster(list):
     def read_is_compatible(self, r):
         """Determine if read overlaps cluster and is on same chromosome."""
         return self.overlaps(r) and self.same_chromosome(r)
+
+    def split_cluster_at_polarity_switch(self):
+        """
+        Split cluster if the direction of the mates switches.
+
+        This is quite a rough estimate, I should probaby do some more checks to ensure a single
+        stray read in the wrong orientation does not split a cluster.
+        """
+        switches = [next(group[1]) for group in groupby(self.orientation_vector, key=lambda x: x[0])]
+        if len(switches) > 2 and switches[0][0] == 'F':
+            cluster_a = Cluster(shm_dir=self.shm_dir)
+            cluster_b = Cluster(shm_dir=self.shm_dir)
+            cluster_a.extend(self[:switches[2][1]])
+            cluster_b.extend(self[switches[2][1]:])
+            return cluster_a, cluster_b
+        return None, None
+
+    @property
+    def orientation_vector(self):
+        """Return orientation of all reads with 'BD' tag."""
+        return [('R', i) if r.is_reverse else ('F', i) for i, r in enumerate(self) if not r.has_tag('AD')]
 
     @property
     def read_index(self):
@@ -108,7 +131,8 @@ class Cluster(list):
 
     def _can_join(self, other_cluster, max_distance):
         other_clustertag = TagCluster(other_cluster, shm_dir=self.shm_dir)
-        # First check ... are three_p and five_p of cluster overlapping?
+        # TODO: ... the should be no additional polarity switch if clusters are to be joined?
+        # Second check ... are three_p and five_p of cluster overlapping?
         if not self.clustertag.tsd.three_p and not other_clustertag.tsd.five_p:
             if self.clustertag.tsd.five_p and other_clustertag.tsd.three_p:
                 extended_three_p = other_clustertag.tsd.three_p - other_clustertag.tsd.three_p_clip_length
@@ -151,6 +175,8 @@ class Cluster(list):
         return len(self.read_index)
 
     def _make_contigs(self):
+        # We just touch the contigs in threading mode,
+        # so the actual assembly is being triggered.
         for contigs in self.left_contigs:
             pass
         for contigs in self.right_contigs:

@@ -15,6 +15,7 @@ EXTENDED = 'extended_and_annotated_roi.bam'
 COMPLEX = 'extended_annotated_updated_all_reads.bam'
 REORGANIZE_CLUSTER = 'reorganize_cluster.bam'
 NON_SUPPORT = 'non_support_test.bam'
+SPLIT_CLUSTER = 'hum3_false_merge.bam'
 
 
 def test_clusterfinder_single_cluster(datadir):  # noqa: D103
@@ -36,6 +37,14 @@ def test_clusterfinder_remove_supplementary(datadir):  # noqa: D103
     cf = ClusterFinder(input_path=input_path, include_duplicates=True, remove_supplementary_without_primary=True)
     assert len(cf.cluster) == 1
     assert len(cf.cluster[0]) == 25
+
+
+def test_clusterfinder_split_cluster(datadir):  # noqa: D103
+    input_path = datadir[SPLIT_CLUSTER]
+    cf = ClusterFinder(input_path=input_path, include_duplicates=False, remove_supplementary_without_primary=False)
+    assert len(cf.cluster) == 4
+    assert len(cf.cluster[1]) == 39
+    assert len(cf.cluster[2]) == 26
 
 
 def test_cornercase(datadir, tmpdir):  # noqa: D103
