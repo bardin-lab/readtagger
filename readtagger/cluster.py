@@ -69,6 +69,13 @@ class Cluster(list):
             cluster_a.extend(self[:switches[2][1]])
             cluster_b.extend(self[switches[2][1]:])
             return cluster_a, cluster_b
+        if len(switches) > 2 and switches[0][0] == 'R':
+            # Clusters shouldn't really start with reverse BD reads
+            cluster_a = Cluster(shm_dir=self.shm_dir)
+            cluster_b = Cluster(shm_dir=self.shm_dir)
+            cluster_a.extend(self[:switches[1][1]])
+            cluster_b.extend(self[switches[1][1]:])
+            return cluster_a, cluster_b
         return None, None
 
     @property
