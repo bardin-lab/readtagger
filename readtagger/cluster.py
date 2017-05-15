@@ -167,6 +167,24 @@ class Cluster(list):
         return self.clustertag.left_sequence_count
 
     @cached_property
+    def left_mate_support(self):
+        """
+        Return number of mates on the left that support an insertion.
+
+        This is excluding split reads.
+        """
+        return len([r.query_name for r in self if r.has_tag('BD') and not r.has_tag('AD') and r.query_name in self.clustertag.left_sequences])
+
+    @cached_property
+    def right_mate_support(self):
+        """
+        Return number of mates on the right that support an insertion.
+
+        This is excluding split reads.
+        """
+        return len([r.query_name for r in self if r.has_tag('BD') and not r.has_tag('AD') and r.query_name in self.clustertag.right_sequences])
+
+    @cached_property
     def right_support(self):
         """Number of supporting reads on the right side of cluster."""
         return self.clustertag.right_sequence_count
