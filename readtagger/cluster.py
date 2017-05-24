@@ -173,7 +173,8 @@ class Cluster(list):
 
         This is excluding split reads.
         """
-        return len([r.query_name for r in self if r.has_tag('BD') and not r.has_tag('AD') and ("%s.1" % r.query_name in self.clustertag.left_sequences or "%s.2" % r.query_name in self.clustertag.left_sequences)])
+        return len([r.query_name for r in self if r.has_tag('BD') and not r.has_tag('AD') and
+                    ("%s.1" % r.query_name in self.clustertag.left_sequences or "%s.2" % r.query_name in self.clustertag.left_sequences)])
 
     @cached_property
     def right_mate_support(self):
@@ -182,7 +183,8 @@ class Cluster(list):
 
         This is excluding split reads.
         """
-        return len([r.query_name for r in self if r.has_tag('BD') and not r.has_tag('AD') and ("%s.1" % r.query_name in self.clustertag.right_sequences or "%s.2" % r.query_name in self.clustertag.right_sequences)])
+        return len([r.query_name for r in self if r.has_tag('BD') and not r.has_tag('AD') and
+                    ("%s.1" % r.query_name in self.clustertag.right_sequences or "%s.2" % r.query_name in self.clustertag.right_sequences)])
 
     @cached_property
     def right_support(self):
