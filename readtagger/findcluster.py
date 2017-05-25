@@ -107,7 +107,7 @@ class ClusterFinder(object):
                  sample_name=None,
                  threads=1,
                  min_mapq=1,
-                 max_clustersupport=200,
+                 max_clustersupport=800,
                  remove_supplementary_without_primary=False,
                  region=None,
                  shm_dir=None):
@@ -194,7 +194,7 @@ class ClusterFinder(object):
 
     def clean_clusters(self):
         """Remove clusters that have more reads supporting an insertion than specified in self.max_clustersupport."""
-        self.cluster = [c for c in self.cluster if not sum([c.clustertag.left_sequence_count, c.clustertag.right_sequence_count]) > self.max_clustersupport]
+        self.cluster = [c for c in self.cluster if not len(c.read_index) > self.max_clustersupport]
 
     def join_clusters(self):
         """Iterate over self.cluster and attempt to join consecutive clusters."""
