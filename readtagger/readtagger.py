@@ -349,7 +349,8 @@ class SamAnnotator(object):
             if discarded_tags:
                 discarded_read = read.__copy__()
                 discarded_read.tags += discarded_tags
-                self.discarded_writer.write(discarded_read)
+                if self.discarded_writer:
+                    self.discarded_writer.write(discarded_read)
             if verified_tags:
                 read.tags += verified_tags
                 if self.verified_writer:
