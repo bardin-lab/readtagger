@@ -86,9 +86,7 @@ class Cluster(list):
     @property
     def read_index(self):
         """Index of read names in cluster."""
-        if not hasattr(self, '_read_index') or (hasattr(self, '_clusterlen') and len(self) != self._clusterlen):
-            self._read_index = set([r.query_name for r in self])
-        return self._read_index
+        return set([r.query_name for r in self])
 
     @property
     def hash(self):
