@@ -15,12 +15,13 @@ class Cluster(list):
     left_blast_result = None
     right_blast_result = None
 
-    def __init__(self, shm_dir):
+    def __init__(self, shm_dir, max_proper_size=0):
         """Setup Cluster object."""
         super(Cluster, self).__init__()
         self.nref = 0
         self.id = -1
         self.feature_args = None
+        self.max_proper_size = max_proper_size
         self.reference_name = None
         self.shm_dir = shm_dir
 
@@ -55,6 +56,11 @@ class Cluster(list):
         """Determine if read overlaps cluster and is on same chromosome."""
         return self.overlaps(r) and self.same_chromosome(r)
 
+    @property
+    def orientation_switches(self):
+        """Return all orientation switches in this cluster."""
+        return [next(group[1]) for group in groupby(self.orientation_vector, key=lambda x: x[0])]
+
     def split_cluster_at_polarity_switch(self):
         """
         Split cluster if the direction of the mates switches.
@@ -62,17 +68,17 @@ class Cluster(list):
         This is quite a rough estimate, I should probaby do some more checks to ensure a single
         stray read in the wrong orientation does not split a cluster.
         """
-        switches = [next(group[1]) for group in groupby(self.orientation_vector, key=lambda x: x[0])]
+        switches = self.orientation_switches
         if len(switches) > 2 and switches[0][0] == 'F':
-            cluster_a = Cluster(shm_dir=self.shm_dir)
-            cluster_b = Cluster(shm_dir=self.shm_dir)
+            cluster_a = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_size)
+            cluster_b = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_size)
             cluster_a.extend(self[:switches[2][1]])
             cluster_b.extend(self[switches[2][1]:])
             return cluster_a, cluster_b
         if len(switches) > 2 and switches[0][0] == 'R':
             # Clusters shouldn't really start with reverse BD reads
-            cluster_a = Cluster(shm_dir=self.shm_dir)
-            cluster_b = Cluster(shm_dir=self.shm_dir)
+            cluster_a = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_size)
+            cluster_b = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_size)
             cluster_a.extend(self[:switches[1][1]])
             cluster_b.extend(self[switches[1][1]:])
             return cluster_a, cluster_b
@@ -154,37 +160,63 @@ class Cluster(list):
                 if Cap3Assembly.sequences_contribute_to_same_contig(self.clustertag.left_sequences, other_clustertag.left_sequences):
                     self._can_join_d = {self.hash: other_cluster.hash}
                     return True
+        # TODO: Refactor this to a common function for left-left and right-right assembly
+        if self.clustertag.right_sequences and other_clustertag.right_sequences:
+            # A cluster that provides support for a 5p insertion will have the reads always annotated as left sequences.
+            # That's a bit confusing, since the mates are to the right of the cluster ... but that's how it is.
+            if (other_clustertag.three_p_breakpoint - self.clustertag.three_p_breakpoint) < max_distance:
+                # We don't want clusters to be spaced too far away. Not sure if this is really a problem in practice.
+                if Cap3Assembly.sequences_contribute_to_same_contig(self.clustertag.right_sequences, other_clustertag.right_sequences):
+                    self._can_join_d = {self.hash: other_cluster.hash}
+                    return True
+        self_switches = self.orientation_switches
+        other_switches = other_cluster.orientation_switches
+        if len(self_switches) == 1 and len(other_switches) and self_switches != other_switches:
+            # Merge a cluster that is split by an insertion and not connected via split reads
+            if self_switches[0][0] == 'F' and other_switches[0][0] == 'R':
+                self._can_join_d = {self.hash: other_cluster.hash}
+                return True
         # We know this cluster (self) cannot be joined with other_cluster, so we cache this result,
         # Since we may ask this question multiple times when joining the clusters.
         self._cannot_join_d = {self.hash: other_cluster.hash}
         return False
 
-    @cached_property
+    @property
     def left_support(self):
         """Number of supporting reads on the left side of cluster."""
         return self.clustertag.left_sequence_count
 
-    @cached_property
+    @property
     def left_mate_support(self):
         """
-        Return number of mates on the left that support an insertion.
+        Return mates on the left that support an insertion.
 
         This is excluding split reads.
         """
-        return len([r.query_name for r in self if r.has_tag('BD') and not r.has_tag('AD') and
-                    ("%s.1" % r.query_name in self.clustertag.left_sequences or "%s.2" % r.query_name in self.clustertag.left_sequences)])
+        return {r.query_name: r for r in self if r.has_tag('BD') and not r.has_tag('AD') and
+                ("%s.1" % r.query_name in self.clustertag.left_sequences or "%s.2" % r.query_name in self.clustertag.left_sequences)}
 
-    @cached_property
+    @property
+    def left_mate_count(self):
+        """Return number of mates on the left that support an insertion."""
+        return len(self.left_mate_support)
+
+    @property
     def right_mate_support(self):
         """
-        Return number of mates on the right that support an insertion.
+        Return mates on the right that support an insertion.
 
         This is excluding split reads.
         """
-        return len([r.query_name for r in self if r.has_tag('BD') and not r.has_tag('AD') and
-                    ("%s.1" % r.query_name in self.clustertag.right_sequences or "%s.2" % r.query_name in self.clustertag.right_sequences)])
+        return {r.query_name: r for r in self if r.has_tag('BD') and not r.has_tag('AD') and
+                ("%s.1" % r.query_name in self.clustertag.right_sequences or "%s.2" % r.query_name in self.clustertag.right_sequences)}
 
-    @cached_property
+    @property
+    def right_mate_count(self):
+        """Return mates on the right that support an insertion."""
+        return len(self.right_mate_support)
+
+    @property
     def right_support(self):
         """Number of supporting reads on the right side of cluster."""
         return self.clustertag.right_sequence_count
@@ -233,14 +265,48 @@ class Cluster(list):
         """End coordinate for this cluster."""
         return self._start_and_end[1]
 
+    @property
+    def start_corrected(self):
+        """
+        Extend start site.
+
+        May be extended by maximum insert size length minus the most distant 5' mate if no exact TSD exists.
+        """
+        if not self.clustertag.tsd.three_p_support and len(self.orientation_switches) < 2:
+            three_p_reads = self.right_mate_support.values()
+            if three_p_reads:
+                start_position = min([r.reference_start for r in three_p_reads])
+                end_position = max([r.reference_end for r in three_p_reads])
+                if end_position - start_position < self.max_proper_size:
+                    return end_position - self.max_proper_size
+        return self.clustertag.five_p_breakpoint
+
+    @property
+    def end_corrected(self):
+        """
+        Extend end site.
+
+        May be extended by maximum insert size length plus the most distant 3' mate end if no exact TSD exists.
+        """
+        if not self.clustertag.tsd.five_p_support and len(self.orientation_switches) < 2:
+            three_p_reads = self.left_mate_support.values()
+            if three_p_reads:
+                start_position = min([r.reference_start for r in three_p_reads])
+                end_position = max([r.reference_end for r in three_p_reads])
+                if end_position - start_position < self.max_proper_size:
+                    return start_position + self.max_proper_size
+        return self.clustertag.three_p_breakpoint
+
     @cached_property
     def _start_and_end(self):
-        start = self.clustertag.five_p_breakpoint
-        end = self.clustertag.three_p_breakpoint
+        start = self.start_corrected
+        end = self.end_corrected
         if start is None:
             start = end
         if end is None:
             end = start
+        if start < 0:
+            start = 0
         if start > end:
             end, start = start, end
         if start == end:

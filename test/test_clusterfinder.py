@@ -15,6 +15,7 @@ EXTENDED = 'extended_and_annotated_roi.bam'
 COMPLEX = 'extended_annotated_updated_all_reads.bam'
 REORGANIZE_CLUSTER = 'reorganize_cluster.bam'
 NON_SUPPORT = 'non_support_test.bam'
+REFINE_COORD = 'refine_coord.bam'
 SPLIT_CLUSTER = 'hum3_false_merge.bam'
 
 
@@ -39,12 +40,12 @@ def test_clusterfinder_remove_supplementary(datadir):  # noqa: D103
     assert len(cf.cluster[0]) == 25
 
 
-def test_clusterfinder_split_cluster(datadir):  # noqa: D103
+def test_clusterfinder_split_cluster(datadir, tmpdir):  # noqa: D103
     input_path = datadir[SPLIT_CLUSTER]
-    cf = ClusterFinder(input_path=input_path, include_duplicates=False, remove_supplementary_without_primary=False)
-    assert len(cf.cluster) == 4
+    cf = ClusterFinder(input_path=input_path, include_duplicates=False, remove_supplementary_without_primary=False, output_gff=tmpdir.join('out.gff').strpath)
+    assert len(cf.cluster) == 3
     assert len(cf.cluster[1]) == 39
-    assert len(cf.cluster[2]) == 26
+    assert len(cf.cluster[2]) == 27
 
 
 def test_cornercase(datadir, tmpdir):  # noqa: D103
@@ -63,27 +64,27 @@ def test_clusterfinder_multiple_cluster(datadir, tmpdir):  # noqa: D103
     input_path = datadir[EXTENDED]
     output_bam = tmpdir.join('tagged_clusters.bam')
     cf = ClusterFinder(input_path=input_path, output_bam=output_bam.strpath)
-    assert len(cf.cluster) == 3
+    assert len(cf.cluster) == 2
 
 
 def test_clusterfinder_multiple_cluster_gff(datadir, tmpdir):  # noqa: D103
     input_path = datadir[EXTENDED]
     output_gff = tmpdir.join('output.gff')
     cf = ClusterFinder(input_path=input_path, output_gff=output_gff.strpath)
-    assert len(cf.cluster) == 3
+    assert len(cf.cluster) == 2
 
 
 def test_clusterfinder_cache_threads(datadir, tmpdir, mocker):  # noqa: D103
     input_path = datadir[EXTENDED]
     output_gff = tmpdir.join('output.gff')
     cf = ClusterFinder(input_path=input_path, output_gff=output_gff.strpath, threads=2)
-    assert len(cf.cluster) == 3
+    assert len(cf.cluster) == 2
     mocker.spy(cf.cluster[0], 'can_join')
     mocker.spy(cf.cluster[0], '_can_join')
     cf.join_clusters()
     assert cf.cluster[0].can_join.call_count == 4
     assert cf.cluster[0]._can_join.call_count == 0
-    assert len(cf.cluster) == 3
+    assert len(cf.cluster) == 2
 
 
 def test_clusterfinder_multiple_cluster_gff_cli(datadir, tmpdir, mocker):  # noqa: D103
@@ -135,6 +136,21 @@ def test_clusterfinder_nonsupport(datadir, tmpdir):  # noqa: D103
     assert genotype.nref == 25
     assert genotype.nalt == 1
     assert genotype.genotype == 'reference'
+
+
+def test_clusterfinder_refine_coord(datadir, tmpdir):  # noqa: D103
+    input_path = datadir[REFINE_COORD]
+    output_bam = tmpdir.join('output.bam').strpath
+    clusters = ClusterFinder(input_path=input_path,
+                             output_bam=output_bam,
+                             output_gff=tmpdir.join('output.gff').strpath,
+                             reference_fasta=None,
+                             max_proper_pair_size=480)
+    cluster = clusters.cluster[-1]
+    genotype = cluster.genotype_likelihood()
+    assert genotype.nref == 0
+    assert genotype.nalt == 5
+    assert genotype.genotype == 'homozygous'
 
 
 def test_clusterfinder_reorganize_cluster(datadir, tmpdir, reference_fasta):  # noqa: D103, F811

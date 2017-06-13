@@ -7,6 +7,7 @@ from concurrent.futures import (
     ThreadPoolExecutor,
     ProcessPoolExecutor
 )
+import pysam
 import six
 
 from .bam_io import (
@@ -22,6 +23,7 @@ from .bwa import (
 from .cluster import Cluster
 from .cluster import non_evidence
 from .gff_io import write_cluster
+from .readtagger import get_max_proper_pair_size
 from .verify import discard_supplementary
 
 
@@ -30,6 +32,7 @@ class ClusterManager(object):
 
     def __init__(self, **kwds):
         """Decide if passing kwds on to ClusterFinder or if splitting input file is required."""
+        kwds['max_proper_pair_size'] = get_max_proper_pair_size(pysam.AlignmentFile(kwds['input_path']))
         if kwds['threads'] > 1:
             self.threads = kwds['threads']
             kwds['threads'] = 2
@@ -108,6 +111,7 @@ class ClusterFinder(object):
                  threads=1,
                  min_mapq=1,
                  max_clustersupport=800,
+                 max_proper_pair_size=0,
                  remove_supplementary_without_primary=False,
                  region=None,
                  shm_dir=None):
@@ -133,6 +137,7 @@ class ClusterFinder(object):
         self.include_duplicates = include_duplicates
         self.min_mapq = min_mapq
         self.max_clustersupport = max_clustersupport
+        self.max_proper_pair_size = max_proper_pair_size
         self._tempdir = tempfile.mkdtemp()
         self.remove_supplementary_without_primary = remove_supplementary_without_primary
         self.threads = threads
@@ -180,14 +185,14 @@ class ClusterFinder(object):
                 if not (r.has_tag('BD') or r.has_tag('AD')):
                     continue
                 if not clusters:
-                    cluster = Cluster(shm_dir=self.shm_dir)
+                    cluster = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_pair_size)
                     cluster.append(r)
                     clusters.append(cluster)
                     continue
                 if clusters[-1].read_is_compatible(r):
                     clusters[-1].append(r)
                 else:
-                    cluster = Cluster(shm_dir=self.shm_dir)
+                    cluster = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_pair_size)
                     cluster.append(r)
                     clusters.append(cluster)
         return clusters
