@@ -3,6 +3,7 @@ from itertools import groupby
 import pysam
 from cached_property import cached_property
 from .genotype import Genotype
+from .bwa import SimpleAligner
 from .cap3 import Cap3Assembly
 from .tagcluster import TagCluster
 
@@ -74,6 +75,7 @@ class Cluster(list):
             cluster_b = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_size)
             cluster_a.extend(self[:switches[2][1]])
             cluster_b.extend(self[switches[2][1]:])
+            self.assign_reads_to_slit(cluster_a, cluster_b)
             return cluster_a, cluster_b
         if len(switches) > 2 and switches[0][0] == 'R':
             # Clusters shouldn't really start with reverse BD reads
@@ -81,8 +83,54 @@ class Cluster(list):
             cluster_b = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_size)
             cluster_a.extend(self[:switches[1][1]])
             cluster_b.extend(self[switches[1][1]:])
+            self.assign_reads_to_slit(cluster_a, cluster_b)
             return cluster_a, cluster_b
         return None, None
+
+    def assign_reads_to_slit(self, putative_cluster_a, putative_cluster_b):
+        """
+        Check reads to split using an assembly strategy.
+
+        Before really splitting a cluster, assemble all contributing reads and make sure there isn't a single stray read that causes
+        a perfectly valid cluster to be split. If only the read at the polarity switch does not contribute to the contigs keep all other reads.
+        """
+        all_reads = {}
+        all_reads.update(self.clustertag.left_sequences)
+        all_reads.update(self.clustertag.right_sequences)
+        assembly = Cap3Assembly(all_reads)
+        contigs = assembly.assembly.contigs
+        contig_reads = []
+        cluster_a_contigs = set()
+        # Establish a list of contigs and their readnames,
+        # And classify whether contigs beling to cluster a or cluster b.
+        for index, contig in enumerate(contigs):
+            contig_reads.append(set())
+            for read in contig.reads:
+                readname = read.rd.name.rstrip('.1').rstrip('.2')
+                if readname in putative_cluster_a.read_index:
+                    cluster_a_contigs.add(index)
+                contig_reads[index].add(readname)
+        # collapse cluster contig reads into a or b
+        cluster_a_contig_reads = set()
+        for index in cluster_a_contigs:
+            cluster_a_contig_reads.update(contig_reads[index])
+        contig_sequences = [contig.sequence for i, contig in enumerate(contigs) if i in cluster_a_contigs]
+        # Not all reads are assigned to contigs,
+        # so we use bwa to check if a read belongs to a contig
+        simple_aligner = SimpleAligner(reference_sequences=contig_sequences, tmp_dir=self.shm_dir)
+        reads_to_remove = set()
+        for read in putative_cluster_b:
+            if read.query_name in cluster_a_contig_reads:
+                putative_cluster_a.append(read)
+                reads_to_remove.add(read)
+            elif read.has_tag('MS') and read.has_tag('BD'):
+                ms = read.get_tag('MS')
+                for i, contig in enumerate(contig_sequences):
+                    if i in cluster_a_contigs and simple_aligner.align(ms):
+                        putative_cluster_a.append(read)
+                        reads_to_remove.add(read)
+        for read in reads_to_remove:
+            putative_cluster_b.remove(read)
 
     @property
     def orientation_vector(self):

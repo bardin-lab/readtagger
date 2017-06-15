@@ -3,6 +3,8 @@ import subprocess
 import pysam
 import temporary
 
+from .fasta_io import write_sequences
+
 
 class Bwa(object):
     """Hold Blast-related data and methods."""
@@ -14,10 +16,9 @@ class Bwa(object):
         Align sequences in fastq/fasta file `input_path` to bwa_index or construct a new index using reference_fasta
 
         >>> from test.helpers import roo_seq
-        >>> from .fasta_io import write_sequences
         >>> with temporary.temp_dir() as tempdir:
         ...     reference_fasta = os.path.join(str(tempdir), 'reference.fasta')
-        ...     write_sequences({'cluster_1_left_sequences_0': roo_seq}, output_path=reference_fasta)
+        ...     reference_fasta = write_sequences({'cluster_1_left_sequences_0': roo_seq}, output_path=reference_fasta)
         ...     b = Bwa(input_path=reference_fasta, reference_fasta=reference_fasta)
         >>> len(b.bwa_run) == 1
         True
@@ -166,6 +167,22 @@ class Bwa(object):
             else:
                 cluster[read.tid].append(read)
         return cluster
+
+
+class SimpleAligner(object):
+    """Perform simple alignments, e.g to see if a read is contained in a contig."""
+
+    def __init__(self, reference_sequences, tmp_dir=None):
+        """Perform simple alignments, e.g to see if a read is contained in a contig."""
+        self.tmp_dir = tmp_dir
+        self.reference_fasta = write_sequences(reference_sequences)
+        self.index = make_bwa_index(self.reference_fasta)
+
+    def align(self, sequence):
+        """Return contig numbers with valid alignments for sequence."""
+        sequences = write_sequences(sequence, tmp_dir=self.tmp_dir)
+        aligned_reads = Bwa(input_path=sequences, bwa_index=self.index, describe_alignment=False)
+        return set(r.tid for r in aligned_reads.bwa_run if not r.is_unmapped)
 
 
 def make_bwa_index(reference_fasta, dir='.'):

@@ -17,6 +17,7 @@ REORGANIZE_CLUSTER = 'reorganize_cluster.bam'
 NON_SUPPORT = 'non_support_test.bam'
 REFINE_COORD = 'refine_coord.bam'
 SPLIT_CLUSTER = 'hum3_false_merge.bam'
+SPLIT_CLUSTER_OPT = 'split_cluster_opt.bam'
 
 
 def test_clusterfinder_single_cluster(datadir):  # noqa: D103
@@ -42,10 +43,28 @@ def test_clusterfinder_remove_supplementary(datadir):  # noqa: D103
 
 def test_clusterfinder_split_cluster(datadir, tmpdir):  # noqa: D103
     input_path = datadir[SPLIT_CLUSTER]
-    cf = ClusterFinder(input_path=input_path, include_duplicates=False, remove_supplementary_without_primary=False, output_gff=tmpdir.join('out.gff').strpath)
+    cf = ClusterFinder(input_path=input_path, output_bam=tmpdir.join('output.bam').strpath,
+                       include_duplicates=False,
+                       remove_supplementary_without_primary=False,
+                       output_gff=tmpdir.join('out.gff').strpath)
     assert len(cf.cluster) == 3
     assert len(cf.cluster[1]) == 39
     assert len(cf.cluster[2]) == 27
+
+
+def test_clusterfinder_refine_split(datadir, tmpdir):  # noqa: D103
+    input_path = datadir[SPLIT_CLUSTER_OPT]
+    output_bam = tmpdir.join('output.bam').strpath
+    clusters = ClusterFinder(input_path=input_path,
+                             output_bam=output_bam,
+                             output_gff=tmpdir.join('output.gff').strpath,
+                             reference_fasta=None,
+                             max_proper_pair_size=480)
+    cluster = clusters.cluster[0]
+    genotype = cluster.genotype_likelihood()
+    assert genotype.nref == 72
+    assert genotype.nalt == 107
+    assert genotype.genotype == 'heterozygous'
 
 
 def test_cornercase(datadir, tmpdir):  # noqa: D103
