@@ -1,5 +1,8 @@
 from collections import namedtuple
-from readtagger.findcluster import ClusterFinder
+from readtagger.findcluster import (
+    ClusterFinder,
+    ClusterManager
+)
 from readtagger.cli import findcluster
 
 from .helpers import (  # noqa: F401
@@ -18,6 +21,7 @@ NON_SUPPORT = 'non_support_test.bam'
 REFINE_COORD = 'refine_coord.bam'
 SPLIT_CLUSTER = 'hum3_false_merge.bam'
 SPLIT_CLUSTER_OPT = 'split_cluster_opt.bam'
+MULTIPROCESSING = 'pasteurianus.bam'
 
 
 def test_clusterfinder_single_cluster(datadir):  # noqa: D103
@@ -104,6 +108,20 @@ def test_clusterfinder_cache_threads(datadir, tmpdir, mocker):  # noqa: D103
     assert cf.cluster[0].can_join.call_count == 4
     assert cf.cluster[0]._can_join.call_count == 0
     assert len(cf.cluster) == 2
+
+
+def test_clustermanager_single_core(datadir, tmpdir):  # noqa: D103
+    input_path = datadir[EXTENDED]
+    output_gff = tmpdir.join('output.gff').strpath
+    output_bam = tmpdir.join('output.bam').strpath
+    ClusterManager(input_path=input_path, reference_fasta=None, output_bam=output_bam, output_gff=output_gff, threads=1)
+
+
+def test_clustermanager_multiprocessing(datadir, tmpdir):  # noqa: D103
+    input_path = datadir[MULTIPROCESSING]
+    output_gff = tmpdir.join('output.gff').strpath
+    output_bam = tmpdir.join('output.bam').strpath
+    ClusterManager(input_path=input_path, reference_fasta=None, output_bam=output_bam, output_gff=output_gff, threads=2)
 
 
 def test_clusterfinder_multiple_cluster_gff_cli(datadir, tmpdir, mocker):  # noqa: D103

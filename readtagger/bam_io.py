@@ -155,7 +155,7 @@ def split_locations_between_clusters(bamfile, self_tag='AD', other_tag='BD', dis
     # TODO: modify this so we don't split small chromosomes, instead we should "merge" small chromosomes
     index_bam(bamfile)
     with pysam.AlignmentFile(bamfile) as f:
-        name_length = [(chrom.values()[1], chrom.values()[0]) for chrom in f.header['SQ']]
+        name_length = [(chrom['SN'], chrom['LN']) for chrom in f.header['SQ']]
         chunks = []
         for (name, length) in name_length:
             chunk = []
