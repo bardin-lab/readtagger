@@ -128,9 +128,10 @@ def merge_bam(bam_collection, template_bam, output_path):
 
 def sort_bam(inpath, output, sort_order, threads=1):
     """Sort bam file at inpath using sort_order and write output to output."""
+    fd = None
     if inpath == output:
         # We sort 'in place'
-        _, temp_out = tempfile.mkstemp()
+        fd, temp_out = tempfile.mkstemp()
     else:
         temp_out = output
     args = ['samtools', 'sort', '-@', "%s" % threads]
@@ -141,6 +142,8 @@ def sort_bam(inpath, output, sort_order, threads=1):
     subprocess.call(args, env=os.environ.copy())
     if temp_out != output:
         shutil.move(temp_out, output)
+    if fd:
+        os.close(fd)
     return output
 
 

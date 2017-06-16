@@ -77,11 +77,13 @@ class TagManager(object):
     def setup_input_files(self):
         """Coordinate sort input files if necessary."""
         if is_file_coordinate_sorted(self.annotate_path):
-            _, path = tempfile.mkstemp()
+            fd, path = tempfile.mkstemp()
             self.annotate_path_sorted = sort_bam(self.annotate_path, output=path, sort_order='queryname', threads=self.cores)
+            os.close(fd)
         if is_file_coordinate_sorted(self.source_path):
-            _, path = tempfile.mkstemp()
+            fd, path = tempfile.mkstemp()
             self.source_path_sorted = sort_bam(self.source_path, output=path, sort_order='queryname', threads=self.cores)
+            os.close(fd)
         if not self.annotate_path_sorted:
             self.annotate_path_sorted = self.annotate_path
         if not self.source_path_sorted:

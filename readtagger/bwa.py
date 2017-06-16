@@ -191,5 +191,5 @@ def make_bwa_index(reference_fasta, dir='.'):
     target_fasta = os.path.abspath(os.path.join(dir, fasta_basename))
     os.symlink(os.path.abspath(reference_fasta), target_fasta)
     args = ['bwa', 'index', target_fasta]
-    subprocess.call(args, env=os.environ.copy())
+    subprocess.call(args, env=os.environ.copy(), close_fds=True)
     return target_fasta

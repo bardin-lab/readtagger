@@ -1,4 +1,5 @@
 import copy
+import os
 import tempfile
 
 import pysam
@@ -34,7 +35,8 @@ class TagSoftClip(object):
         self.output_path = output_path
         self.threads = threads
         self.min_clip_length = min_clip_length
-        _, self.fastq_tmp = tempfile.mkstemp()
+        fd, self.fastq_tmp = tempfile.mkstemp()
+        os.close(fd)
         self.setup()
         self.write_clipped_portion()
         self.bwa = self.align_clipped_portion()
