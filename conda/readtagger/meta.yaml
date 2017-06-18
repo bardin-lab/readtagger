@@ -12,18 +12,7 @@ build:
 requirements:
   build:
     - python
-    - scipy
-    - cached-property
-    - biopython
-    - bcbiogff
-    - click
-    - futures
     - setuptools
-    - contextlib2
-    - shutilwhich  # [not py3k]
-    - pysam >=0.9.4
-    - six
-    - temporary
 
   run:
     - biopython
@@ -36,6 +25,7 @@ requirements:
     - cap3
     - python
     - contextlib2
+    - multiprocessing-logging
     - pysam >=0.9.4
     - six
     - shutilwhich  # [not py3k]

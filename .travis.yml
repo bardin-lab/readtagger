@@ -30,6 +30,7 @@ install:
   - samtools --version
   - pip install tox-travis coveralls anaconda-client
   - mkdir -p ~/.planemo/ && virtualenv ~/.planemo/gx_venv
+  - $CONDA_BIN build --python "$TRAVIS_PYTHON_VERSION" conda/multiprocessing-logging
   - $CONDA_BIN build --python "$TRAVIS_PYTHON_VERSION" conda/readtagger
 script: tox
 after_success:
