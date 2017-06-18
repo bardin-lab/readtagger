@@ -1,3 +1,4 @@
+import logging
 import os
 import shutil
 import tempfile
@@ -7,6 +8,7 @@ from concurrent.futures import (
     ThreadPoolExecutor,
     ProcessPoolExecutor
 )
+import multiprocessing_logging
 import pysam
 import six
 
@@ -14,6 +16,7 @@ from .bam_io import (
     BamAlignmentReader as Reader,
     BamAlignmentWriter as Writer,
     merge_bam,
+    sort_bam,
     split_locations_between_clusters
 )
 from .bwa import (
@@ -22,9 +25,16 @@ from .bwa import (
 )
 from .cluster import Cluster
 from .cluster import non_evidence
-from .gff_io import write_cluster
+from .gff_io import (
+    sort_gff,
+    write_cluster
+)
 from .readtagger import get_max_proper_pair_size
 from .verify import discard_supplementary
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s - %(message)s', level=logging.DEBUG)
+multiprocessing_logging.install_mp_handler()
 
 
 class ClusterManager(object):
@@ -32,7 +42,8 @@ class ClusterManager(object):
 
     def __init__(self, **kwds):
         """Decide if passing kwds on to ClusterFinder or if splitting input file is required."""
-        kwds['max_proper_pair_size'] = get_max_proper_pair_size(pysam.AlignmentFile(kwds['input_path']))
+        if kwds.get('max_proper_pair_size', 0) == 0:
+            kwds['max_proper_pair_size'] = get_max_proper_pair_size(pysam.AlignmentFile(kwds['input_path']))
         if kwds['threads'] > 1:
             self.threads = kwds['threads']
             kwds['threads'] = 2
@@ -50,7 +61,7 @@ class ClusterManager(object):
             tempdir = tempfile.mkdtemp()
             chunks = split_locations_between_clusters(self.kwds['input_path'])
             if self.kwds['reference_fasta'] and not self.kwds['bwa_index']:
-                self.kwds['bwa_index'] = make_bwa_index(self.kwds['reference_fasta'], dir=tempdir)
+                self.kwds['bwa_index'], _ = make_bwa_index(self.kwds['reference_fasta'], dir=tempdir)
             for i, region in enumerate(chunks):
                 kwds = self.kwds.copy()
                 kwds['region'] = region
@@ -195,6 +206,7 @@ class ClusterFinder(object):
                     cluster = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_pair_size)
                     cluster.append(r)
                     clusters.append(cluster)
+        logging.info('Found %d cluster', len(clusters))
         return clusters
 
     def clean_clusters(self):
@@ -277,6 +289,8 @@ class ClusterFinder(object):
                     for r in cluster:
                         r.set_tag('CD', i)
                         writer.write(r)
+            # Because the cluster splitting doesn't necessarily conserve order we need to sort again.
+            sort_bam(inpath=self.output_bam, output=self.output_bam, sort_order='coordinate', threads=self.threads)
 
     def to_gff(self):
         """Write clusters as GFF file."""
@@ -288,6 +302,7 @@ class ClusterFinder(object):
                           blastdb=self.blastdb,
                           sample=self.sample_name,
                           threads=self.threads)
+            sort_gff(self.output_gff, output_path=self.output_gff)
 
 
 class Chunks(object):

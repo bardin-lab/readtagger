@@ -1,5 +1,5 @@
 """Organize a cluster of interest."""
-import warnings
+import logging
 from cached_property import cached_property
 from .cap3 import Cap3Assembly
 from .targetsiteduplication import TargetSiteDuplication
@@ -90,7 +90,7 @@ class TagCluster(object):
                 # the cluster reads as a BAM file and inspect them to see what should be done.
                 warn = "Found a cluster with 5p and 3p evidence for TSD, but reads are spaced too far apart.\n"
                 warn += "The cluster coordinates are tid: %s, start:%s, end: %s" % (self.cluster[0].tid, self.cluster[0].pos, self.cluster[-1].reference_end)
-                warnings.warn(warn)
+                logging.warn(warn)
             return five_p, three_p
         return self.tsd.five_p, self.tsd.three_p
 

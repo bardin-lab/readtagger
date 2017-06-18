@@ -21,6 +21,7 @@ NON_SUPPORT = 'non_support_test.bam'
 REFINE_COORD = 'refine_coord.bam'
 SPLIT_CLUSTER = 'hum3_false_merge.bam'
 SPLIT_CLUSTER_OPT = 'split_cluster_opt.bam'
+SPLIT_CLUSTER_OPT2 = 'improve_clustering.bam'
 MULTIPROCESSING = 'pasteurianus.bam'
 
 
@@ -69,6 +70,20 @@ def test_clusterfinder_refine_split(datadir, tmpdir):  # noqa: D103
     assert genotype.nref == 72
     assert genotype.nalt == 107
     assert genotype.genotype == 'heterozygous'
+
+
+def test_clusterfinder_refine_split2(datadir, tmpdir):  # noqa: D103
+    input_path = datadir[SPLIT_CLUSTER_OPT2]
+    output_bam = tmpdir.join('output.bam').strpath
+    clusters = ClusterFinder(input_path=input_path,
+                             output_bam=output_bam,
+                             output_gff=tmpdir.join('output.gff').strpath,
+                             reference_fasta=None,
+                             max_proper_pair_size=480)
+    assert len(clusters.cluster) == 2
+    cluster_one, cluster_two = clusters.cluster
+    assert cluster_one.nalt == 2
+    assert cluster_two.nalt == 134
 
 
 def test_cornercase(datadir, tmpdir):  # noqa: D103
