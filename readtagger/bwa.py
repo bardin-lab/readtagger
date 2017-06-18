@@ -1,3 +1,4 @@
+import logging
 import os
 import subprocess
 import pysam
@@ -40,13 +41,17 @@ class Bwa(object):
         with temporary.temp_dir() as temp_dir:
             temp_dir = str(temp_dir)
             if not self.bwa_index:
-                self.bwa_index = make_bwa_index(self.reference_fasta, dir=temp_dir)
+                self.bwa_index, _ = make_bwa_index(self.reference_fasta, dir=temp_dir)
             proc = subprocess.Popen(['bwa', 'mem', '-k14', '-A1', '-B1', '-O1', '-E1', '-L0', '-t', str(self.threads), self.bwa_index, self.input_path],
-                                    stdout=subprocess.PIPE, env=os.environ.copy(), close_fds=True)
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=os.environ.copy(), close_fds=True)
             f = pysam.AlignmentFile(proc.stdout)
             self.header = f.header
             reads = [r for r in f]
             proc.stdout.close()
+            proc.wait()
+            if proc.returncode != 0:
+                logging.error(proc.stderr.read())
+            proc.stderr.close()
             return reads
 
     def reads_to_clusters(self):
@@ -176,7 +181,7 @@ class SimpleAligner(object):
         """Perform simple alignments, e.g to see if a read is contained in a contig."""
         self.tmp_dir = tmp_dir
         self.reference_fasta = write_sequences(reference_sequences)
-        self.index = make_bwa_index(self.reference_fasta)
+        self.index, self.return_code = make_bwa_index(self.reference_fasta)
 
     def align(self, sequence):
         """Return contig numbers with valid alignments for sequence."""
@@ -191,5 +196,8 @@ def make_bwa_index(reference_fasta, dir='.'):
     target_fasta = os.path.abspath(os.path.join(dir, fasta_basename))
     os.symlink(os.path.abspath(reference_fasta), target_fasta)
     args = ['bwa', 'index', target_fasta]
-    subprocess.call(args, env=os.environ.copy(), close_fds=True)
-    return target_fasta
+    p = subprocess.Popen(args, env=os.environ.copy(), close_fds=True, stderr=subprocess.PIPE)
+    p.wait()
+    if p.returncode != 0:
+        logging.warning(p.stderr.read())
+    return target_fasta, p.returncode

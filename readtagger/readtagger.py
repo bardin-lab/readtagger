@@ -96,7 +96,7 @@ class TagManager(object):
                 self.max_proper_size = get_max_proper_pair_size(source)
         if not self.bwa_index and self.reference_fasta:
             tempdir = tempfile.mkdtemp()
-            self.bwa_index = make_bwa_index(reference_fasta=self.reference_fasta, dir=tempdir)
+            self.bwa_index, _ = make_bwa_index(reference_fasta=self.reference_fasta, dir=tempdir)
         kwds = {}
         kwds['source_path'] = self.source_path_sorted
         kwds['annotate_path'] = self.annotate_path_sorted
