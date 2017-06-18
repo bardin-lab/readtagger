@@ -62,7 +62,7 @@ def get_feature(cluster, sample, i):
 def sort_gff(input_path, output_path):
     """Sort gff file at input path."""
     fd, tmp = tempfile.mkstemp()
-    with open(output_path, 'w') as out:
+    with open(tmp, 'w') as out:
         subprocess.call(['sort', '-k', '1,1', '-k4,4n', input_path], stdout=out)
     shutil.move(tmp, output_path)
     os.close(fd)
