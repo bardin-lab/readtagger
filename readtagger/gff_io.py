@@ -1,4 +1,10 @@
+import os
+import shutil
+import subprocess
+import tempfile
 from functools import partial
+
+
 from concurrent.futures import ThreadPoolExecutor
 from BCBio import GFF
 from Bio.Seq import Seq
@@ -51,3 +57,12 @@ def get_feature(cluster, sample, i):
             subfeatures.append(SeqFeature(**args))
         feature.sub_features = subfeatures
     return cluster.tid, feature
+
+
+def sort_gff(input_path, output_path):
+    """Sort gff file at input path."""
+    fd, tmp = tempfile.mkstemp()
+    with open(output_path, 'w') as out:
+        subprocess.call(['sort', '-k', '1,1', '-k4,4n', input_path], stdout=out)
+    shutil.move(tmp, output_path)
+    os.close(fd)
