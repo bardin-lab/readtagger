@@ -1,9 +1,7 @@
 import os
-import shutil
 import subprocess
 import tempfile
 from functools import partial
-
 
 from concurrent.futures import ThreadPoolExecutor
 from BCBio import GFF
@@ -62,7 +60,17 @@ def get_feature(cluster, sample, i):
 def sort_gff(input_path, output_path):
     """Sort gff file at input path."""
     fd, tmp = tempfile.mkstemp()
-    with open(tmp, 'w') as out:
-        subprocess.call(['sort', '-k', '1,1', '-k4,4n', input_path], stdout=out)
-    shutil.move(tmp, output_path)
+    header_lines = []
+    with open(input_path) as gff_in, open(tmp, 'w') as out:
+        for line in gff_in:
+            if line.startswith('#'):
+                header_lines.append(line)
+            else:
+                out.write(line)
+        out.close()
+    with open(output_path, 'w') as out:
+        p = subprocess.Popen(['sort', '-k', '1,1', '-k4,4n', tmp], stdout=subprocess.PIPE, close_fds=True)
+        out.write("\n".join(header_lines))
+        for line in p.stdout:
+            out.write(line)
     os.close(fd)
