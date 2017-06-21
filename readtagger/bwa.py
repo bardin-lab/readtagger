@@ -42,7 +42,7 @@ class Bwa(object):
             temp_dir = str(temp_dir)
             if not self.bwa_index:
                 self.bwa_index, _ = make_bwa_index(self.reference_fasta, dir=temp_dir)
-            proc = subprocess.Popen(['bwa', 'mem', '-k14', '-A1', '-B1', '-O1', '-E1', '-L0', '-t', str(self.threads), self.bwa_index, self.input_path],
+            proc = subprocess.Popen(['bwa', 'mem', '-B9', '-O16', '-L5', '-Y', '-t', str(self.threads), self.bwa_index, self.input_path],
                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=os.environ.copy(), close_fds=True)
             f = pysam.AlignmentFile(proc.stdout)
             self.header = f.header
@@ -177,11 +177,14 @@ class Bwa(object):
 class SimpleAligner(object):
     """Perform simple alignments, e.g to see if a read is contained in a contig."""
 
-    def __init__(self, reference_sequences, tmp_dir=None):
+    def __init__(self, reference_sequences=None, bwa_index=None, tmp_dir=None):
         """Perform simple alignments, e.g to see if a read is contained in a contig."""
         self.tmp_dir = tmp_dir
-        self.reference_fasta = write_sequences(reference_sequences)
-        self.index, self.return_code = make_bwa_index(self.reference_fasta)
+        if not bwa_index:
+            self.reference_fasta = write_sequences(reference_sequences)
+            self.index, self.return_code = make_bwa_index(self.reference_fasta)
+        else:
+            self.index = bwa_index
 
     def align(self, sequence):
         """Return contig numbers with valid alignments for sequence."""
@@ -189,12 +192,19 @@ class SimpleAligner(object):
         aligned_reads = Bwa(input_path=sequences, bwa_index=self.index, describe_alignment=False)
         return set(r.tid for r in aligned_reads.bwa_run if not r.is_unmapped)
 
+    def align_contigs(self, contigs):
+        """Align contigs and return aligned results and header."""
+        sequences = write_sequences(contigs, tmp_dir=self.tmp_dir)
+        bwa_result = Bwa(input_path=sequences, bwa_index=self.index, describe_alignment=False)
+        return bwa_result.bwa_run, bwa_result.header
+
 
 def make_bwa_index(reference_fasta, dir='.'):
     """Make a bwa index for reference_fasta and return path to the index's basename."""
     fasta_basename = os.path.basename(reference_fasta)
     target_fasta = os.path.abspath(os.path.join(dir, fasta_basename))
-    os.symlink(os.path.abspath(reference_fasta), target_fasta)
+    if not os.path.exists(target_fasta):
+        os.symlink(os.path.abspath(reference_fasta), target_fasta)
     args = ['bwa', 'index', target_fasta]
     p = subprocess.Popen(args, env=os.environ.copy(), close_fds=True, stderr=subprocess.PIPE)
     p.wait()
