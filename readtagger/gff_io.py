@@ -10,7 +10,7 @@ from Bio.SeqRecord import SeqRecord
 from Bio.SeqFeature import SeqFeature, FeatureLocation
 
 
-def write_cluster(clusters, header, output_path, reference_fasta=None, blastdb=None, sample='sample', threads=1):
+def write_cluster(clusters, header, output_path, sample='sample', threads=1):
     """Write clusters as GFF entries."""
     with open(output_path, "w") as out_handle:
         tp = ThreadPoolExecutor(threads)
@@ -72,5 +72,5 @@ def sort_gff(input_path, output_path):
         p = subprocess.Popen(['sort', '-k', '1,1', '-k4,4n', tmp], stdout=subprocess.PIPE, close_fds=True)
         out.write("\n".join(header_lines))
         for line in p.stdout:
-            out.write(line)
+            out.write(line.decode())
     os.close(fd)
