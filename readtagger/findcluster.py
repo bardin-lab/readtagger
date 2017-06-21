@@ -12,6 +12,7 @@ import multiprocessing_logging
 import pysam
 import six
 
+from .assemby_realignment import AssemblyRealigner
 from .bam_io import (
     BamAlignmentReader as Reader,
     BamAlignmentWriter as Writer,
@@ -60,8 +61,10 @@ class ClusterManager(object):
             futures = []
             tempdir = tempfile.mkdtemp()
             chunks = split_locations_between_clusters(self.kwds['input_path'])
-            if self.kwds['reference_fasta'] and not self.kwds['bwa_index']:
-                self.kwds['bwa_index'], _ = make_bwa_index(self.kwds['reference_fasta'], dir=tempdir)
+            if self.kwds['transposon_reference_fasta'] and not self.kwds['transposon_bwa_index']:
+                self.kwds['transposon_bwa_index'], _ = make_bwa_index(self.kwds['transposon_reference_fasta'], dir=tempdir)
+            if self.kwds['genome_reference_fasta'] and not self.kwds['genome_bwa_index']:
+                self.kwds['genome_bwa_index'], _ = make_bwa_index(self.kwds['genome_reference_fasta'], dir=tempdir)
             for i, region in enumerate(chunks):
                 kwds = self.kwds.copy()
                 kwds['region'] = region
@@ -114,9 +117,10 @@ class ClusterFinder(object):
                  output_bam=None,
                  output_gff=None,
                  output_fasta=None,
-                 reference_fasta=None,
-                 blastdb=None,
-                 bwa_index=None,
+                 transposon_reference_fasta=None,
+                 transposon_bwa_index=None,
+                 genome_reference_fasta=None,
+                 genome_bwa_index=None,
                  include_duplicates=False,
                  sample_name=None,
                  threads=1,
@@ -142,17 +146,25 @@ class ClusterFinder(object):
         self.output_bam = output_bam
         self.output_gff = output_gff
         self.output_fasta = output_fasta
-        self.reference_fasta = reference_fasta
-        self.blastdb = blastdb
-        self.bwa_index = bwa_index
+        self.transposon_reference_fasta = transposon_reference_fasta
+        self.transposon_bwa_index = transposon_bwa_index
+        self.genome_reference_fasta = genome_reference_fasta
+        self.genome_bwa_index = genome_bwa_index
         self.include_duplicates = include_duplicates
         self.min_mapq = min_mapq
         self.max_clustersupport = max_clustersupport
         self.max_proper_pair_size = max_proper_pair_size
         self._tempdir = tempfile.mkdtemp()
+        self.transposon_bwa_index, self.genome_bwa_index = self.setup_bwa_indexes()
         self.remove_supplementary_without_primary = remove_supplementary_without_primary
         self.threads = threads
         self.tp = ThreadPoolExecutor(threads)  # max threads
+        if self.genome_bwa_index and self.transposon_bwa_index:
+            self.assembly_realigner = AssemblyRealigner(input_alignment_file=self.input_path,
+                                                        genome_bwa_index=self.genome_bwa_index,
+                                                        transposon_bwa_index=self.transposon_bwa_index)
+        else:
+            self.assembly_realigner = None
         self.cluster = self.find_cluster()
         self.clean_clusters()
         self.join_clusters()
@@ -162,6 +174,16 @@ class ClusterFinder(object):
         self.to_bam()
         self.to_gff()
         shutil.rmtree(self._tempdir, ignore_errors=True)
+
+    def setup_bwa_indexes(self):
+        """Handle setting up BWA indexes."""
+        transposon_bwa_index = self.transposon_bwa_index
+        genome_bwa_index = self.genome_bwa_index
+        if not transposon_bwa_index and self.transposon_reference_fasta:
+            transposon_bwa_index, _ = make_bwa_index(self.transposon_reference_fasta, dir=self._tempdir)
+        if not genome_bwa_index and self.genome_reference_fasta:
+            genome_bwa_index, _ = make_bwa_index(self.genome_reference_fasta, dir=self._tempdir)
+        return transposon_bwa_index, genome_bwa_index
 
     @cached_property
     def sample_name(self):
@@ -185,7 +207,7 @@ class ClusterFinder(object):
         if self.remove_supplementary_without_primary:
             self._remove_supplementary_without_primary()
         clusters = []
-        with Reader(self.input_path, region=self.region) as reader:
+        with Reader(self.input_path, region=self.region, index=True) as reader:
             self.header = reader.header
             for r in reader:
                 if not self.include_duplicates:
@@ -236,6 +258,8 @@ class ClusterFinder(object):
                 self.cluster[index] = cluster_a
             if cluster_b:
                 self.cluster.insert(index + 1, cluster_b)
+        for cluster in self.cluster:
+            cluster.refine_members(self.assembly_realigner)
         # We are done, we can give the clusters a numeric index, so that we can distribute the processing and recover the results
         [c.set_id(i) for i, c in enumerate(self.cluster)]
 
@@ -273,8 +297,11 @@ class ClusterFinder(object):
 
     def align_bwa(self):
         """Align cluster contigs or invidiual reads to a reference and write result into cluster."""
-        if self.output_fasta and self.reference_fasta:
-            bwa = Bwa(input_path=self.output_fasta, bwa_index=self.bwa_index, reference_fasta=self.reference_fasta, threads=self.threads)
+        if self.output_fasta and self.transposon_reference_fasta:
+            bwa = Bwa(input_path=self.output_fasta,
+                      bwa_index=self.transposon_bwa_index,
+                      reference_fasta=self.transposon_reference_fasta,
+                      threads=self.threads)
             for i, cluster in enumerate(self.cluster):
                 description = bwa.desciption.get(i)
                 if description:
@@ -298,8 +325,6 @@ class ClusterFinder(object):
             write_cluster(clusters=self.cluster,
                           header=self.header,
                           output_path=self.output_gff,
-                          reference_fasta=self.reference_fasta,
-                          blastdb=self.blastdb,
                           sample=self.sample_name,
                           threads=self.threads)
             sort_gff(self.output_gff, output_path=self.output_gff)

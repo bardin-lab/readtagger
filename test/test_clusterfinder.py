@@ -15,10 +15,12 @@ CORNERCASE = 'cornercase.bam'
 CORNERCASE2 = 'cornercase2.bam'
 CORNERCASE3 = 'cornercase3.bam'
 EXTENDED = 'extended_and_annotated_roi.bam'
+GENOME_FRAGMENT = 'genome_fragment.fa'
 COMPLEX = 'extended_annotated_updated_all_reads.bam'
 REORGANIZE_CLUSTER = 'reorganize_cluster.bam'
 NON_SUPPORT = 'non_support_test.bam'
 REFINE_COORD = 'refine_coord.bam'
+REASSEMBLE = 'reassemble_input.bam'
 SPLIT_CLUSTER = 'hum3_false_merge.bam'
 SPLIT_CLUSTER_OPT = 'split_cluster_opt.bam'
 SPLIT_CLUSTER_OPT2 = 'improve_clustering.bam'
@@ -29,21 +31,35 @@ def test_clusterfinder_single_cluster(datadir):  # noqa: D103
     input_path = datadir[INPUT]
     cf = ClusterFinder(input_path=input_path)
     assert len(cf.cluster) == 1
-    assert len(cf.cluster[0]) == 20
+    assert cf.cluster[0].nalt == 19
 
 
 def test_clusterfinder_include_duplicates(datadir):  # noqa: D103
     input_path = datadir[INPUT]
     cf = ClusterFinder(input_path=input_path, include_duplicates=True)
     assert len(cf.cluster) == 1
-    assert len(cf.cluster[0]) == 27
+    assert cf.cluster[0].nalt == 26
 
 
 def test_clusterfinder_remove_supplementary(datadir):  # noqa: D103
     input_path = datadir[INPUT]
     cf = ClusterFinder(input_path=input_path, include_duplicates=True, remove_supplementary_without_primary=True)
     assert len(cf.cluster) == 1
-    assert len(cf.cluster[0]) == 25
+    assert cf.cluster[0].nalt == 24
+
+
+def test_clusterfinder_reassemble(datadir, tmpdir, reference_fasta):   # noqa: D103, F811
+    input_path = datadir[REASSEMBLE]
+    genome_reference_fasta = datadir[GENOME_FRAGMENT]
+    output_bam = tmpdir.join('output.bam').strpath
+    clusters = ClusterFinder(input_path=input_path,
+                             output_bam=output_bam,
+                             output_gff=tmpdir.join('output.gff').strpath,
+                             genome_reference_fasta=genome_reference_fasta,
+                             transposon_reference_fasta=reference_fasta,
+                             max_proper_pair_size=480)
+    assert len(clusters.cluster) == 1
+    assert clusters.cluster[0].valid_tsd
 
 
 def test_clusterfinder_split_cluster(datadir, tmpdir):  # noqa: D103
@@ -63,7 +79,7 @@ def test_clusterfinder_refine_split(datadir, tmpdir):  # noqa: D103
     clusters = ClusterFinder(input_path=input_path,
                              output_bam=output_bam,
                              output_gff=tmpdir.join('output.gff').strpath,
-                             reference_fasta=None,
+                             transposon_reference_fasta=None,
                              max_proper_pair_size=480)
     cluster = clusters.cluster[0]
     genotype = cluster.genotype_likelihood()
@@ -78,7 +94,7 @@ def test_clusterfinder_refine_split2(datadir, tmpdir):  # noqa: D103
     clusters = ClusterFinder(input_path=input_path,
                              output_bam=output_bam,
                              output_gff=tmpdir.join('output.gff').strpath,
-                             reference_fasta=None,
+                             transposon_reference_fasta=None,
                              max_proper_pair_size=480)
     assert len(clusters.cluster) == 2
     cluster_one, cluster_two = clusters.cluster
@@ -129,14 +145,14 @@ def test_clustermanager_single_core(datadir, tmpdir):  # noqa: D103
     input_path = datadir[EXTENDED]
     output_gff = tmpdir.join('output.gff').strpath
     output_bam = tmpdir.join('output.bam').strpath
-    ClusterManager(input_path=input_path, reference_fasta=None, output_bam=output_bam, output_gff=output_gff, threads=1)
+    ClusterManager(input_path=input_path, genome_reference_fasta=None, transposon_reference_fasta=None, output_bam=output_bam, output_gff=output_gff, threads=1)
 
 
 def test_clustermanager_multiprocessing(datadir, tmpdir):  # noqa: D103
     input_path = datadir[MULTIPROCESSING]
     output_gff = tmpdir.join('output.gff').strpath
     output_bam = tmpdir.join('output.bam').strpath
-    ClusterManager(input_path=input_path, reference_fasta=None, output_bam=output_bam, output_gff=output_gff, threads=2)
+    ClusterManager(input_path=input_path, genome_reference_fasta=None, transposon_reference_fasta=None, output_bam=output_bam, output_gff=output_gff, threads=2)
 
 
 def test_clusterfinder_multiple_cluster_gff_cli(datadir, tmpdir, mocker):  # noqa: D103
@@ -155,8 +171,8 @@ def test_clusterfinder_blast(datadir, tmpdir, mocker, reference_fasta):  # noqa:
     input_path = datadir[EXTENDED]
     output_bam = tmpdir.join('output.bam').strpath
     output_gff = tmpdir.join('output.gff').strpath
-    args_template = namedtuple('ArgumentParser', 'input_path output_gff output_bam reference_fasta')
-    args = args_template(input_path=input_path, output_bam=output_bam, output_gff=output_gff, reference_fasta=reference_fasta)
+    args_template = namedtuple('ArgumentParser', 'input_path output_gff output_bam transposon_reference_fasta')
+    args = args_template(input_path=input_path, output_bam=output_bam, output_gff=output_gff, transposon_reference_fasta=reference_fasta)
     argv = namedtuple_to_argv(args)
     mocker.patch('sys.argv', argv)
     mocker.patch('sys.exit')
@@ -168,9 +184,13 @@ def test_clusterfinder_complex_genotype(datadir, tmpdir, reference_fasta):  # no
     output_bam = tmpdir.join('output.bam').strpath
     output_gff = tmpdir.join('output.gff').strpath
     output_fasta = tmpdir.join('output.fasta').strpath
-    clusters = ClusterFinder(input_path=input_path, output_bam=output_bam, output_gff=output_gff, reference_fasta=reference_fasta, output_fasta=output_fasta)
+    clusters = ClusterFinder(input_path=input_path,
+                             output_bam=output_bam,
+                             output_gff=output_gff,
+                             transposon_reference_fasta=reference_fasta,
+                             output_fasta=output_fasta)
     cluster = clusters.cluster[0]
-    assert len(cluster) == 20
+    assert cluster.nalt == 20
     genotype = cluster.genotype_likelihood()
     assert genotype.nref == 17
     assert genotype.nalt == 20
@@ -181,7 +201,7 @@ def test_clusterfinder_complex_genotype(datadir, tmpdir, reference_fasta):  # no
 def test_clusterfinder_nonsupport(datadir, tmpdir):  # noqa: D103
     input_path = datadir[NON_SUPPORT]
     output_bam = tmpdir.join('output.bam').strpath
-    clusters = ClusterFinder(input_path=input_path, output_bam=output_bam, output_gff=None, reference_fasta=None)
+    clusters = ClusterFinder(input_path=input_path, output_bam=output_bam, output_gff=None, transposon_reference_fasta=None)
     cluster = clusters.cluster[-1]
     assert cluster.nref == 25  # Could also be 26 -- need to figure that out.
     genotype = cluster.genotype_likelihood()
@@ -196,7 +216,7 @@ def test_clusterfinder_refine_coord(datadir, tmpdir):  # noqa: D103
     clusters = ClusterFinder(input_path=input_path,
                              output_bam=output_bam,
                              output_gff=tmpdir.join('output.gff').strpath,
-                             reference_fasta=None,
+                             transposon_reference_fasta=None,
                              max_proper_pair_size=480)
     cluster = clusters.cluster[-1]
     genotype = cluster.genotype_likelihood()
@@ -208,7 +228,7 @@ def test_clusterfinder_refine_coord(datadir, tmpdir):  # noqa: D103
 def test_clusterfinder_reorganize_cluster(datadir, tmpdir, reference_fasta):  # noqa: D103, F811
     input_path = datadir[REORGANIZE_CLUSTER]
     output_gff = tmpdir.join('output.gff').strpath
-    clusters = ClusterFinder(input_path=input_path, output_bam=None, output_gff=output_gff, reference_fasta=reference_fasta)
+    clusters = ClusterFinder(input_path=input_path, output_bam=None, output_gff=output_gff, transposon_reference_fasta=reference_fasta)
     cluster = clusters.cluster[-1]
     genotype = cluster.genotype_likelihood()
     assert genotype.genotype == 'homozygous'

@@ -60,7 +60,7 @@ class TargetSiteDuplication(object):
         self.three_p = self.find_three_p()
         self.five_p = self.find_five_p()
 
-    @cached_property
+    @property
     def is_valid(self):
         """
         Return True if Target Site Duplication is valid.

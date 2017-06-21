@@ -61,6 +61,13 @@ class Cluster(list):
         """Return all orientation switches in this cluster."""
         return [next(group[1]) for group in groupby(self.orientation_vector, key=lambda x: x[0])]
 
+    def refine_members(self, assembly_realigner):
+        """Try to recover more reads that support a specific insertion."""
+        if assembly_realigner:
+            informative_reads = assembly_realigner.collect_reads(self)
+            if informative_reads:
+                self.extend(informative_reads)
+
     def split_cluster_at_polarity_switch(self):
         """
         Split cluster if the direction of the mates switches.
@@ -150,7 +157,7 @@ class Cluster(list):
     @property
     def read_index(self):
         """Index of read names in cluster."""
-        return set([r.query_name for r in self])
+        return set([r.query_name for r in self if not r.has_tag('AC')])  # AC is assembled contig
 
     @property
     def hash(self):

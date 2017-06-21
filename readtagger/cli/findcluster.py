@@ -31,15 +31,24 @@ from readtagger import VERSION
 @click.option('--include_duplicates/--no-include_duplicates',
               help='Include reads marked as duplicates when finding clusters.',
               default=False)
-@click.option('--reference_fasta',
-              help='Blast cluster contigs against this fasta file',
-              default=None)
-@click.option('--blastdb',
-              help='Blast cluster contigs against this blast database',
-              default=None)
-@click.option('--bwa_index',
-              help='align cluster contigs against this bwa index',
-              default=None)
+@click.option('--transposon_reference_fasta',
+              help=('Transposon fasta to align clipped reads to. '
+                    'Not necessary if BWA index is provided.'),
+              default=None,
+              required=False)
+@click.option('--transposon_bwa_index',
+              help='Transposon BWA index to align clipped reads to',
+              default=None,
+              required=False)
+@click.option('--genome_reference_fasta',
+              help=('Genome fasta to align clipped reads to. '
+                    'Not necessary if BWA index is provided.'),
+              default=None,
+              required=False)
+@click.option('--genome_bwa_index',
+              help='Genome BWA index to align clipped reads to',
+              default=None,
+              required=False)
 @click.option('--threads', help='Threads to use for cap3 assembly step', default=1, type=click.IntRange(1, 100))
 @click.option('--shm_dir', envvar="SHM_DIR", help='Path to shared memory folder', default=None, type=click.Path(exists=True))
 @click.version_option(version=VERSION)
