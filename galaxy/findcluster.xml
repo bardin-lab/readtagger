@@ -1,5 +1,8 @@
 <tool id="findcluster" name="Find clusters of reads" version="0.3.24">
     <description>in bam files</description>
+    <macros>
+        <import>macros.xml</import>
+    </macros>
     <requirements>
         <requirement type="package" version="0.3.24">readtagger</requirement>
     </requirements>
@@ -9,8 +12,19 @@
         ln -f -s $input.metadata.bam_index input.bam.bai &&
         findcluster
         --input_path input.bam
-        #if $reference_fasta:
-            --reference_fasta '$reference_fasta'
+        #if $transposon_source.ref_file:
+            #if str($transposon_source.reference_source_selector) == "history":
+                --transposon_reference_fasta '$transposon_source.ref_file'
+            #else :
+                --transposon_bwa_index '$reference_source.ref_file.fields.path'
+            #end if
+        #end if
+        #if $genome_source.ref_file:
+            #if str($genome_source.reference_source_selector) == "history":
+                --genome_reference_fasta '$genome_source.ref_file'
+            #else :
+                --genome_bwa_index '$reference_source.ref_file.fields.path'
+            #end if
         #end if
         --output_bam '$output_bam'
         --output_gff '$output_gff'
@@ -20,7 +34,9 @@
     ]]></command>
     <inputs>
         <param name="input" argument="--input_path" type="data" format="bam"/>
-        <param argument="--reference_fasta" label="Reference Fasta" help="Reconstructed contigs at clusters will be blasted against this sequence." type="data" format="fasta" optional="True"/>
+
+        <expand macro="reference_source_conditional" reference_type="transposon"/>
+        <expand macro="reference_source_conditional" reference_type="genome"/>
     </inputs>
     <outputs>
         <data name="output_bam" format="bam" label="findcluster BAM on $on_string"/>
@@ -35,7 +51,8 @@
         </test>
         <test>
             <param name="input" value="extended_and_annotated_roi.bam" ftype="bam"/>
-            <param name="reference_fasta" value="reference.fasta" ftype="fasta"/>
+            <param name="transposon_source|reference_source_selector" value="history"/>
+            <param name="transposon_source|ref_file" value="reference.fasta" ftype="fasta"/>
             <output name="output_bam" file="three_cluster_out.bam" ftype="bam" lines_diff="2"/>
             <output name="output_gff">
                 <assert_contents>
@@ -51,12 +68,18 @@
 
       Find clusters of reads that support a TE insertion.
 
-        Options:
+    Options:
       --input_path PATH               Find cluster in this BAM file.
+      --region TEXT                   Find clusters in this Region (Format is
+                                      chrX:2000-1000).
+      --max_proper_pair_size INTEGER  Maximum proper pairs size. If not given will
+                                      be inferred from the data.
       --output_bam PATH               Write out BAM file with cluster information
                                       to this path. Reads will have an additional
                                       "CD" tag to indicate the cluster number
       --output_gff PATH               Write out GFF file with cluster information
+                                      to this path.
+      --output_fasta PATH             Write out supporting evidence for clusters
                                       to this path.
       --sample_name TEXT              Sample name to use when writing out clusters
                                       in GFF file. Default is to infer the name
@@ -64,11 +87,16 @@
       --include_duplicates / --no-include_duplicates
                                       Include reads marked as duplicates when
                                       finding clusters.
-      --reference_fasta TEXT          Blast cluster contigs against this fasta
-                                      file
-      --blastdb TEXT                  Blast cluster contigs against this blast
-                                      database
+      --transposon_reference_fasta TEXT
+                                      Transposon fasta to align clipped reads to.
+                                      Not necessary if BWA index is provided.
+      --transposon_bwa_index TEXT     Transposon BWA index to align clipped reads
+                                      to
+      --genome_reference_fasta TEXT   Genome fasta to align clipped reads to. Not
+                                      necessary if BWA index is provided.
+      --genome_bwa_index TEXT         Genome BWA index to align clipped reads to
       --threads INTEGER RANGE         Threads to use for cap3 assembly step
+      --shm_dir PATH                  Path to shared memory folder
       --version                       Show the version and exit.
       --help                          Show this message and exit.
 
