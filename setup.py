@@ -15,6 +15,7 @@ ENTRY_POINTS = '''
         findcluster=readtagger.cli.findcluster:cli
         write_supplementary_fastq=readtagger.cli.write_supplementary_fastq:cli
         update_mapq=readtagger.cli.update_mapq:cli
+        pysamtools_view=readtagger.cli.pysamtools_view_cli:cli
 '''
 
 requirements = ['bcbio-gff', 'biopython', 'cached_property', 'click', 'contextlib2', 'futures', 'multiprocessing_logging', 'pysam', 'scipy', 'six', 'temporary']
