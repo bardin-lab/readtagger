@@ -268,7 +268,7 @@ class BamAlignmentWriter(object):
 class BamAlignmentReader(object):
     """Wraps pysam.AlignmentFile with sambamba for reading if input file is a bam file."""
 
-    def __init__(self, path, external_bin='choose_best', sort_order=None, threads=4, region=None):
+    def __init__(self, path, external_bin='choose_best', sort_order=None, threads=4, region=None, index=False):
         """
         Read Bam files.
 
@@ -283,6 +283,7 @@ class BamAlignmentReader(object):
         self.sort_order = sort_order
         self.threads = threads
         self.region = region
+        self.index = index
         self.setup()
 
     def setup(self):
@@ -294,7 +295,7 @@ class BamAlignmentReader(object):
                 sort_order = 'queryname'
             if sort_order != self.sort_order:
                 self.path = sort_bam(inpath=self.path, output=self.path, sort_order=self.sort_order, threads=self.threads)
-        if self.region:
+        if self.region or self.index:
             index_bam(self.path)
 
     @property
