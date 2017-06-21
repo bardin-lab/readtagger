@@ -5,6 +5,24 @@ History
 
 .. to_doc
 
+---------------------
+0.3.25 (2017-06-21)
+---------------------
+* Refine cluster coordinates using an Assembly strategy
+* Fix GFF sorting on python 3
+* Improve BWA alignment settings (default to intractg plus -Y) and add align_contigs method to SimpleAligner
+* Add pysamtools_view command
+* Improve cluster-splitting
+* Add multiprocessing-logging recipe
+* Only output BWA stderr if the exit code is not zero
+* Add a function to sort gff files
+* Close open file descriptors
+* Make imprecise insertion sites more realistic
+* Fix read_index property
+* Adapt readtagger to higher coverage datasets
+* Fix readtagger crash when not producing discard tag file.
+* Add number of mates for left and right support to GFF
+* Split clusters that start with reverse reads conatining only BD tags
 
 ---------------------
 0.3.24 (2017-05-11)
