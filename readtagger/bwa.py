@@ -25,6 +25,7 @@ class Bwa(object):
         True
         >>> result = b.reads_to_clusters()
         >>> assert len(result[1]['left_sequences']) == 1
+        >>> b.cleanup_index()
         """
         self.input_path = input_path
         self.bwa_index = bwa_index
@@ -173,6 +174,10 @@ class Bwa(object):
                 cluster[read.tid].append(read)
         return cluster
 
+    def cleanup_index(self):
+        """Remove this instances index files."""
+        cleanup_index(self.bwa_index)
+
 
 class SimpleAligner(object):
     """Perform simple alignments, e.g to see if a read is contained in a contig."""
@@ -197,6 +202,21 @@ class SimpleAligner(object):
         sequences = write_sequences(contigs, tmp_dir=self.tmp_dir)
         bwa_result = Bwa(input_path=sequences, bwa_index=self.index, describe_alignment=False)
         return bwa_result.bwa_run, bwa_result.header
+
+    def cleanup_index(self):
+        """Remove this instances index files."""
+        cleanup_index(self.index)
+
+
+def cleanup_index(index_path):
+    """Remove indexes."""
+    index_suffixes = ['.amb', '.ann', '.bwt', '.pac', '.sa']
+    index_files = ["%s%s" % (index_path, sfx) for sfx in index_suffixes]
+    for idx_file in index_files + [index_path]:
+        try:
+            os.remove(idx_file)
+        except Exception:
+            pass
 
 
 def make_bwa_index(reference_fasta, dir='.'):

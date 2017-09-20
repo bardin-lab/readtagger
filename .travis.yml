@@ -26,7 +26,7 @@ install:
   - $CONDA_BIN config --add channels mvdbeek
   - $CONDA_BIN config --add channels bioconda
   - $CONDA_BIN config --add channels conda-forge
-  - $CONDA_BIN install blast bwa cap3 sambamba samtools virtualenv conda-build -c bioconda
+  - $CONDA_BIN install bwa cap3 samtools virtualenv conda-build -c bioconda
   - samtools --version
   - pip install tox-travis coveralls anaconda-client
   - mkdir -p ~/.planemo/ && virtualenv ~/.planemo/gx_venv

@@ -133,6 +133,7 @@ class Cluster(list):
                     putative_cluster_a.extend(switch_reads)
                     putative_cluster_b = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_size)
                     putative_cluster_b.extend(r for r in self if r.query_name not in putative_cluster_a.read_index)
+                    simple_aligner.cleanup_index()
                     return putative_cluster_a, putative_cluster_b
             reads_to_remove = set()
             for read in putative_cluster_b:
@@ -147,6 +148,7 @@ class Cluster(list):
                             reads_to_remove.add(read)
             for read in reads_to_remove:
                 putative_cluster_b.remove(read)
+        simple_aligner.cleanup_index()
         return putative_cluster_a, putative_cluster_b
 
     @property
