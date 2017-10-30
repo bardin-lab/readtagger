@@ -11,6 +11,7 @@ from .allow_dovetailing import (
 )
 from .bam_io import (
     BamAlignmentReader as Reader,
+    get_mean_read_length,
     get_queryname_positions,
     get_reads,
     is_file_coordinate_sorted,
@@ -29,6 +30,7 @@ from .tag_softclip import TagSoftClip
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s - %(message)s', level=logging.DEBUG)
+DEFAULT_CHUNK_SIZE = 10000
 
 
 class TagManager(object):
@@ -49,7 +51,7 @@ class TagManager(object):
                  tag_prefix_self='A',
                  tag_prefix_mate='B',
                  cores=1,
-                 chunk_size=10000,
+                 chunk_size='auto',
                  ):
         """Open input and output files and construct worker classes."""
         self.source_path = source_path
@@ -91,9 +93,10 @@ class TagManager(object):
 
     def process(self):
         """Create worker objects and stream pairs to SamAnnotator process method."""
-        if self.allow_dovetailing and not self.max_proper_size:
-            with Reader(self.annotate_path, external_bin=None) as source:
+        with Reader(self.annotate_path, external_bin=None) as source:
+            if self.allow_dovetailing and not self.max_proper_size:
                 self.max_proper_size = get_max_proper_pair_size(source)
+            mean_read_length = get_mean_read_length(source)
         if not self.bwa_index and self.reference_fasta:
             tempdir = tempfile.mkdtemp()
             self.bwa_index, _ = make_bwa_index(reference_fasta=self.reference_fasta, dir=tempdir)
@@ -113,6 +116,12 @@ class TagManager(object):
         kwds['tag_prefix_mate'] = self.tag_prefix_mate
         kwds['source_header'] = pysam.AlignmentFile(self.source_path_sorted).header
         logger.info("Finding position at which to split input files")
+        if self.chunk_size == 'auto':
+            # Adjust the chunk size based on read-length. We use the DEFAULT_CHUNK_SIZE for 200 nt reads
+            # or less if the reads are longer (with a minimum of 10)
+            chunk_size = DEFAULT_CHUNK_SIZE / (mean_read_length / 200)
+            self.chunk_size = chunk_size if not chunk_size < 20 else 20
+            logger.info("Chunk size is '%s', read size is '%s'", chunk_size, mean_read_length)
         pos_qname = get_queryname_positions(self.source_path_sorted, chunk_size=self.chunk_size)
         last_qnames = [t[1] for t in pos_qname]
         starts_annotate = start_positions_for_last_qnames(self.annotate_path_sorted, last_qnames=last_qnames)

@@ -38,6 +38,18 @@ def is_file_coordinate_sorted(path, reads_to_check=1000):
     return True
 
 
+def get_mean_read_length(source, reads_to_check=1000):
+    """Get mean read length for the first reads in source."""
+    read_length = 0
+    source.reset()
+    i = 0  # In case no reads are in source, avoids potential unbounded variable error
+    for i, r in enumerate(source):
+        if i >= reads_to_check:
+            break
+        read_length += r.query_length
+    return int(read_length/i) if i > 0 else 0
+
+
 def get_queryname_positions(fn, chunk_size=10000):
     """
     Get positions in order to split alignment file into equal-sized portions.
