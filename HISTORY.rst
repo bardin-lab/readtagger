@@ -6,6 +6,14 @@ History
 .. to_doc
 
 ---------------------
+0.3.25 (2017-11-09)
+---------------------
+* Fixes for CRAM input and output
+* Adjust chunk-size in readtagger based on readlength (for pacbio/nanopore reads)
+* Cleanup temporary bwa indexes
+* Dependency updates
+
+---------------------
 0.3.25 (2017-06-21)
 ---------------------
 * Refine cluster coordinates using an Assembly strategy
