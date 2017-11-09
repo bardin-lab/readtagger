@@ -25,6 +25,7 @@ SPLIT_CLUSTER = 'hum3_false_merge.bam'
 SPLIT_CLUSTER_OPT = 'split_cluster_opt.bam'
 SPLIT_CLUSTER_OPT2 = 'improve_clustering.bam'
 MULTIPROCESSING = 'pasteurianus.bam'
+NANOPORE_ROVER = 'long_rover_insert_heterozygous.bam'
 
 
 def test_clusterfinder_single_cluster(datadir):  # noqa: D103
@@ -196,6 +197,22 @@ def test_clusterfinder_complex_genotype(datadir, tmpdir, reference_fasta):  # no
     assert genotype.nalt == 20
     assert genotype.genotype == 'heterozygous'
     assert len(open(output_fasta).readlines()) == 6
+
+
+def test_clusterfinder_nanopore(datadir, tmpdir, reference_fasta):  # noqa: D103, F811
+    input_path = datadir[NANOPORE_ROVER]
+    output_bam = tmpdir.join('output.bam').strpath
+    output_gff = tmpdir.join('output.gff').strpath
+    output_fasta = tmpdir.join('output.fasta').strpath
+    clusters = ClusterFinder(input_path=input_path,
+                             output_bam=output_bam,
+                             output_gff=output_gff,
+                             transposon_reference_fasta=reference_fasta,
+                             output_fasta=output_fasta)
+    cluster = clusters.cluster[0]
+    assert cluster.nalt == 7
+    assert cluster.left_support == 1
+    assert cluster.right_support == 6
 
 
 def test_clusterfinder_nonsupport(datadir, tmpdir):  # noqa: D103

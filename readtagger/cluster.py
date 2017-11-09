@@ -443,7 +443,7 @@ def non_evidence(data):
             f = pysam.AlignmentFile(input_path)
             reads = f.fetch(chromosome, min_start, max_end)
         for r in reads:
-            if not r.is_duplicate and r.is_proper_pair and r.mapq > 0:
+            if not r.is_duplicate and (r.is_proper_pair or r.alen > 200) and r.mapq > 0:
                 add_to_clusters(chunk, r, result)
         f.close()
     except ValueError:
@@ -453,7 +453,7 @@ def non_evidence(data):
 
 def add_to_clusters(chunk, r, result):
     """Manage non-evidence results."""
-    if r.is_supplementary:
+    if r.is_supplementary or r.alen > 200:  # supplementary or long read
         min_start = r.pos
         max_end = r.aend
     else:
