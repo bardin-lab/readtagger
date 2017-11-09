@@ -38,16 +38,18 @@ def is_file_coordinate_sorted(path, reads_to_check=1000):
     return True
 
 
-def get_mean_read_length(source, reads_to_check=1000):
+def get_mean_read_length(path, reads_to_check=1000):
     """Get mean read length for the first reads in source."""
     read_length = 0
-    source.reset()
     i = 0  # In case no reads are in source, avoids potential unbounded variable error
-    for i, r in enumerate(source):
-        if i >= reads_to_check:
-            break
-        read_length += r.query_length
-    return int(read_length/i) if i > 0 else 0
+    with pysam.AlignmentFile(path) as source:
+        for i, r in enumerate(source):
+            if i >= reads_to_check:
+                break
+            read_length += r.query_length
+    mean_read_length = int(read_length / i) if i > 0 else 0
+    logger.info("Mean read length is '%s'", mean_read_length)
+    return mean_read_length
 
 
 def get_queryname_positions(fn, chunk_size=10000):
@@ -138,8 +140,12 @@ def merge_bam(bam_collection, template_bam, output_path):
     return output_path
 
 
-def sort_bam(inpath, output, sort_order, threads=1):
-    """Sort bam file at inpath using sort_order and write output to output."""
+def sort_bam(inpath, output, sort_order, threads=1, cram=False, reference_fasta=None):
+    """
+    Sort bam file at inpath using sort_order and write output to `output`.
+
+    Specify `cram=True` and supply `reference_fasta` to write output as CRAM file.
+    """
     fd = None
     if inpath == output:
         # We sort 'in place'
@@ -149,6 +155,8 @@ def sort_bam(inpath, output, sort_order, threads=1):
     args = ['samtools', 'sort', '-@', "%s" % threads]
     if sort_order == 'queryname':
         args.append('-n')
+    if cram:
+        args.extend(['-O', 'CRAM'])
     args.extend(['-o', temp_out, inpath])
     logger.info("Sorting bam file with command '%s'", " ".join(args))
     subprocess.call(args, env=os.environ.copy())

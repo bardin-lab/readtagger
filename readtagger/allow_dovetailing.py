@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s - %(message)s', level=logging.DEBUG)
 
 
-def get_max_proper_pair_size(alignment_file, reads_to_check=1000):
+def get_max_proper_pair_size(path, reads_to_check=1000):
     """
     Iterate over the first 1000 properly paired records in alignment_file and get the maximum valid isize for a proper pair.
 
@@ -22,14 +22,14 @@ def get_max_proper_pair_size(alignment_file, reads_to_check=1000):
     """
     isize = []
     msg = "Maximum insert size for a proper pair is %s"
-    for r in alignment_file:
-        if r.is_proper_pair and not r.is_secondary and not r.is_supplementary:
-            isize.append(abs(r.isize))
-        if len(isize) == reads_to_check:
-            alignment_file.reset()
-            logger.info(msg, max(isize))
-            return max(isize)
-    alignment_file.reset()
+    with pysam.AlignmentFile(path) as alignment_file:
+        for r in alignment_file:
+            if r.is_proper_pair and not r.is_secondary and not r.is_supplementary:
+                isize.append(abs(r.isize))
+            if len(isize) == reads_to_check:
+                alignment_file.reset()
+                logger.info(msg, max(isize))
+                return max(isize)
     if isize:
         logger.info(msg, max(isize))
         return max(isize)
@@ -65,8 +65,8 @@ def main(args=None):
     """
     if not args:
         args = parse_args()
+    max_isize = get_max_proper_pair_size(args.input_path)
     with pysam.AlignmentFile(args.input_path) as input, Writer(args.output_path, template=input) as output:
-        max_isize = get_max_proper_pair_size(input)
         [output.write(allow_dovetailing(read, max_proper_size=max_isize)) for read in input]
 
 

@@ -9,7 +9,6 @@ from concurrent.futures import (
     ProcessPoolExecutor
 )
 import multiprocessing_logging
-import pysam
 import six
 
 from .assemby_realignment import AssemblyRealigner
@@ -44,7 +43,7 @@ class ClusterManager(object):
     def __init__(self, **kwds):
         """Decide if passing kwds on to ClusterFinder or if splitting input file is required."""
         if kwds.get('max_proper_pair_size', 0) == 0:
-            kwds['max_proper_pair_size'] = get_max_proper_pair_size(pysam.AlignmentFile(kwds['input_path']))
+            kwds['max_proper_pair_size'] = get_max_proper_pair_size(kwds['input_path'])
         if kwds['threads'] > 1:
             self.threads = kwds['threads']
             kwds['threads'] = 2

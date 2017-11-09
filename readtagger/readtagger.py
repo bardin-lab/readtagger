@@ -10,7 +10,6 @@ from .allow_dovetailing import (
     get_max_proper_pair_size
 )
 from .bam_io import (
-    BamAlignmentReader as Reader,
     get_mean_read_length,
     get_queryname_positions,
     get_reads,
@@ -39,6 +38,7 @@ class TagManager(object):
     def __init__(self, source_path,
                  target_path,
                  output_path='test.bam',
+                 cram=False,
                  discarded_path=None,
                  verified_path=None,
                  tag_mate=True,
@@ -59,6 +59,7 @@ class TagManager(object):
         self.annotate_path = target_path
         self.annotate_path_sorted = None
         self.output_path = output_path
+        self.cram = cram
         self.discarded_path = discarded_path
         self.verified_path = verified_path
         self.tag_mate = tag_mate
@@ -93,10 +94,9 @@ class TagManager(object):
 
     def process(self):
         """Create worker objects and stream pairs to SamAnnotator process method."""
-        with Reader(self.annotate_path, external_bin=None) as source:
-            if self.allow_dovetailing and not self.max_proper_size:
-                self.max_proper_size = get_max_proper_pair_size(source)
-            mean_read_length = get_mean_read_length(source)
+        if self.allow_dovetailing and not self.max_proper_size:
+            self.max_proper_size = get_max_proper_pair_size(self.annotate_path)
+        mean_read_length = get_mean_read_length(self.annotate_path)
         if not self.bwa_index and self.reference_fasta:
             tempdir = tempfile.mkdtemp()
             self.bwa_index, _ = make_bwa_index(reference_fasta=self.reference_fasta, dir=tempdir)
@@ -119,7 +119,10 @@ class TagManager(object):
         if self.chunk_size == 'auto':
             # Adjust the chunk size based on read-length. We use the DEFAULT_CHUNK_SIZE for 200 nt reads
             # or less if the reads are longer (with a minimum of 10)
-            chunk_size = DEFAULT_CHUNK_SIZE / (mean_read_length / 200)
+            chunk_normalization_factor = int(mean_read_length / 200)
+            if chunk_normalization_factor == 0:
+                chunk_normalization_factor = 1
+            chunk_size = DEFAULT_CHUNK_SIZE / chunk_normalization_factor
             self.chunk_size = chunk_size if not chunk_size < 20 else 20
             logger.info("Chunk size is '%s', read size is '%s'", chunk_size, mean_read_length)
         pos_qname = get_queryname_positions(self.source_path_sorted, chunk_size=self.chunk_size)

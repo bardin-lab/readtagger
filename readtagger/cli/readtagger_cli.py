@@ -44,7 +44,8 @@ def parse_file_tags(filetags):
                    "and first letter of tag describing the mate as B",
               multiple=True,
               required=True)
-@click.option('-o', '--output_path', help="Write bam file to this path", required=True)
+@click.option('-o', '--output_path', help="Write alignment file to this path", required=True)
+@click.option('-C', '--cram', help="Write alignment files as CRAM files (default BAM)")
 @click.option('-r', '--reference_fasta', help='Reference fasta to align clipped reads to', default=None, required=False)
 @click.option('--allow_dovetailing/--no_allow_dovetailing', default=True,
               help="Sets the proper pair flag (0x0002) to true if reads dovetail [reads reach into or surpass the mate sequence].")

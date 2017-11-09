@@ -11,15 +11,12 @@ EXTENDED = 'extended_annotated_updated_all_reads.bam'
 
 
 def test_allow_dovetailing(datadir):  # noqa: D103
-    with Reader(datadir[EXTENDED], external_bin=None) as reader:
-        max_proper_size = get_max_proper_pair_size(reader, reads_to_check=2)
-        assert max_proper_size == 190
-    with Reader(datadir[EXTENDED], external_bin=None) as reader:
-        max_proper_size = get_max_proper_pair_size(reader, reads_to_check=1000)
-        assert max_proper_size == 664
-    with Reader(datadir[NOT_A_PAIR], external_bin=None) as reader:
-        max_proper_size = get_max_proper_pair_size(reader, reads_to_check=1)
-        assert not max_proper_size
+    max_proper_size = get_max_proper_pair_size(datadir[EXTENDED], reads_to_check=2)
+    assert max_proper_size == 190
+    max_proper_size = get_max_proper_pair_size(datadir[EXTENDED], reads_to_check=1000)
+    assert max_proper_size == 664
+    max_proper_size = get_max_proper_pair_size(datadir[NOT_A_PAIR], reads_to_check=1)
+    assert not max_proper_size
 
 
 def test_main(datadir, tmpdir, mocker):  # noqa: D103
