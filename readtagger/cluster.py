@@ -16,7 +16,7 @@ class Cluster(list):
     right_blast_result = None
 
     def __init__(self, shm_dir, max_proper_size=0):
-        """Setup Cluster object."""
+        """Initialize Cluster object."""
         super(Cluster, self).__init__()
         self.nref = 0
         self.id = -1
@@ -41,7 +41,7 @@ class Cluster(list):
 
     @property
     def max(self):
-        """Reference end of last read added to cluster."""
+        """Return reference end of last read added to cluster."""
         return self[-1].reference_end
 
     def overlaps(self, r):
@@ -250,7 +250,7 @@ class Cluster(list):
 
     @property
     def left_support(self):
-        """Number of supporting reads on the left side of cluster."""
+        """Return number of supporting reads on the left side of cluster."""
         return self.clustertag.left_sequence_count
 
     @property
@@ -285,12 +285,12 @@ class Cluster(list):
 
     @property
     def right_support(self):
-        """Number of supporting reads on the right side of cluster."""
+        """Return number of supporting reads on the right side of cluster."""
         return self.clustertag.right_sequence_count
 
     @cached_property
     def score(self):
-        """Sum of all supporting reads for this cluster."""
+        """Return sum of all supporting reads for this cluster."""
         return self.left_support + self.right_support
 
     @cached_property
@@ -382,7 +382,7 @@ class Cluster(list):
 
     @cached_property
     def valid_tsd(self):
-        """Current cluster is a TSD."""
+        """Return whether current cluster has a valid TSD."""
         return self.clustertag.tsd.is_valid
 
     def genotype_likelihood(self):

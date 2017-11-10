@@ -24,7 +24,7 @@ class AnnotateMateInformation(object):
         self.write_annotated_reads()
 
     def setup(self):
-        """Setup input and output files if these are paths."""
+        """Set up input and output files if these are paths."""
         if isinstance(self.source, string_types):
             self.source = pysam.AlignmentFile(self.source)
         if isinstance(self.target, string_types):
