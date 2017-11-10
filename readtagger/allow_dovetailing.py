@@ -58,7 +58,7 @@ def allow_dovetailing(read, max_proper_size=351, default_max_proper_size=351):
 
 def main(args=None):
     """
-    Main entrypoint for script.
+    Run script.
 
     :param args:
     :return:
