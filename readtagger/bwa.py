@@ -85,10 +85,10 @@ class Bwa(object):
             if common_tids:
                 for common_tid in common_tids:
                     length = self.header['SQ'][common_tid]['LN']
-                    min_left = min([r.pos for r in all_reads['left'][common_tid]])
-                    min_right = min([r.pos for r in all_reads['right'][common_tid]])
-                    max_left = max([(r.pos + r.alen) for r in all_reads['left'][common_tid]])
-                    max_right = max([(r.pos + r.alen) for r in all_reads['right'][common_tid]])
+                    min_left = min([r.reference_start for r in all_reads['left'][common_tid]])
+                    min_right = min([r.reference_start for r in all_reads['right'][common_tid]])
+                    max_left = max([(r.reference_start + r.reference_length) for r in all_reads['left'][common_tid]])
+                    max_right = max([(r.reference_start + r.reference_length) for r in all_reads['right'][common_tid]])
                     if max_right - min_left >= max_left - min_right:
                         start = min_left
                         end = max_right
@@ -106,8 +106,8 @@ class Bwa(object):
                 for orientation, tid_reads in all_reads.items():
                     for tid, reads in tid_reads.items():
                         length = self.header['SQ'][tid]['LN']
-                        start = min([r.pos for r in reads])
-                        end = max([(r.pos + r.alen) for r in reads])
+                        start = min([r.reference_start for r in reads])
+                        end = max([(r.reference_start + r.reference_length) for r in reads])
                         full_length_fraction = (end - start) / float(length)
                         support = len(set(r.query_name for r in reads))
                         if orientation == 'left':

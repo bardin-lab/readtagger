@@ -32,7 +32,7 @@ class Cluster(list):
 
         This assumes that the cluster is filled from left to right.
         """
-        return self[0].pos
+        return self[0].reference_start
 
     @cached_property
     def tid(self):
@@ -46,7 +46,7 @@ class Cluster(list):
 
     def overlaps(self, r):
         """Determine if r overlaps the current cluster."""
-        return r.pos <= self.max
+        return r.reference_start <= self.max
 
     def same_chromosome(self, r):
         """Whether r is on same chromsome as cluster."""
@@ -454,11 +454,11 @@ def non_evidence(data):
 def add_to_clusters(chunk, r, result):
     """Manage non-evidence results."""
     if r.is_supplementary or r.alen > 200:  # supplementary or long read
-        min_start = r.pos
-        max_end = r.aend
+        min_start = r.reference_start
+        max_end = r.reference_end
     else:
-        min_start = min([r.pos, r.mpos])
-        max_end = max(r.aend, r.pos + r.isize)
+        min_start = min([r.reference_start, r.next_reference_start])
+        max_end = max(r.reference_end, r.reference_start + r.isize)
     for index, start, end, read_index in chunk:
         if (min_start < start < max_end and min_start < end < max_end) and r.query_name not in read_index:
             # A read is only incompatible if it overlaps both ends
