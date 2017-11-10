@@ -128,7 +128,7 @@ class TagCluster(object):
                     else:
                         qname = "%s.2" % r.query_name
                     left_sequences[qname] = r.get_tag('MS')
-            if r.has_tag('AD'):
+            if r.has_tag('AD') and self.tsd.five_p:
                 if r.query_name in self.tsd.five_p_support:
                     if r.reference_end == self.tsd.five_p or r.pos == self.tsd.five_p:
                         left_sequences[r.query_name] = r.query_sequence
@@ -137,10 +137,11 @@ class TagCluster(object):
                     # or "bleeds" into the other side it will not be assigned to a side of a TSD.
                     # We can rescue these reads by looking at which side supports the insertion
                     # and which side is the genome-aligned side.
-                    if r.reference_end < self.tsd.three_p:
-                        # This alignment ends before the tsd, so it probably supports the left side
+                    three_p = self.tsd.three_p if self.tsd.three_p else self.tsd.five_p
+                    if r.reference_end < three_p:
+                        # This alignment ends before the three_prime tsd, so it probably supports the left side
                         left_sequences[r.query_name] = r.query_sequence
-                    elif (r.reference_end - 10) < self.tsd.three_p and r.reference_length > 100:
+                    elif (r.reference_end - 10) < three_p and r.reference_length > 100:
                         # This is a bit of a guess, but if the alignment was not very precise,
                         # we get the situation where a read seemingly extends a few nucleotides past the TSD.
                         # If the read clearly maps 5' of the TSD count it as supporting the left end.
@@ -167,7 +168,7 @@ class TagCluster(object):
                     else:
                         qname = "%s.2" % r.query_name
                     right_sequences[qname] = r.get_tag('MS')
-            if r.has_tag('AD'):
+            if r.has_tag('AD') and self.tsd.three_p:
                 if r.query_name in self.tsd.three_p_support:
                     if r.reference_end == self.tsd.three_p or r.pos == self.tsd.three_p:
                         right_sequences[r.query_name] = r.query_sequence
@@ -176,10 +177,11 @@ class TagCluster(object):
                     # or "bleeds" into the other side it will not be assigned to a side of a TSD.
                     # We can rescue these reads by looking at which side supports the insertion
                     # and which side is the genome-aligned side.
-                    if r.reference_start > self.tsd.five_p:
+                    five_p = self.tsd.five_p if self.tsd.five_p else self.tsd.three_p
+                    if r.reference_start > five_p:
                         # This alignment ends before the tsd, so it probably supports the left side
                         right_sequences[r.query_name] = r.query_sequence
-                    elif (r.reference_start + 10) > self.tsd.five_p and r.reference_length > 100:
+                    elif (r.reference_start + 10) > five_p and r.reference_length > 100:
                         # This is a bit of a guess, but if the alignment was not very precise,
                         # we get the situation where a read seemingly extends a few nucleotides past the TSD.
                         # If the read clearly maps 3' of the TSD count it as supporting the right end.
