@@ -106,7 +106,7 @@ class Tag(object):
         """
         Return Tag instance from pysam.AlignedSegment Instance.
 
-        >>> from test.helpers import MockAlignedSegment as AlignedSegment
+        >>> from tests.helpers import MockAlignedSegment as AlignedSegment
         >>> t = Tag.from_read(AlignedSegment(cigar='20M30S'))
         >>> isinstance(t, Tag)
         True

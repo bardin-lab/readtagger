@@ -33,9 +33,9 @@ def namedtuple_to_argv(nt, prog='prog.py'):
 
 
 class MockAlignedSegment(MockAlignedSegmentTemplate):
-    """A class that simulated pysam's AlignedSegment class."""
+    """Simulate pysam's AlignedSegment class."""
 
-    def __new__(cls, cigar='125M',
+    def __new__(cls, cigar='125M',  # noqa: D401
                 query_name='read1',
                 reference_start=0,
                 reference_end=125,
@@ -47,7 +47,7 @@ class MockAlignedSegment(MockAlignedSegmentTemplate):
                 tid=0,
                 is_reverse=False,
                 mapping_quality=60):
-        """Initiate a new AlignedSegment."""
+        """Initiates a new AlignedSegment."""
         # add default values
         return super(MockAlignedSegment, cls).__new__(cls,
                                                       cigar,

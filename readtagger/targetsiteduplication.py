@@ -13,7 +13,7 @@ class TargetSiteDuplication(object):
         """
         Return TargetSiteDuplication object for reads in cluster.
 
-        >>> from test.helpers import MockAlignedSegment as R
+        >>> from tests.helpers import MockAlignedSegment as R
         >>> # 2 nt 3' clipping
         >>> r1 = R(query_name='r1', reference_end=10, pos=2, query_alignment_start=0, query_alignment_end=10, query_length=12)
         >>> r2 = R(query_name='r2', reference_end=12, pos=2, query_alignment_start=0, query_alignment_end=12, query_length=15)

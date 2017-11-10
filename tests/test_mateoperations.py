@@ -4,9 +4,9 @@ from readtagger.mateoperations import AnnotateMateInformation
 TEST_BAM = 'dm6.bam'
 
 
-def test_mateoperations(datadir, tmpdir, mocker):  # noqa: D103
+def test_mateoperations(datadir_copy, tmpdir, mocker):  # noqa: D103
     out = tmpdir.join('out.bam')
-    AnnotateMateInformation(target=datadir[TEST_BAM], source=datadir[TEST_BAM], output_path=out.strpath, mate_sequence_tag='MS')
+    AnnotateMateInformation(target=str(datadir_copy[TEST_BAM]), source=str(datadir_copy[TEST_BAM]), output_path=out.strpath, mate_sequence_tag='MS')
     with Reader(out.strpath, external_bin=None) as reader:
         reads = [r for r in reader]
         assert len([True for r in reads if r.has_tag('MS')]) == 2

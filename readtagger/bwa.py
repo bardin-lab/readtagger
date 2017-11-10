@@ -16,7 +16,7 @@ class Bwa(object):
 
         Align sequences in fastq/fasta file `input_path` to bwa_index or construct a new index using reference_fasta
 
-        >>> from test.helpers import roo_seq
+        >>> from tests.helpers import roo_seq
         >>> with temporary.temp_dir() as tempdir:
         ...     reference_fasta = os.path.join(str(tempdir), 'reference.fasta')
         ...     reference_fasta = write_sequences({'cluster_1_left_sequences_0': roo_seq}, output_path=reference_fasta)

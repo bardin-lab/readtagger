@@ -8,9 +8,9 @@ REMAPPED_BAM = 'remapped_supplementary.bam'
 TEMPLATE_ARGS = namedtuple('args', ['source_path', 'remapped_path', 'output_path'])
 
 
-def test_update_mapq(datadir, tmpdir, mocker):  # noqa: D103
+def test_update_mapq(datadir_copy, tmpdir, mocker):  # noqa: D103
     out = tmpdir.join('out.bam').strpath
-    args = TEMPLATE_ARGS(source_path=datadir[SOURCE_BAM], remapped_path=datadir[REMAPPED_BAM], output_path=out)
+    args = TEMPLATE_ARGS(source_path=str(datadir_copy[SOURCE_BAM]), remapped_path=str(datadir_copy[REMAPPED_BAM]), output_path=out)
     argv = namedtuple_to_argv(args, 'update_mapq.py')
     mocker.patch('sys.argv', argv)
     mocker.patch('sys.exit')

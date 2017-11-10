@@ -3,8 +3,8 @@ from readtagger.cluster import non_evidence
 NON_SUPPORT = 'non_support_test.bam'
 
 
-def test_nonevidence(datadir):  # noqa: D103
-    input_path = datadir[NON_SUPPORT]
+def test_nonevidence(datadir_copy):  # noqa: D103
+    input_path = str(datadir_copy[NON_SUPPORT])
     chunk = [(0, 5095, 5096, {'HWI-D00405:129:C6KNAANXX:3:1204:6411:36177',
                               'HWI-D00405:129:C6KNAANXX:3:1306:11387:59031',
                               'HWI-D00405:129:C6KNAANXX:4:2107:11019:16386',

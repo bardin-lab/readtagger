@@ -28,30 +28,30 @@ MULTIPROCESSING = 'pasteurianus.bam'
 NANOPORE_ROVER = 'long_rover_insert_heterozygous.bam'
 
 
-def test_clusterfinder_single_cluster(datadir):  # noqa: D103
-    input_path = datadir[INPUT]
+def test_clusterfinder_single_cluster(datadir_copy):  # noqa: D103
+    input_path = str(datadir_copy[INPUT])
     cf = ClusterFinder(input_path=input_path)
     assert len(cf.cluster) == 1
     assert cf.cluster[0].nalt == 19
 
 
-def test_clusterfinder_include_duplicates(datadir):  # noqa: D103
-    input_path = datadir[INPUT]
+def test_clusterfinder_include_duplicates(datadir_copy):  # noqa: D103
+    input_path = str(datadir_copy[INPUT])
     cf = ClusterFinder(input_path=input_path, include_duplicates=True)
     assert len(cf.cluster) == 1
     assert cf.cluster[0].nalt == 26
 
 
-def test_clusterfinder_remove_supplementary(datadir):  # noqa: D103
-    input_path = datadir[INPUT]
+def test_clusterfinder_remove_supplementary(datadir_copy):  # noqa: D103
+    input_path = str(datadir_copy[INPUT])
     cf = ClusterFinder(input_path=input_path, include_duplicates=True, remove_supplementary_without_primary=True)
     assert len(cf.cluster) == 1
     assert cf.cluster[0].nalt == 24
 
 
-def test_clusterfinder_reassemble(datadir, tmpdir, reference_fasta):   # noqa: D103, F811
-    input_path = datadir[REASSEMBLE]
-    genome_reference_fasta = datadir[GENOME_FRAGMENT]
+def test_clusterfinder_reassemble(datadir_copy, tmpdir, reference_fasta):   # noqa: D103, F811
+    input_path = str(datadir_copy[REASSEMBLE])
+    genome_reference_fasta = str(datadir_copy[GENOME_FRAGMENT])
     output_bam = tmpdir.join('output.bam').strpath
     clusters = ClusterFinder(input_path=input_path,
                              output_bam=output_bam,
@@ -63,8 +63,8 @@ def test_clusterfinder_reassemble(datadir, tmpdir, reference_fasta):   # noqa: D
     assert clusters.cluster[0].valid_tsd
 
 
-def test_clusterfinder_split_cluster(datadir, tmpdir):  # noqa: D103
-    input_path = datadir[SPLIT_CLUSTER]
+def test_clusterfinder_split_cluster(datadir_copy, tmpdir):  # noqa: D103
+    input_path = str(datadir_copy[SPLIT_CLUSTER])
     cf = ClusterFinder(input_path=input_path, output_bam=tmpdir.join('output.bam').strpath,
                        include_duplicates=False,
                        remove_supplementary_without_primary=False,
@@ -74,8 +74,8 @@ def test_clusterfinder_split_cluster(datadir, tmpdir):  # noqa: D103
     assert len(cf.cluster[2]) == 27
 
 
-def test_clusterfinder_refine_split(datadir, tmpdir):  # noqa: D103
-    input_path = datadir[SPLIT_CLUSTER_OPT]
+def test_clusterfinder_refine_split(datadir_copy, tmpdir):  # noqa: D103
+    input_path = str(datadir_copy[SPLIT_CLUSTER_OPT])
     output_bam = tmpdir.join('output.bam').strpath
     clusters = ClusterFinder(input_path=input_path,
                              output_bam=output_bam,
@@ -89,8 +89,8 @@ def test_clusterfinder_refine_split(datadir, tmpdir):  # noqa: D103
     assert genotype.genotype == 'heterozygous'
 
 
-def test_clusterfinder_refine_split2(datadir, tmpdir):  # noqa: D103
-    input_path = datadir[SPLIT_CLUSTER_OPT2]
+def test_clusterfinder_refine_split2(datadir_copy, tmpdir):  # noqa: D103
+    input_path = str(datadir_copy[SPLIT_CLUSTER_OPT2])
     output_bam = tmpdir.join('output.bam').strpath
     clusters = ClusterFinder(input_path=input_path,
                              output_bam=output_bam,
@@ -103,34 +103,34 @@ def test_clusterfinder_refine_split2(datadir, tmpdir):  # noqa: D103
     assert cluster_two.nalt == 134
 
 
-def test_cornercase(datadir, tmpdir):  # noqa: D103
-    input_path = datadir[CORNERCASE]
+def test_cornercase(datadir_copy, tmpdir):  # noqa: D103
+    input_path = str(datadir_copy[CORNERCASE])
     output_gff = tmpdir.join('output.gff').strpath
     cf = ClusterFinder(input_path=input_path, output_gff=output_gff, min_mapq=-1)
     assert len(cf.cluster) == 1
-    input_path = datadir[CORNERCASE2]
+    input_path = str(datadir_copy[CORNERCASE2])
     cf = ClusterFinder(input_path=input_path, output_gff=output_gff)
     assert len(cf.cluster) == 0
-    input_path = datadir[CORNERCASE3]
+    input_path = str(datadir_copy[CORNERCASE3])
     cf = ClusterFinder(input_path=input_path, output_gff=output_gff)
 
 
-def test_clusterfinder_multiple_cluster(datadir, tmpdir):  # noqa: D103
-    input_path = datadir[EXTENDED]
+def test_clusterfinder_multiple_cluster(datadir_copy, tmpdir):  # noqa: D103
+    input_path = str(datadir_copy[EXTENDED])
     output_bam = tmpdir.join('tagged_clusters.bam')
     cf = ClusterFinder(input_path=input_path, output_bam=output_bam.strpath)
     assert len(cf.cluster) == 2
 
 
-def test_clusterfinder_multiple_cluster_gff(datadir, tmpdir):  # noqa: D103
-    input_path = datadir[EXTENDED]
+def test_clusterfinder_multiple_cluster_gff(datadir_copy, tmpdir):  # noqa: D103
+    input_path = str(datadir_copy[EXTENDED])
     output_gff = tmpdir.join('output.gff')
     cf = ClusterFinder(input_path=input_path, output_gff=output_gff.strpath)
     assert len(cf.cluster) == 2
 
 
-def test_clusterfinder_cache_threads(datadir, tmpdir, mocker):  # noqa: D103
-    input_path = datadir[EXTENDED]
+def test_clusterfinder_cache_threads(datadir_copy, tmpdir, mocker):  # noqa: D103
+    input_path = str(datadir_copy[EXTENDED])
     output_gff = tmpdir.join('output.gff')
     cf = ClusterFinder(input_path=input_path, output_gff=output_gff.strpath, threads=2)
     assert len(cf.cluster) == 2
@@ -142,22 +142,22 @@ def test_clusterfinder_cache_threads(datadir, tmpdir, mocker):  # noqa: D103
     assert len(cf.cluster) == 2
 
 
-def test_clustermanager_single_core(datadir, tmpdir):  # noqa: D103
-    input_path = datadir[EXTENDED]
+def test_clustermanager_single_core(datadir_copy, tmpdir):  # noqa: D103
+    input_path = str(datadir_copy[EXTENDED])
     output_gff = tmpdir.join('output.gff').strpath
     output_bam = tmpdir.join('output.bam').strpath
     ClusterManager(input_path=input_path, genome_reference_fasta=None, transposon_reference_fasta=None, output_bam=output_bam, output_gff=output_gff, threads=1)
 
 
-def test_clustermanager_multiprocessing(datadir, tmpdir):  # noqa: D103
-    input_path = datadir[MULTIPROCESSING]
+def test_clustermanager_multiprocessing(datadir_copy, tmpdir):  # noqa: D103
+    input_path = str(datadir_copy[MULTIPROCESSING])
     output_gff = tmpdir.join('output.gff').strpath
     output_bam = tmpdir.join('output.bam').strpath
     ClusterManager(input_path=input_path, genome_reference_fasta=None, transposon_reference_fasta=None, output_bam=output_bam, output_gff=output_gff, threads=2)
 
 
-def test_clusterfinder_multiple_cluster_gff_cli(datadir, tmpdir, mocker):  # noqa: D103
-    input_path = datadir[EXTENDED]
+def test_clusterfinder_multiple_cluster_gff_cli(datadir_copy, tmpdir, mocker):  # noqa: D103
+    input_path = str(datadir_copy[EXTENDED])
     output_bam = tmpdir.join('output.bam').strpath
     output_gff = tmpdir.join('output.gff').strpath
     args_template = namedtuple('ArgumentParser', 'input_path output_gff output_bam')
@@ -168,8 +168,8 @@ def test_clusterfinder_multiple_cluster_gff_cli(datadir, tmpdir, mocker):  # noq
     findcluster.cli()
 
 
-def test_clusterfinder_blast(datadir, tmpdir, mocker, reference_fasta):  # noqa: D103, F811
-    input_path = datadir[EXTENDED]
+def test_clusterfinder_blast(datadir_copy, tmpdir, mocker, reference_fasta):  # noqa: D103, F811
+    input_path = str(datadir_copy[EXTENDED])
     output_bam = tmpdir.join('output.bam').strpath
     output_gff = tmpdir.join('output.gff').strpath
     args_template = namedtuple('ArgumentParser', 'input_path output_gff output_bam transposon_reference_fasta')
@@ -180,8 +180,8 @@ def test_clusterfinder_blast(datadir, tmpdir, mocker, reference_fasta):  # noqa:
     findcluster.cli()
 
 
-def test_clusterfinder_complex_genotype(datadir, tmpdir, reference_fasta):  # noqa: D103, F811
-    input_path = datadir[COMPLEX]
+def test_clusterfinder_complex_genotype(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
+    input_path = str(datadir_copy[COMPLEX])
     output_bam = tmpdir.join('output.bam').strpath
     output_gff = tmpdir.join('output.gff').strpath
     output_fasta = tmpdir.join('output.fasta').strpath
@@ -199,8 +199,8 @@ def test_clusterfinder_complex_genotype(datadir, tmpdir, reference_fasta):  # no
     assert len(open(output_fasta).readlines()) == 6
 
 
-def test_clusterfinder_nanopore(datadir, tmpdir, reference_fasta):  # noqa: D103, F811
-    input_path = datadir[NANOPORE_ROVER]
+def test_clusterfinder_nanopore(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
+    input_path = str(datadir_copy[NANOPORE_ROVER])
     output_bam = tmpdir.join('output.bam').strpath
     output_gff = tmpdir.join('output.gff').strpath
     output_fasta = tmpdir.join('output.fasta').strpath
@@ -215,8 +215,8 @@ def test_clusterfinder_nanopore(datadir, tmpdir, reference_fasta):  # noqa: D103
     assert cluster.right_support == 6
 
 
-def test_clusterfinder_nonsupport(datadir, tmpdir):  # noqa: D103
-    input_path = datadir[NON_SUPPORT]
+def test_clusterfinder_nonsupport(datadir_copy, tmpdir):  # noqa: D103
+    input_path = str(datadir_copy[NON_SUPPORT])
     output_bam = tmpdir.join('output.bam').strpath
     clusters = ClusterFinder(input_path=input_path, output_bam=output_bam, output_gff=None, transposon_reference_fasta=None)
     cluster = clusters.cluster[-1]
@@ -227,8 +227,8 @@ def test_clusterfinder_nonsupport(datadir, tmpdir):  # noqa: D103
     assert genotype.genotype == 'reference'
 
 
-def test_clusterfinder_refine_coord(datadir, tmpdir):  # noqa: D103
-    input_path = datadir[REFINE_COORD]
+def test_clusterfinder_refine_coord(datadir_copy, tmpdir):  # noqa: D103
+    input_path = str(datadir_copy[REFINE_COORD])
     output_bam = tmpdir.join('output.bam').strpath
     clusters = ClusterFinder(input_path=input_path,
                              output_bam=output_bam,
@@ -242,8 +242,8 @@ def test_clusterfinder_refine_coord(datadir, tmpdir):  # noqa: D103
     assert genotype.genotype == 'homozygous'
 
 
-def test_clusterfinder_reorganize_cluster(datadir, tmpdir, reference_fasta):  # noqa: D103, F811
-    input_path = datadir[REORGANIZE_CLUSTER]
+def test_clusterfinder_reorganize_cluster(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
+    input_path = str(datadir_copy[REORGANIZE_CLUSTER])
     output_gff = tmpdir.join('output.gff').strpath
     clusters = ClusterFinder(input_path=input_path, output_bam=None, output_gff=output_gff, transposon_reference_fasta=reference_fasta)
     cluster = clusters.cluster[-1]
