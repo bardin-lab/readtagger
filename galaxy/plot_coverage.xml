@@ -1,0 +1,37 @@
+<tool id="plot_coverage" name="Plot coverage" version="0.4.0">
+    <description>as area plot between BAM files</description>
+    <requirements>
+        <requirement type="package" version="0.4.0">readtagger</requirement>
+    </requirements>
+    <command detect_errors="aggressive"><![CDATA[
+        plot_coverage '$input1' '$input1.element_identifier' '$input2' '$input2.element_identifier' output.pdf --cores \${GALAXY_SLOTS:-4} --regions '$regions'
+    ]]></command>
+    <inputs>
+        <param name="input1" type="data" format="bam,cram" label="Select a BAM file to plot"/>
+        <param name="input2" type="data" format="bam,cram" label="Select a second BAM file to plot" optional="true"/>
+        <param name="regions" type="text" label="Select regions to plot" optional="true" help="e.g X:1200000-1250000,X1250000-1300000. If left blank will plot all contigs/chromosomes.">
+            <sanitizer>
+                <valid initial="string.letters,string.digits">
+                    <add value="-" />
+                    <add value="," />
+                </valid>
+            </sanitizer>
+        </param>
+    </inputs>
+    <outputs>
+        <data name="output" format="pdf" label="Coverage plot on $on_string" from_work_dir="output.pdf"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="input1" value="three_cluster_out.bam" ftype="bam"/>
+            <param name="input2" value="three_cluster_out.bam" ftype="bam"/>
+            <param name="regions" value="3R:13373525-13373615"/>
+            <output name="output" file="three_cluster_plot.pdf" ftype="pdf" compare="sim_size"/>
+        </test>
+    </tests>
+    <help><![CDATA[
+
+This tool plots the coverage over a specified region (by default all chromosomes/contigs).
+
+    ]]></help>
+</tool>

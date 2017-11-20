@@ -1,4 +1,5 @@
 import itertools
+import os
 from collections import (
     defaultdict,
     Mapping
@@ -8,7 +9,7 @@ from concurrent.futures import ProcessPoolExecutor
 import pandas as pd
 import pysam
 import matplotlib
-matplotlib.use('TkAgg')
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.backends.backend_pdf import PdfPages  # noqa: E402
 
@@ -47,6 +48,7 @@ def dd():
 
 def get_coverage(file, label, regions=None, nth=1, readcount=-1):
     """Get coverage for every `nth` position from alignment file."""
+    readcount = float(readcount)
     contigs_coverage = defaultdict(dd)
     f = pysam.AlignmentFile(file)
     if isinstance(regions, str):
@@ -55,11 +57,11 @@ def get_coverage(file, label, regions=None, nth=1, readcount=-1):
         for region in regions:
             for pileup_pos in f.pileup(region, max_depth=20000):
                 if pileup_pos.pos % nth == 0:
-                    contigs_coverage[pileup_pos.reference_name][label][pileup_pos.pos] = float(pileup_pos.nsegments) / (readcount / 10**6)
+                    contigs_coverage[pileup_pos.reference_name][label][pileup_pos.pos] = pileup_pos.nsegments / (readcount / 10**6)
     else:
         for pileup_pos in f.pileup(max_depth=20000):
             if pileup_pos.pos % nth == 0:
-                contigs_coverage[pileup_pos.reference_name][label][pileup_pos.pos] = float(pileup_pos.nsegments) / (readcount / 10**6)
+                contigs_coverage[pileup_pos.reference_name][label][pileup_pos.pos] = pileup_pos.nsegments / (readcount / 10**6)
     return contigs_coverage
 
 
@@ -106,6 +108,10 @@ def plot_coverage_in_regions(files, labels, output_path, regions=None, cores=1):
     """
     if not regions:
         regions = pysam.AlignmentFile(files[0]).references
+    if not os.path.exists("%s.bai" % files[0]):
+        pysam.index(files[0])
+    if not os.path.exists("%s.bai" % files[1]):
+        pysam.index(files[1])
     total_reads = [get_total_coverage(file, cores=cores) for file in files]
     starmap_args = [(file, label, region, 10, reads) for (file, label, reads), region in itertools.product(zip(files, labels, total_reads), regions)]
     if cores == 1:
