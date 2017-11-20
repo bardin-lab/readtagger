@@ -8,17 +8,30 @@ __VERSION__ = '0.4.0'
 
 ENTRY_POINTS = '''
         [console_scripts]
-        annotate_softclipped_reads=readtagger.cli.annotate_softclipped_reads:tag
-        readtagger=readtagger.cli.readtagger_cli:main
-        allow_dovetailing=readtagger.allow_dovetailing:main
         add_matesequence=readtagger.cli.add_matesequence:main
+        allow_dovetailing=readtagger.allow_dovetailing:main
+        annotate_softclipped_reads=readtagger.cli.annotate_softclipped_reads:tag
         findcluster=readtagger.cli.findcluster:cli
-        write_supplementary_fastq=readtagger.cli.write_supplementary_fastq:cli
-        update_mapq=readtagger.cli.update_mapq:cli
+        plot_coverage=readtagger.cli.plot_coverage:script_entry
         pysamtools_view=readtagger.cli.pysamtools_view_cli:cli
+        readtagger=readtagger.cli.readtagger_cli:main
+        update_mapq=readtagger.cli.update_mapq:cli
+        write_supplementary_fastq=readtagger.cli.write_supplementary_fastq:cli
 '''
 
-requirements = ['bcbio-gff', 'biopython', 'cached_property', 'click', 'contextlib2', 'futures', 'multiprocessing_logging', 'pysam', 'scipy', 'six', 'temporary']
+requirements = ['bcbio-gff',
+                'biopython',
+                'cached_property',
+                'click',
+                'contextlib2',
+                'futures',
+                'matplotlib',  # for plotting coverage, refactor into separate package
+                'multiprocessing_logging',
+                'pandas',
+                'pysam',
+                'scipy',
+                'six',
+                'temporary']
 
 if sys.version_info[0] == 2:
     requirements.append('shutilwhich')
