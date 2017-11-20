@@ -15,20 +15,22 @@ requirements:
     - setuptools
 
   run:
-    - biopython
-    - scipy
     - bcbiogff
+    - biopython
     - bwa
-    - click
-    - futures
     - cached-property
     - cap3
-    - python
+    - click
     - contextlib2
+    - futures
+    - matplotlib
     - multiprocessing-logging
+    - pandas
     - pysam >=0.9.4
-    - six
+    - python
+    - scipy
     - shutilwhich  # [not py3k]
+    - six
     - temporary
 
 test:
@@ -41,6 +43,7 @@ test:
     - allow_dovetailing --help
     - add_matesequence --help
     - findcluster --help
+    - plot_coverage --help
 
 about:
   home: https://github.com/bardin-lab/readtagger
