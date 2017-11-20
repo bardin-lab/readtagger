@@ -5,8 +5,20 @@ History
 
 .. to_doc
 
+
 ---------------------
-0.3.25 (2017-11-09)
+0.4.1 (2017-11-20)
+---------------------
+* Add matplotlib and pandas to dependencies
+* Add a script that can plot coverage as an area plot between two bam files
+* Update dependencies
+* If either three_p or five_p of a tsd is unknown assign the available use the available side to test of a read belongs to the left or right side of an insertion
+* Fix crash for unaligned(?) reads
+* Change deprecacted alen, pos and mpos to current replacements
+* Tune clusterfinding for misaligned long reads
+
+---------------------
+0.4.0 (2017-11-09)
 ---------------------
 * Fixes for CRAM input and output
 * Adjust chunk-size in readtagger based on readlength (for pacbio/nanopore reads)
