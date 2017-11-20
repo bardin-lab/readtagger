@@ -1,10 +1,13 @@
-<tool id="plot_coverage" name="Plot coverage" version="0.4.0">
+<tool id="plot_coverage" name="Plot coverage" version="0.4.1">
     <description>as area plot between BAM files</description>
     <requirements>
-        <requirement type="package" version="0.4.0">readtagger</requirement>
+        <requirement type="package" version="0.4.1">readtagger</requirement>
     </requirements>
     <command detect_errors="aggressive"><![CDATA[
-        plot_coverage '$input1' '$input1.element_identifier' '$input2' '$input2.element_identifier' output.pdf --cores \${GALAXY_SLOTS:-4} --regions '$regions'
+        #import re
+        #set identifier1 = re.sub('[^\w\-_\.\,]', '_', str( $input1.element_identifier))
+        #set identifier2 = re.sub('[^\w\-_\.\,]', '_', str( $input2.element_identifier))
+        plot_coverage '$input1' '$identifier1' '$input2' '$identifier2' output.pdf --cores \${GALAXY_SLOTS:-4} --regions '$regions'
     ]]></command>
     <inputs>
         <param name="input1" type="data" format="bam,cram" label="Select a BAM file to plot"/>
