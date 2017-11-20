@@ -1,5 +1,4 @@
 import itertools
-import os
 from collections import (
     defaultdict,
     Mapping
@@ -11,6 +10,7 @@ import pysam
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt  # noqa: E402
+from matplotlib.backends.backend_pdf import PdfPages  # noqa: E402
 
 REGIONS = "I-element rover roo 297 mdg3 blood copia gypsy".split(" ")
 FILES = [
@@ -45,7 +45,7 @@ def dd():
     return defaultdict(dict)
 
 
-def get_coverage(file, label, regions=None, nth=1):
+def get_coverage(file, label, regions=None, nth=1, readcount=-1):
     """Get coverage for every `nth` position from alignment file."""
     contigs_coverage = defaultdict(dd)
     f = pysam.AlignmentFile(file)
@@ -55,11 +55,11 @@ def get_coverage(file, label, regions=None, nth=1):
         for region in regions:
             for pileup_pos in f.pileup(region, max_depth=20000):
                 if pileup_pos.pos % nth == 0:
-                    contigs_coverage[pileup_pos.reference_name][label][pileup_pos.pos] = pileup_pos.nsegments
+                    contigs_coverage[pileup_pos.reference_name][label][pileup_pos.pos] = float(pileup_pos.nsegments) / (readcount / 10**6)
     else:
         for pileup_pos in f.pileup(max_depth=20000):
             if pileup_pos.pos % nth == 0:
-                contigs_coverage[pileup_pos.reference_name][label][pileup_pos.pos] = pileup_pos.nsegments
+                contigs_coverage[pileup_pos.reference_name][label][pileup_pos.pos] = float(pileup_pos.nsegments) / (readcount / 10**6)
     return contigs_coverage
 
 
@@ -92,6 +92,11 @@ def mp_get_coverage(args):
     return get_coverage(*args)
 
 
+def get_total_coverage(file, cores=1):
+    """Get number of reads in file."""
+    return int(pysam.view('-c', "-@%d" % cores, file).strip())
+
+
 def plot_coverage_in_regions(files, labels, output_path, regions=None, cores=1):
     """
     Plot coverage for `files`, where files are multiple BAM files.
@@ -101,7 +106,8 @@ def plot_coverage_in_regions(files, labels, output_path, regions=None, cores=1):
     """
     if not regions:
         regions = pysam.AlignmentFile(files[0]).references
-    starmap_args = [(file, label, region, 10) for (file, label), region in itertools.product(zip(files, labels), regions)]
+    total_reads = [get_total_coverage(file, cores=cores) for file in files]
+    starmap_args = [(file, label, region, 10, reads) for (file, label, reads), region in itertools.product(zip(files, labels, total_reads), regions)]
     if cores == 1:
         r = itertools.starmap(get_coverage, starmap_args)
     else:
@@ -111,11 +117,8 @@ def plot_coverage_in_regions(files, labels, output_path, regions=None, cores=1):
     for d in r:
         dict_merge(contigs_coverage, d)
     figs = plot_coverage(contigs_coverage)
-    if output_path and len(figs) > 1:
-        for i, f in enumerate(figs):
-            path, ext = os.path.splitext(output_path)
-            path = "%s_%i%s" % (path, i, ext)
-            f.savefig(path)
-    elif output_path:
-        figs[0].savefig(output_path)
+    if output_path:
+        with PdfPages(output_path) as pdf:
+            for f in figs:
+                pdf.savefig(f)
     return figs
