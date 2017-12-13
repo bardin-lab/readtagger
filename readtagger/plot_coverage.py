@@ -55,7 +55,7 @@ def get_coverage(file, label, regions=None, nth=1, readcount=-1):
         regions = [regions]
     if isinstance(regions, list) or isinstance(regions, tuple):
         for region in regions:
-            for pileup_pos in f.pileup(region, max_depth=20000):
+            for pileup_pos in f.pileup(region=region, max_depth=20000):
                 if pileup_pos.pos % nth == 0:
                     contigs_coverage[pileup_pos.reference_name][label][pileup_pos.pos] = pileup_pos.nsegments / (readcount / 10**6)
     else:
