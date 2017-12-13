@@ -6,8 +6,8 @@
 set -e
 
 echo "Deploying to Anaconda.org..."
-anaconda -t $ANACONDA_TOKEN upload $CONDA_PREFIX/conda-bld/**/multiprocessing-logging-*.tar.bz2
-anaconda -t $ANACONDA_TOKEN upload $CONDA_PREFIX/conda-bld/**/readtagger-*.tar.bz2
+anaconda -t $ANACONDA_TOKEN upload --force $CONDA_PREFIX/conda-bld/**/multiprocessing-logging-*.tar.bz2
+anaconda -t $ANACONDA_TOKEN upload --force $CONDA_PREFIX/conda-bld/**/readtagger-*.tar.bz2
 
 echo "Successfully deployed to Anaconda.org."
 exit 0
