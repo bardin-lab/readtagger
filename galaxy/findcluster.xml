@@ -18,14 +18,14 @@
             #if str($transposon_source.reference_source_selector) == "history":
                 --transposon_reference_fasta '$transposon_source.ref_file'
             #else :
-                --transposon_bwa_index '$reference_source.ref_file.fields.path'
+                --transposon_bwa_index '$transposon_source.ref_file.fields.path'
             #end if
         #end if
         #if $genome_source.ref_file:
             #if str($genome_source.reference_source_selector) == "history":
                 --genome_reference_fasta '$genome_source.ref_file'
             #else :
-                --genome_bwa_index '$reference_source.ref_file.fields.path'
+                --genome_bwa_index '$genome_source.ref_file.fields.path'
             #end if
         #end if
         --output_bam '$output_bam'
