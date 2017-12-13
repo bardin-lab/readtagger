@@ -24,8 +24,10 @@ class TagSoftClip(object):
         :param source: path to alignment file or list of reads
         :param reference_fasta: Reference to align clipped portion of reads to.
                                 Only used if bwa_index is not given.
+                                Typical usage would be alignment against a TE reference fasta file.
         :param bwa_index: Reference to align clipped portion of reads to.
                           Takes precedence over reference_fasta.
+                          Typically an index of what should be text (e.g transposon sequences).
         :param output_path: path to output alignment file or None
         :param min_clip_length: minimum length of clip portion to output
         """
