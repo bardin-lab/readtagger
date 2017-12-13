@@ -7,6 +7,13 @@ History
 
 
 ---------------------
+0.4.2 (2017-12-13)
+---------------------
+* Fix passing of region specification to pileup engine
+* Point out typical useage of --reference_fasta and --reference_index
+* Fix cheetah bwa index variable for findcluster galaxy tool
+
+---------------------
 0.4.1 (2017-11-20)
 ---------------------
 * Add matplotlib and pandas to dependencies
