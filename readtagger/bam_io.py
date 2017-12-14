@@ -129,13 +129,17 @@ def start_positions_for_last_qnames(fn, last_qnames):
     return seek_positions
 
 
-def merge_bam(bam_collection, template_bam, output_path):
+def merge_bam(bam_collection, output_path, template_bam=None):
     """Merge a readname sorted collection of BAM files."""
     bam_collection = [bam for bam in bam_collection if os.path.exists(bam)]
-    args = ['samtools', 'cat', '-h', template_bam, '-o', output_path]
-    args.extend(bam_collection)
-    subprocess.call(args, env=os.environ.copy())
-    [shutil.rmtree(bam, ignore_errors=True) for bam in bam_collection]
+    if not template_bam:
+        template_bam = bam_collection[0]
+    pysam.cat('-h', template_bam, '-o', output_path, *bam_collection)
+    for bam in bam_collection:
+        try:
+            os.remove(bam)
+        except OSError:
+            pass
     return output_path
 
 
@@ -148,17 +152,16 @@ def sort_bam(inpath, output, sort_order, threads=1, cram=False, reference_fasta=
     fd = None
     if inpath == output:
         # We sort 'in place'
-        fd, temp_out = tempfile.mkstemp()
+        fd, temp_out = tempfile.mkstemp(dir=os.path.dirname(output))
     else:
         temp_out = output
-    args = ['samtools', 'sort', '-@', "%s" % threads]
+    args = ["-@%s" % threads]
     if sort_order == 'queryname':
         args.append('-n')
     if cram:
         args.extend(['-O', 'CRAM'])
     args.extend(['-o', temp_out, inpath])
-    logger.info("Sorting bam file with command '%s'", " ".join(args))
-    subprocess.call(args, env=os.environ.copy())
+    pysam.sort(*args)
     if temp_out != output:
         shutil.move(temp_out, output)
     if fd:
@@ -215,7 +218,7 @@ def find_end(f, chrom, end, self_tag, other_tag, padding=5000):
 
 
 class BamAlignmentWriter(object):
-    """Wrap pysam.AlignmentFile with sambamba for multithreaded compressed writing."""
+    """Wrap pysam.AlignmentFile with samtools for multithreaded compressed writing."""
 
     def __init__(self, path, template=None, header=None, threads=4, external_bin='choose_best', sort_order='coordinate'):
         """
