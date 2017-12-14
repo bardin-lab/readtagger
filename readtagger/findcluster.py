@@ -46,6 +46,7 @@ class ClusterManager(object):
             kwds['max_proper_pair_size'] = get_max_proper_pair_size(kwds['input_path'])
         if kwds['threads'] > 1:
             self.threads = kwds['threads']
+            # this is ugly, but each ClusterFinder instance should be able to use an additional thread
             kwds['threads'] = 2
             self.kwds = kwds
             self.process_list = []
@@ -80,7 +81,8 @@ class ClusterManager(object):
         output_bam = self.kwds.get('output_bam')
         if output_bam:
             bam_files = [kwd['output_bam'] for kwd in self.process_list if kwd['output_bam']]
-            merge_bam(bam_collection=bam_files, template_bam=bam_files[0], output_path=self.kwds['output_bam'])
+            merge_bam(bam_collection=bam_files, output_path=self.kwds['output_bam'])
+            sort_bam(inpath=self.kwds['output_bam'], output=self.kwds['output_bam'], sort_order='coordinate', threads=min((8, self.threads)))
         output_fasta = self.kwds.get('output_fasta')
         if output_fasta:
             fasta_files = [kwd['output_fasta'] for kwd in self.process_list if kwd['output_fasta']]
@@ -101,6 +103,7 @@ class ClusterManager(object):
                                     continue
                                 gff_writer.write(line)
                         wrote_header = True
+            sort_gff(input_path=output_gff, output_path=output_gff)
 
 
 def wrapper(kwds):
@@ -315,8 +318,11 @@ class ClusterFinder(object):
                     for r in cluster:
                         r.set_tag('CD', i)
                         writer.write(r)
-            # Because the cluster splitting doesn't necessarily conserve order we need to sort again.
-            sort_bam(inpath=self.output_bam, output=self.output_bam, sort_order='coordinate', threads=self.threads)
+            if self.threads < 2:
+                # Because the cluster splitting doesn't necessarily conserve order we need to sort again.
+                # We do this only if not using threads, since with multiple threads we split and merge at the end,
+                # so there we'd need to sort again anyway.
+                sort_bam(inpath=self.output_bam, output=self.output_bam, sort_order='coordinate', threads=self.threads)
 
     def to_gff(self):
         """Write clusters as GFF file."""
@@ -326,7 +332,8 @@ class ClusterFinder(object):
                           output_path=self.output_gff,
                           sample=self.sample_name,
                           threads=self.threads)
-            sort_gff(self.output_gff, output_path=self.output_gff)
+            if self.threads < 2:
+                sort_gff(self.output_gff, output_path=self.output_gff)
 
 
 class Chunks(object):
