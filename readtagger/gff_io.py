@@ -59,7 +59,7 @@ def get_feature(cluster, sample, i):
 
 def sort_gff(input_path, output_path):
     """Sort gff file at input path."""
-    fd, tmp = tempfile.mkstemp()
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(output_path))
     header_lines = []
     with open(input_path) as gff_in, open(tmp, 'w') as out:
         for line in gff_in:
