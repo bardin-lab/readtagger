@@ -11,7 +11,6 @@ import six
 if six.PY2:
     import shutilwhich  # noqa: F401
 
-__VERSION__ = '0.3.18'
 logger = logging.getLogger(__name__)
 logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s - %(message)s', level=logging.DEBUG)
 
