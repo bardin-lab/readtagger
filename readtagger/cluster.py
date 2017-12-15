@@ -446,8 +446,8 @@ def non_evidence(data):
             if not r.is_duplicate and (r.is_proper_pair or (r.reference_length and r.reference_length > 200)) and r.mapq > 0:
                 add_to_clusters(chunk, r, result)
         f.close()
-    except ValueError:
-        logging.warn("Encountered ValueError on chromosome %s for start %s and end %s of chunks %s" % (chromosome, start, end, chunk))
+    except Exception as e:
+        logging.warn("Encountered Exception '%s' on chromosome %s for start %s and end %s of chunks %s" % (str(e), chromosome, start, end, chunk))
     return result
 
 
