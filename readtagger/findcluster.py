@@ -299,7 +299,7 @@ class ClusterFinder(object):
 
     def align_bwa(self):
         """Align cluster contigs or invidiual reads to a reference and write result into cluster."""
-        if self.output_fasta and self.transposon_reference_fasta:
+        if self.output_fasta and (self.transposon_reference_fasta or self.transposon_bwa_index):
             bwa = Bwa(input_path=self.output_fasta,
                       bwa_index=self.transposon_bwa_index,
                       reference_fasta=self.transposon_reference_fasta,
