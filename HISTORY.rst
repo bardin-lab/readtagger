@@ -5,6 +5,12 @@ History
 
 .. to_doc
 
+---------------------
+0.4.6 (2017-12-13)
+---------------------
+* Deploy to conda on py3 as well
+* Make sure cluster chunks are ordered
+* Avoid hangs due to expection in multiprocessing tasks
 
 ---------------------
 0.4.2 (2017-12-13)
