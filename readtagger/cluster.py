@@ -426,13 +426,13 @@ def non_evidence(data):
     input_path = data['input_path']
     chromosome = data['chromosome']
     chunk = data['chunk']
-    first_chunk = chunk[0]
-    last_chunk = chunk[-1]
-    start = first_chunk[1]
+    # Chunk is a small list of clusters
+    start = min((c[1] for c in chunk))
+    end = max((c[2] for c in chunk))
     min_start = start - 500
-    if min_start <= 0:
-        min_start = 1
-    end = last_chunk[2]
+    if min_start < 0:
+        # Avoid pysam error for negative start coordinates
+        min_start = 0
     max_end = end + 500
     try:
         f = pysam.AlignmentFile(input_path)
@@ -452,7 +452,13 @@ def non_evidence(data):
 
 
 def add_to_clusters(chunk, r, result):
-    """Manage non-evidence results."""
+    """
+    Count reads overlapping a cluster.
+
+    If a read r overlaps a cluster region,
+    but does not show evidence for an insertion it will be counted.
+    Once a read name has been seen it will not be counted again.
+    """
     if r.is_supplementary or r.alen > 200:  # supplementary or long read
         min_start = r.reference_start
         max_end = r.reference_end
