@@ -47,7 +47,6 @@ deploy:
   script: conda/deploy.sh
   on:
     tags: true
-    python: 2.7
 - provider: script
   skip_cleanup: true
   script: galaxy/deploy.sh
