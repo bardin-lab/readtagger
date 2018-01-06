@@ -44,17 +44,21 @@ class Cluster(list):
         """Return reference end of last read added to cluster."""
         return self[-1].reference_end
 
-    def overlaps(self, r):
+    def overlaps(self, r, strict=False):
         """Determine if r overlaps the current cluster."""
+        if strict:
+            # We use strict mode when refining cluster members, as they are not necessarily added
+            # from low reference_start to high_reference_start
+            return r.reference_start <= max((_.reference_end for _ in self))
         return r.reference_start <= self.max
 
     def same_chromosome(self, r):
         """Whether r is on same chromsome as cluster."""
         return self.tid == r.tid
 
-    def read_is_compatible(self, r):
+    def read_is_compatible(self, r, strict=False):
         """Determine if read overlaps cluster and is on same chromosome."""
-        return self.overlaps(r) and self.same_chromosome(r)
+        return self.overlaps(r, strict=strict) and self.same_chromosome(r)
 
     @property
     def orientation_switches(self):
@@ -65,8 +69,9 @@ class Cluster(list):
         """Try to recover more reads that support a specific insertion."""
         if assembly_realigner:
             informative_reads = assembly_realigner.collect_reads(self)
-            if informative_reads:
-                self.extend(informative_reads)
+            for read in informative_reads:
+                if self.read_is_compatible(read, strict=True):
+                    self.append(read)
 
     def split_cluster_at_polarity_switch(self):
         """
