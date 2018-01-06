@@ -238,11 +238,12 @@ class Cluster(list):
                     return True
         self_switches = self.orientation_switches
         other_switches = other_cluster.orientation_switches
-        if len(self_switches) == 1 and len(other_switches) and self_switches != other_switches:
-            # Merge a cluster that is split by an insertion and not connected via split reads
-            if self_switches[0][0] == 'F' and other_switches[0][0] == 'R':
-                self._can_join_d = {self.hash: other_cluster.hash}
-                return True
+        if len(self_switches) == 1 and len(other_switches) == 1 and self_switches != other_switches:
+            if abs(other_cluster.min - self.max) < max_distance:
+                # Merge a cluster that is split by an insertion and not connected via split reads
+                if self_switches[0][0] == 'F' and other_switches[0][0] == 'R':
+                    self._can_join_d = {self.hash: other_cluster.hash}
+                    return True
         # We know this cluster (self) cannot be joined with other_cluster, so we cache this result,
         # Since we may ask this question multiple times when joining the clusters.
         self._cannot_join_d = {self.hash: other_cluster.hash}
