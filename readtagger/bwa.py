@@ -191,6 +191,13 @@ class SimpleAligner(object):
         else:
             self.index = bwa_index
 
+    def __enter__(self):  # noqa: D105
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Clean up index when class is used as context manager."""
+        self.cleanup_index()
+
     def align(self, sequence):
         """Return contig numbers with valid alignments for sequence."""
         sequences = write_sequences(sequence, tmp_dir=self.tmp_dir)

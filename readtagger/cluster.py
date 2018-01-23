@@ -127,33 +127,32 @@ class Cluster(list):
         if contig_sequences:
             # Not all reads are assigned to contigs,
             # so we use bwa to check if a read belongs to a contig
-            simple_aligner = SimpleAligner(reference_sequences=contig_sequences, tmp_dir=self.shm_dir)
-            if len(putative_cluster_a.orientation_switches) > 1:
-                switch_reads = putative_cluster_a[putative_cluster_a.orientation_switches[1][1]:]
-                # Are the reads that caused the orientation switch actually contributing to cluster a?
-                # Because if they don't, they should probably be ignored and treated as a separate insertion.
-                sequences_to_align = [r.get_tag('MS') for r in switch_reads if r.has_tag('MS')]
-                if sequences_to_align and not simple_aligner.align(sequences_to_align):
-                    putative_cluster_a = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_size)
-                    putative_cluster_a.extend(switch_reads)
-                    putative_cluster_b = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_size)
-                    putative_cluster_b.extend(r for r in self if r.query_name not in putative_cluster_a.read_index)
-                    simple_aligner.cleanup_index()
-                    return putative_cluster_a, putative_cluster_b
-            reads_to_remove = set()
-            for read in putative_cluster_b:
-                if read.query_name in cluster_a_contig_reads:
-                    putative_cluster_a.append(read)
-                    reads_to_remove.add(read)
-                elif read.has_tag('MS') and read.has_tag('BD'):
-                    ms = read.get_tag('MS')
-                    for i, contig in enumerate(contig_sequences):
-                        if i in cluster_a_contigs and simple_aligner.align(ms):
-                            putative_cluster_a.append(read)
-                            reads_to_remove.add(read)
-            for read in reads_to_remove:
-                putative_cluster_b.remove(read)
-        simple_aligner.cleanup_index()
+            with SimpleAligner(reference_sequences=contig_sequences, tmp_dir=self.shm_dir) as simple_aligner:
+                if len(putative_cluster_a.orientation_switches) > 1:
+                    switch_reads = putative_cluster_a[putative_cluster_a.orientation_switches[1][1]:]
+                    # Are the reads that caused the orientation switch actually contributing to cluster a?
+                    # Because if they don't, they should probably be ignored and treated as a separate insertion.
+                    sequences_to_align = [r.get_tag('MS') for r in switch_reads if r.has_tag('MS')]
+                    if sequences_to_align and not simple_aligner.align(sequences_to_align):
+                        putative_cluster_a = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_size)
+                        putative_cluster_a.extend(switch_reads)
+                        putative_cluster_b = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_size)
+                        putative_cluster_b.extend(r for r in self if r.query_name not in putative_cluster_a.read_index)
+                        simple_aligner.cleanup_index()
+                        return putative_cluster_a, putative_cluster_b
+                reads_to_remove = set()
+                for read in putative_cluster_b:
+                    if read.query_name in cluster_a_contig_reads:
+                        putative_cluster_a.append(read)
+                        reads_to_remove.add(read)
+                    elif read.has_tag('MS') and read.has_tag('BD'):
+                        ms = read.get_tag('MS')
+                        for i, contig in enumerate(contig_sequences):
+                            if i in cluster_a_contigs and simple_aligner.align(ms):
+                                putative_cluster_a.append(read)
+                                reads_to_remove.add(read)
+                for read in reads_to_remove:
+                    putative_cluster_b.remove(read)
         return putative_cluster_a, putative_cluster_b
 
     @property
