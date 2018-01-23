@@ -6,6 +6,14 @@ History
 .. to_doc
 
 ---------------------
+0.4.7 (2018-01-23)
+---------------------
+* Fix Exception that occurs when cluster doesn't have an associated contig
+* Fix TE alignment logic when using pre-indexed transposon references
+* Control which reads extend a cluster during cluster refinement
+* Add a safeguard to avoid merging unrelated, far-away clusters
+
+---------------------
 0.4.6 (2017-12-13)
 ---------------------
 * Deploy to conda on py3 as well
