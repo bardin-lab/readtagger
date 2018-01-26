@@ -81,6 +81,25 @@ class Cluster(list):
                 if self.read_is_compatible(read, strict=True):
                     self.append(read)
 
+    def join_adjacent(self, all_clusters):
+        """Join clusters thar can be joined."""
+        for other_cluster in self.reachable(all_clusters=all_clusters):
+            if self.can_join(other_cluster):
+                self.extend(other_cluster)
+                all_clusters.remove(other_cluster)
+
+    def reachable(self, all_clusters):
+        """Find all cluster that are closeby."""
+        idx = all_clusters.index(self)
+        current_end = self.end_corrected
+        for i, cluster in enumerate(all_clusters[idx + 1:]):
+            if cluster.start_corrected and current_end and cluster.start_corrected <= current_end:
+                yield cluster
+            elif i == 0:
+                yield cluster
+            else:
+                break
+
     def split_cluster_at_polarity_switch(self):
         """
         Split cluster if the direction of the mates switches.

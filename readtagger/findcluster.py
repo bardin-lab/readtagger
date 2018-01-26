@@ -230,7 +230,7 @@ class ClusterFinder(object):
                     cluster = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_pair_size)
                     cluster.append(r)
                     clusters.append(cluster)
-        logging.info('Found %d cluster', len(clusters))
+        logging.info('Found %d cluster on first pass', len(clusters))
         return clusters
 
     def clean_clusters(self):
@@ -243,16 +243,10 @@ class ClusterFinder(object):
             cluster_length = len(self.cluster)
             new_clusterlength = 0
             while new_clusterlength != cluster_length:
-                # Iterate until the length of the cluster doesn't change anymore.
-                self._cache_join()
+                self._cache_join()  # TODO: not super efficient, should probably cache cluster.join_adjacent?
                 cluster_length = new_clusterlength
-                prev_cluster = self.cluster[0]
-                for cluster in self.cluster[1:]:
-                    if prev_cluster.can_join(cluster):
-                        prev_cluster.extend(cluster)
-                        self.cluster.remove(cluster)
-                    else:
-                        prev_cluster = cluster
+                for cluster in self.cluster:
+                    cluster.join_adjacent(all_clusters=self.cluster)
                 new_clusterlength = len(self.cluster)
         for index, cluster in enumerate(self.cluster):
             cluster_a, cluster_b = cluster.split_cluster_at_polarity_switch()
