@@ -44,12 +44,20 @@ class Cluster(list):
         """Return reference end of last read added to cluster."""
         return self[-1].reference_end
 
+    @staticmethod
+    def _strict_overlap(start1, end1, start2, end2):
+        """Check that range (start1, end1) overlaps with (start2, end2)."""
+        # Taken from https://nedbatchelder.com/blog/201310/range_overlap_in_two_compares.html
+        return end1 >= start2 and end2 >= start1
+
     def overlaps(self, r, strict=False):
         """Determine if r overlaps the current cluster."""
         if strict:
             # We use strict mode when refining cluster members, as they are not necessarily added
             # from low reference_start to high_reference_start
-            return r.reference_start <= max((_.reference_end for _ in self))
+            start1 = min((_.reference_start for _ in self))
+            end1 = max((_.reference_end for _ in self))
+            return self._strict_overlap(start1, end1, r.reference_start, r.reference_end)
         return r.reference_start <= self.max
 
     def same_chromosome(self, r):
