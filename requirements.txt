@@ -9,4 +9,4 @@ scipy==1.0.0
 shutilwhich==1.1.0
 six==1.11.0
 temporary==3.0.0
-multiprocessing_logging==0.2.4
+multiprocessing_logging==0.2.5
