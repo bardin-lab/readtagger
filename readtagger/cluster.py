@@ -505,3 +505,22 @@ def add_to_clusters(chunk, r, result):
                 result[index] = 1
             else:
                 result[index] += 1
+
+
+def evidence_for(read, breakpoints, breakpoint_sequences):
+    """
+    Check if the clipped sequence of a read supports an insertion.
+
+    `read` is a pysam AlignedSegment, breakpoints is a list of breakpoints,
+    and breakpoint_sequences is a list of sequences at the breakpoint.
+    """
+    # TODO: if we don't have any breakpoint sequences this will (perhaps falsely) return False
+    # Probably better to underestimate this and not come up with a fancy solution
+    if read.reference_end in breakpoints:
+        soft_clipped_sequence = read.seq[read.qend:]
+        return any(s.startswith(soft_clipped_sequence[:4]) for s in breakpoint_sequences)
+    elif read.reference_start in breakpoints:
+        soft_clipped_sequence = read.seq[:read.qstart]
+        return any(s.endswith(soft_clipped_sequence[:4]) for s in breakpoint_sequences)
+    else:
+        return False
