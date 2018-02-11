@@ -202,7 +202,7 @@ class TagCluster(object):
                     right_sequences[qname] = r.get_tag('MS')
             if r.has_tag('AD') and self.tsd.three_p:
                 if r.query_name in self.tsd.three_p_support:
-                    if r.reference_end == self.tsd.three_p or r.pos == self.tsd.three_p:
+                    if r.reference_end == self.tsd.three_p or r.reference_start == self.tsd.three_p:
                         right_sequences[r.query_name] = r.query_sequence
                 elif r.query_name in self.tsd.unassigned_support:
                     # If a clipped read stops before TSD (happens often in noisy long-read sequencing)

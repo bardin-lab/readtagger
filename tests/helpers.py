@@ -52,7 +52,7 @@ class MockAlignedSegment(MockAlignedSegmentTemplate):
         return super(MockAlignedSegment, cls).__new__(cls,
                                                       cigar,
                                                       query_name,
-                                                      reference_start,
+                                                      reference_start or pos,
                                                       reference_end,
                                                       pos,
                                                       has_tag,
