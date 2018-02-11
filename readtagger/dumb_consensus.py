@@ -20,7 +20,7 @@ def dumb_consensus(string_list, left_align=True):
     Get the dumb consensus from a list of nucelotide strings.
 
     :param string_list:  list of sequences for which to get the consensus
-    :param left_align:   if True get consensus from left to right, otherwise from tight to left
+    :param left_align:   if True get consensus from left to right, otherwise from right to left
     :return:
 
     >>> dumb_consensus(['ATGC', 'ATGC', 'AGTT'])
