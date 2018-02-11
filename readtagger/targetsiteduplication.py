@@ -53,12 +53,22 @@ class TargetSiteDuplication(object):
         ['r1', 'r8']
         """
         self.cluster = cluster
-        if include_duplicates:
-            self.split_ads = [r for r in self.cluster if r.has_tag('AD')]
-        else:
-            self.split_ads = [r for r in self.cluster if r.has_tag('AD') and not r.is_duplicate]
+        self.include_duplicates = include_duplicates
+        self._split_ads = None
+        self._last_length = 0
         self.three_p = self.find_three_p()
         self.five_p = self.find_five_p()
+
+    @property
+    def split_ads(self):
+        """Return all split reads with 'AD" tag."""
+        if self._split_ads is None or self._last_length != len(self.cluster):
+            self._last_length = len(self.cluster)
+            if self.include_duplicates:
+                self._split_ads = [r for r in self.cluster if r.has_tag('AD')]
+            else:
+                self._split_ads = [r for r in self.cluster if r.has_tag('AD') and not r.is_duplicate]
+        return self._split_ads
 
     @property
     def is_valid(self):
