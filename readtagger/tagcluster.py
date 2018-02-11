@@ -1,6 +1,7 @@
 """Organize a cluster of interest."""
 import logging
 from cached_property import cached_property
+from .dumb_consensus import dumb_consensus
 from .cap3 import Cap3Assembly
 from .targetsiteduplication import TargetSiteDuplication
 
@@ -109,6 +110,37 @@ class TagCluster(object):
             return min(three_p_reads)
         else:
             return None
+
+    @property
+    def left_breakpoint_sequence(self):
+        """Return left breakpoint sequence."""
+        return self.get_breakpoint_sequence(which='left')
+
+    @property
+    def right_breakpoint_sequence(self):
+        """Return right breakpoint sequence."""
+        return self.get_breakoint_sequence(which='right')
+
+    def get_breakpoint_sequence(self, which):
+        """
+        Get breakpoint sequences.
+
+        `which` can be "left" of "right".
+        """
+        soft_clipped_sequences = []
+        if which == 'left':
+            for r in self.tsd.five_p_reads:
+                soft_clipped_sequences.append(r.seq[r.qend:])
+        else:
+            for r in self.tsd.three_p_reads:
+                soft_clipped_sequences.append(r.seq[:r.qstart])
+        if len(soft_clipped_sequences) > 1:
+            return dumb_consensus(soft_clipped_sequences, left_align=which == 'True')
+        else:
+            if soft_clipped_sequences:
+                return soft_clipped_sequences[0]
+            else:
+                return ""
 
     @cached_property
     def left_sequences(self):

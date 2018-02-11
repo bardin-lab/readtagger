@@ -219,14 +219,22 @@ class TargetSiteDuplication(object):
     @cached_property
     def three_p_support(self):
         """Return list of Reads that support the inferred three prime position for this TSD."""
-        if not hasattr(self, '_three_p_support'):
-            self._three_p_support = [r.query_name for r in self.split_ads if r.pos == self.three_p]
-        return self._three_p_support
+        return [r.query_name for r in self.three_p_reads]
 
     @cached_property
     def five_p_support(self):
         """Return list of Reads that support the inferred five prime position for this TSD."""
-        return [r.query_name for r in self.split_ads if r.reference_end == self.five_p]
+        return [r.query_name for r in self.five_p_reads]
+
+    @property
+    def three_p_reads(self):
+        """Return reads that support the three prime break."""
+        return [r for r in self.split_ads if r.reference_start == self.three_p]
+
+    @property
+    def five_p_reads(self):
+        """Return reads that support the five prime break."""
+        return [r for r in self.split_ads if r.reference_end == self.five_p]
 
     @cached_property
     def unassigned_support(self):
