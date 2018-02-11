@@ -273,7 +273,7 @@ class ClusterFinder(object):
         with ProcessPoolExecutor(max_workers=self.threads) as executor:
             r = executor.map(non_evidence, chunks.chunks)
             for result in r:
-                for index, nref in result.items():
+                for index, nref in result['against'].items():
                     self.cluster[index].nref = nref
 
     def _create_contigs(self):

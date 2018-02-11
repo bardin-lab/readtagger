@@ -16,7 +16,7 @@ def test_nonevidence(datadir_copy):  # noqa: D103
              (2, 16008, 16009, {'HWI-D00405:129:C6KNAANXX:4:1113:5245:46615'}),
              (3, 16422, 16423, {'HWI-D00405:129:C6KNAANXX:4:1310:9444:11374'})]
     data = {'chromosome': '2L', 'input_path': input_path, 'chunk': chunk}
-    result = non_evidence(data)
+    result = non_evidence(data)['against']
     assert len(result) == 4
     assert result[0] == 12
     assert result[1] == 38
@@ -37,4 +37,4 @@ def test_nonevidence_exception_handling(datadir_copy):  # noqa: D103
              (2, 16008, 16009, {'HWI-D00405:129:C6KNAANXX:4:1113:5245:46615'}),
              (3, 16422, 16423, {'HWI-D00405:129:C6KNAANXX:4:1310:9444:11374'})]
     data = {'chromosome': '2L', 'input_path': input_path, 'chunk': chunk}
-    assert len(non_evidence(data)) == 0
+    assert len(non_evidence(data)['against']) == 0

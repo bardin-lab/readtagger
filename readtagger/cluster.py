@@ -454,7 +454,8 @@ class Cluster(list):
 
 def non_evidence(data):
     """Count all reads that point against evidence for a transposon insertion."""
-    result = {}
+    result = {'against': {},
+              'for': {}}
     input_path = data['input_path']
     chromosome = data['chromosome']
     chunk = data['chunk']
@@ -501,10 +502,10 @@ def add_to_clusters(chunk, r, result):
         if (min_start < start < max_end and min_start < end < max_end) and r.query_name not in read_index:
             # A read is only incompatible if it overlaps both ends
             read_index.add(r.query_name)  # We count fragments only once
-            if index not in result:
-                result[index] = 1
+            if index not in result['against']:
+                result['against'][index] = 1
             else:
-                result[index] += 1
+                result['against'][index] += 1
 
 
 def evidence_for(read, breakpoints, breakpoint_sequences):
