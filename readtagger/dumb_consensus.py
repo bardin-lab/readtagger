@@ -12,6 +12,8 @@ AMBIGUOUS_IUPAC = {'AG': 'R',
                    'ACT': 'H',
                    'ACG': 'V'}
 
+IUAPC_AMBIGUOUS = {v: k for k, v in AMBIGUOUS_IUPAC.items()}
+
 
 def dumb_consensus(string_list, left_align=True):
     """
