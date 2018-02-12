@@ -258,6 +258,7 @@ class ClusterFinder(object):
                 self.cluster.insert(index + 1, cluster_b)
         for cluster in self.cluster:
             cluster.refine_members(self.assembly_realigner)
+            cluster.join_adjacent(all_clusters=self.cluster)
         # We are done, we can give the clusters a numeric index, so that we can distribute the processing and recover the results
         [c.set_id(i) for i, c in enumerate(self.cluster)]
 

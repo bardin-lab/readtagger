@@ -153,7 +153,7 @@ class TagCluster(object):
         # TODO: extend this to also return quality values
         left_sequences = {}
         for r in self.cluster:
-            if r.has_tag('BD'):
+            if r.has_tag('BD') and not r.has_tag('AD'):
                 if not r.is_reverse:
                     if r.is_read1:
                         qname = "%s.1" % r.query_name
@@ -221,14 +221,22 @@ class TagCluster(object):
                         right_sequences[r.query_name] = r.query_sequence
         return right_sequences
 
-    @cached_property
+    @property
     def right_sequence_count(self):
         """Count all unique sequences right of a breakpoint."""
-        qnames = set(qname.rsplit('.1')[0].rsplit('.2')[0] for qname in self.right_sequences)
-        return len(qnames)
+        return len(self.unique_right_sequences)
 
-    @cached_property
+    @property
     def left_sequence_count(self):
         """Count all unique sequences right of a breakpoint."""
-        qnames = set(qname.rsplit('.1')[0].rsplit('.2')[0] for qname in self.left_sequences)
-        return len(qnames)
+        return len(self.unique_left_sequences)
+
+    @property
+    def unique_left_sequences(self):
+        """Get all unique sequences that supprt the left insertion end."""
+        return set(qname.rsplit('.1')[0].rsplit('.2')[0] for qname in self.left_sequences)
+
+    @property
+    def unique_right_sequences(self):
+        """Get all unique sequences that supprt the right insertion end."""
+        return set(qname.rsplit('.1')[0].rsplit('.2')[0] for qname in self.right_sequences)

@@ -137,7 +137,7 @@ def test_clusterfinder_cache_threads(datadir_copy, tmpdir, mocker):  # noqa: D10
     mocker.spy(cf.cluster[0], 'can_join')
     mocker.spy(cf.cluster[0], '_can_join')
     cf.join_clusters()
-    assert cf.cluster[0].can_join.call_count == 4
+    assert cf.cluster[0].can_join.call_count == 5
     assert cf.cluster[0]._can_join.call_count == 0
     assert len(cf.cluster) == 2
 
