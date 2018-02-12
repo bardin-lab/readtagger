@@ -55,7 +55,12 @@ def dumb_consensus(string_list, left_align=True):
             new_consensus.append('N')
         elif len(ties) > 1:
             # Lookup IUPAC code for ambiguous bases
-            new_consensus.append(AMBIGUOUS_IUPAC["".join(sorted(ties))])
+            if 'N' in ties:
+                ties = ties - {'N'}
+            if len(ties) > 1:
+                new_consensus.append(AMBIGUOUS_IUPAC["".join(sorted(ties))])
+            else:
+                new_consensus.append(next(iter(ties)))
         else:
             new_consensus.append(next(iter(ties)))
     if left_align:
