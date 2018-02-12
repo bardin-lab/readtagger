@@ -26,7 +26,7 @@ requirements:
     - matplotlib
     - multiprocessing-logging
     - pandas
-    - pysam >=0.9.4
+    - pysam >=0.14
     - python
     - scipy
     - shutilwhich  # [not py3k]

@@ -114,7 +114,7 @@ class TagManager(object):
         kwds['discard_if_proper_pair'] = self.discard_if_proper_pair
         kwds['tag_prefix_self'] = self.tag_prefix_self
         kwds['tag_prefix_mate'] = self.tag_prefix_mate
-        kwds['source_header'] = pysam.AlignmentFile(self.source_path_sorted).header
+        kwds['source_header'] = pysam.AlignmentFile(self.source_path_sorted).header.to_dict()
         logger.info("Finding position at which to split input files")
         if self.chunk_size == 'auto':
             # Adjust the chunk size based on read-length. We use the DEFAULT_CHUNK_SIZE for 200 nt reads

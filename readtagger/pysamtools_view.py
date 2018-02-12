@@ -14,7 +14,7 @@ def view(input_bam, output_bam, region):
     start, end = start_end.split('-')
     start, end = int(start), int(end)
     with BamAlignmentReader(path=input_bam, sort_order='coordinate', region=region) as input:
-        new_header = input.header.copy()
+        new_header = input.header.to_dict()
         new_header['SQ'] = [{'SN': chromosome, 'LN': end - start}]
         with BamAlignmentWriter(path=output_bam, header=new_header) as out:
             for read in input:
