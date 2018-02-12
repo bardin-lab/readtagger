@@ -31,9 +31,9 @@ def get_feature(cluster, sample, i):
     genotype = cluster.genotype_likelihood()
     qualifiers = {"source": "findcluster",
                   "score": cluster.score,
-                  "left_support": cluster.left_support,
+                  "total_left_support": cluster.total_left_support,
                   "left_mate_support": cluster.left_mate_count,
-                  "right_support": cluster.right_support,
+                  "total_right_support": cluster.total_right_support,
                   "right_mate_support": cluster.right_mate_count,
                   "non_support": genotype.nref,
                   "genotype": genotype.genotype,

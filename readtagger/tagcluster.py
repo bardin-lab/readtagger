@@ -183,7 +183,7 @@ class TagCluster(object):
     @cached_property
     def right_sequences(self):
         """
-        Find reads right of a breakpoint.
+        Return sequences of reads to the right of a breakpoint.
 
         These reads need to be antisense oriented if they have a BD tag, and reads with an
         AD tag should support that particular TSD end (3p for right reads).
@@ -214,6 +214,7 @@ class TagCluster(object):
                         # This alignment ends before the tsd, so it probably supports the left side
                         right_sequences[r.query_name] = r.query_sequence
                     elif (r.reference_start + 10) > five_p and r.reference_length > 100:
+                        # Nanopore workaround:
                         # This is a bit of a guess, but if the alignment was not very precise,
                         # we get the situation where a read seemingly extends a few nucleotides past the TSD.
                         # If the read clearly maps 3' of the TSD count it as supporting the right end.

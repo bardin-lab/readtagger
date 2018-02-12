@@ -1,5 +1,8 @@
 import logging
-from itertools import groupby
+from itertools import (
+    chain,
+    groupby
+)
 
 import pysam
 from cached_property import cached_property
@@ -24,6 +27,8 @@ class Cluster(list):
         self.max_proper_size = max_proper_size
         self.reference_name = None
         self.shm_dir = shm_dir
+        self.evidence_for_five_p = set()
+        self.evidence_for_three_p = set()
 
     @cached_property
     def min(self):
@@ -190,7 +195,7 @@ class Cluster(list):
     @property
     def read_index(self):
         """Index of read names in cluster."""
-        return set([r.query_name for r in self if not r.has_tag('AC')])  # AC is assembled contig
+        return set(r.query_name for r in chain(self, self.evidence_for_five_p, self.evidence_for_three_p) if not r.has_tag('AC'))  # AC is assembled contig
 
     @property
     def hash(self):
@@ -281,9 +286,9 @@ class Cluster(list):
         return False
 
     @property
-    def left_support(self):
+    def total_left_support(self):
         """Return number of supporting reads on the left side of cluster."""
-        return self.clustertag.left_sequence_count
+        return self.clustertag.left_sequence_count + len(self.evidence_for_five_p)
 
     @property
     def left_mate_support(self):
@@ -316,18 +321,20 @@ class Cluster(list):
         return len(self.right_mate_support)
 
     @property
-    def right_support(self):
+    def total_right_support(self):
         """Return number of supporting reads on the right side of cluster."""
-        return self.clustertag.right_sequence_count
+        return self.clustertag.right_sequence_count + len(self.evidence_for_three_p)
 
-    @cached_property
+    @property
     def score(self):
         """Return sum of all supporting reads for this cluster."""
-        return self.left_support + self.right_support
+        return self.nalt
 
-    @cached_property
+    @property
     def nalt(self):
         """Return number of unique read names that support an insertion."""
+        # The read index contains all read names that contribute to this cluster (proper cluster sequences, but also split reads
+        # picked up with `evidence_for`)
         return len(self.read_index)
 
     def _make_contigs(self):
@@ -449,10 +456,19 @@ class Cluster(list):
 
     def serialize(self):
         """Return id, start, end and read_index for multiprocessing."""
-        evidence_for_kwargs = {'breakpoints': [self.clustertag.five_p_breakpoint, self.clustertag.three_p_breakpoint],
-                               'breakpoint_sequences': [self.clustertag.left_breakpoint_sequence,
-                                                        self.clustertag.right_breakpoint_sequence]}
-        return (self.id, self.start, self.end, self.read_index.copy(), evidence_for_kwargs)
+        bp_sequences = {}
+        five_p_breakpoint = self.clustertag.five_p_breakpoint
+        left_sequence = self.clustertag.left_breakpoint_sequence
+        if five_p_breakpoint and left_sequence:
+            bp_sequences[five_p_breakpoint] = {left_sequence}
+        three_p_breakpoint = self.clustertag.three_p_breakpoint
+        right_sequence = self.clustertag.right_breakpoint_sequence
+        if three_p_breakpoint and right_sequence:
+            if three_p_breakpoint not in bp_sequences:
+                bp_sequences[three_p_breakpoint] = {right_sequence}
+            else:
+                bp_sequences[three_p_breakpoint].add(right_sequence)
+        return (self.id, self.start, self.end, self.read_index.copy(), bp_sequences)
 
 
 def non_evidence(data):
@@ -471,19 +487,21 @@ def non_evidence(data):
         min_start = 0
     max_end = end + 500
     try:
-        f = pysam.AlignmentFile(input_path)
-        try:
-            reads = f.fetch(chromosome, min_start, max_end)
-        except Exception:
-            pysam.index(input_path)
-            f = pysam.AlignmentFile(input_path)
-            reads = f.fetch(chromosome, min_start, max_end)
-        for r in reads:
-            if not r.is_duplicate and (r.is_proper_pair or (r.reference_length and r.reference_length > 200)) and r.mapq > 0:
-                add_to_clusters(chunk, r, result)
-        f.close()
+        with pysam.AlignmentFile(input_path) as f:
+            try:
+                reads = f.fetch(chromosome, min_start, max_end)
+            except Exception:
+                pysam.index(input_path)
+                f = pysam.AlignmentFile(input_path)
+                reads = f.fetch(chromosome, min_start, max_end)
+            for r in reads:
+                if not r.is_duplicate and (r.is_proper_pair or (r.reference_length and r.reference_length > 200)) and r.mapq > 0:
+                    add_to_clusters(chunk, r, result)
     except Exception as e:
         logging.warn("Encountered Exception '%s' on chromosome %s for start %s and end %s of chunks %s" % (str(e), chromosome, start, end, chunk))
+    for index in result['against']:
+        for_reads = set(result['for'][index])
+        result['against'][index] = result['against'][index] - for_reads
     return result
 
 
@@ -495,42 +513,51 @@ def add_to_clusters(chunk, r, result):
     but does not show evidence for an insertion it will be counted.
     Once a read name has been seen it will not be counted again.
     """
+    reference_start = r.reference_start
+    reference_end = r.reference_end
     if r.is_supplementary or r.alen > 200:  # supplementary or long read
-        min_start = r.reference_start
-        max_end = r.reference_end
+        min_start = reference_start
+        max_end = reference_end
     else:
-        min_start = min([r.reference_start, r.next_reference_start])
-        max_end = max(r.reference_end, r.reference_start + r.isize)
-    for index, start, end, read_index, evidence_for_kwargs in chunk:
+        min_start = min([reference_start, r.next_reference_start])
+        max_end = max(reference_end, r.reference_start + r.isize)
+    for index, start, end, supporting_read_index, bp_sequence in chunk:
         if index not in result['against']:
             result['against'][index] = set()
         if index not in result['for']:
-            result['for'][index] = set()
-        if (min_start < start < max_end and min_start < end < max_end) and r.query_name not in read_index:
-            # A read is only incompatible if it overlaps both ends
-            read_index.add(r.query_name)  # We count fragments only once
-            result['against'][index].add(r.query_name)
-        else:
-            evidence_for_kwargs['read'] = r
-            if evidence_for(**evidence_for_kwargs):
-                result['for'][index].add(r.to_string())
-            result['against'][index] = result['against'][index] - result['for'][index]
+            result['for'][index] = dict()
+        query_name = r.query_name
+        if query_name not in supporting_read_index:
+            if bp_sequence and ({reference_start, reference_end} & set(bp_sequence) and (r.qstart != 0 or r.qend != r.query_length)):
+                evidence = evidence_for(read=r, breakpoint_sequences=bp_sequence)
+                if evidence:
+                    result['for'][index][query_name] = (r.to_string(), evidence)
+                    supporting_read_index.add(query_name)
+                    continue
+            if (min_start < start < max_end and min_start < end < max_end):
+                # A read is only incompatible if it overlaps both ends
+                result['against'][index].add(query_name)
 
 
-def evidence_for(read, breakpoints, breakpoint_sequences):
+def evidence_for(read, breakpoint_sequences):
     """
     Check if the clipped sequence of a read supports an insertion.
 
-    `read` is a pysam AlignedSegment, breakpoints is a list of breakpoints,
-    and breakpoint_sequences is a list of sequences at the breakpoint.
+    `read` is a pysam AlignedSegment, breakpoint_sequences is a dictionary,
+    where keys is the breakpoint and breakpoint_sequences is the value.
     """
     # TODO: if we don't have any breakpoint sequences this will (perhaps falsely) return False
     # Probably better to underestimate this and not come up with a fancy solution
-    if read.reference_end in breakpoints:
+    # TODO: allow matching IUPAC letters
+    bp_sequences = breakpoint_sequences.get(read.reference_end)
+    if bp_sequences:
         soft_clipped_sequence = read.seq[read.qend:]
-        return any(s.startswith(soft_clipped_sequence[:4]) for s in breakpoint_sequences)
-    elif read.reference_start in breakpoints:
+        if soft_clipped_sequence:
+            if any(s.startswith(soft_clipped_sequence[:4]) for s in bp_sequences):
+                return 'five_p'
+    bp_sequences = breakpoint_sequences.get(read.reference_start)
+    if bp_sequences:
         soft_clipped_sequence = read.seq[:read.qstart]
-        return any(s.endswith(soft_clipped_sequence[:4]) for s in breakpoint_sequences)
-    else:
-        return False
+        if any(s.endswith(soft_clipped_sequence[:4]) for s in bp_sequences):
+            return 'three_p'
+    return False

@@ -191,10 +191,10 @@ def test_clusterfinder_complex_genotype(datadir_copy, tmpdir, reference_fasta): 
                              transposon_reference_fasta=reference_fasta,
                              output_fasta=output_fasta)
     cluster = clusters.cluster[0]
-    assert cluster.nalt == 20
+    assert cluster.nalt == 24
     genotype = cluster.genotype_likelihood()
     assert genotype.nref == 17
-    assert genotype.nalt == 20
+    assert genotype.nalt == 24
     assert genotype.genotype == 'heterozygous'
     assert len(open(output_fasta).readlines()) == 6
 
@@ -211,8 +211,8 @@ def test_clusterfinder_nanopore(datadir_copy, tmpdir, reference_fasta):  # noqa:
                              output_fasta=output_fasta)
     cluster = clusters.cluster[0]
     assert cluster.nalt == 7
-    assert cluster.left_support == 1
-    assert cluster.right_support == 6
+    assert cluster.total_left_support == 1
+    assert cluster.total_right_support == 6
 
 
 def test_clusterfinder_nonsupport(datadir_copy, tmpdir):  # noqa: D103

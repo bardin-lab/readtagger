@@ -2,6 +2,8 @@ import logging
 import os
 import shutil
 import tempfile
+
+import pysam
 from cached_property import cached_property
 from concurrent.futures import (
     wait,
@@ -276,7 +278,11 @@ class ClusterFinder(object):
                 for index, nref in result['against'].items():
                     self.cluster[index].nref = len(nref)
                 for index, evidence_for in result['for'].items():
-                    self.cluster[index].evidence_for = evidence_for
+                    for sam_str, evidence in evidence_for.values():
+                        if evidence == 'five_p':
+                            self.cluster[index].evidence_for_five_p.add(pysam.AlignedSegment.fromstring(sam_str, self.header))
+                        else:
+                            self.cluster[index].evidence_for_three_p.add(pysam.AlignedSegment.fromstring(sam_str, self.header))
 
     def _create_contigs(self):
         futures = []
@@ -313,6 +319,14 @@ class ClusterFinder(object):
                 for i, cluster in enumerate(self.cluster):
                     for r in cluster:
                         r.set_tag('CD', i)
+                        writer.write(r)
+                    for r in cluster.evidence_for_five_p:
+                        r.set_tag('CD', i)
+                        r.set_tag('XD', 5)
+                        writer.write(r)
+                    for r in cluster.evidence_for_five_p:
+                        r.set_tag('CD', i)
+                        r.set_tag('XD', 3)
                         writer.write(r)
             if self.threads < 2:
                 # Because the cluster splitting doesn't necessarily conserve order we need to sort again.
