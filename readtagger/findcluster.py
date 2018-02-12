@@ -274,7 +274,9 @@ class ClusterFinder(object):
             r = executor.map(non_evidence, chunks.chunks)
             for result in r:
                 for index, nref in result['against'].items():
-                    self.cluster[index].nref = nref
+                    self.cluster[index].nref = len(nref)
+                for index, evidence_for in result['for'].items():
+                    self.cluster[index].evidence_for = evidence_for
 
     def _create_contigs(self):
         futures = []

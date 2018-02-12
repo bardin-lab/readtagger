@@ -449,7 +449,10 @@ class Cluster(list):
 
     def serialize(self):
         """Return id, start, end and read_index for multiprocessing."""
-        return (self.id, self.start, self.end, self.read_index.copy())
+        evidence_for_kwargs = {'breakpoints': [self.clustertag.five_p_breakpoint, self.clustertag.three_p_breakpoint],
+                               'breakpoint_sequences': [self.clustertag.left_breakpoint_sequence,
+                                                        self.clustertag.right_breakpoint_sequence]}
+        return (self.id, self.start, self.end, self.read_index.copy(), evidence_for_kwargs)
 
 
 def non_evidence(data):
@@ -498,14 +501,20 @@ def add_to_clusters(chunk, r, result):
     else:
         min_start = min([r.reference_start, r.next_reference_start])
         max_end = max(r.reference_end, r.reference_start + r.isize)
-    for index, start, end, read_index in chunk:
+    for index, start, end, read_index, evidence_for_kwargs in chunk:
+        if index not in result['against']:
+            result['against'][index] = set()
+        if index not in result['for']:
+            result['for'][index] = set()
         if (min_start < start < max_end and min_start < end < max_end) and r.query_name not in read_index:
             # A read is only incompatible if it overlaps both ends
             read_index.add(r.query_name)  # We count fragments only once
-            if index not in result['against']:
-                result['against'][index] = 1
-            else:
-                result['against'][index] += 1
+            result['against'][index].add(r.query_name)
+        else:
+            evidence_for_kwargs['read'] = r
+            if evidence_for(**evidence_for_kwargs):
+                result['for'][index].add(r.to_string())
+            result['against'][index] = result['against'][index] - result['for'][index]
 
 
 def evidence_for(read, breakpoints, breakpoint_sequences):
