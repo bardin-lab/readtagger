@@ -119,7 +119,7 @@ class TagCluster(object):
     @property
     def right_breakpoint_sequence(self):
         """Return right breakpoint sequence."""
-        return self.get_breakoint_sequence(which='right')
+        return self.get_breakpoint_sequence(which='right')
 
     def get_breakpoint_sequence(self, which):
         """
