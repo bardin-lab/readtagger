@@ -7,6 +7,7 @@ python:
 - '3.5'
 env:
   global:
+  - TE_SEQUENCE_FASTA=~/ref.fa
   - CONDA_PREFIX=~/conda
   - CONDA_BIN=~/conda/bin/conda
   - secure: dfbb83QcBKliQ8H6eMU9WTHYrEvLVRqkGv1Wt+tKs4NgVGz80FFXNvYlWDbA+YBtlQ6q4TB+/dL4uApw2aJorI6RULNpx+uB9FjT57oSMtDnf2yH5sFGa8K6PYwFSC5gkY0IXZ1kY1fkol+ivvrp6l0i9b4z2IVomBxmrBMx7tYO68OHgwIv6FjxP+f0K99gmsoGZLYiCNuW9fB3gWFnNLGVGxbg7gjL0kFR7h3ELkaPuzuMZJ90ixSGcQGEtBOdOHF8bVUuE6voXco4dVAgKfOgAnXVZZO+nJdPMo0BzPO+clmnrTWvFJpmQg1D8nBluCdK3806ePyL2NJZv8Yc43qipf7tJ8KK4/KX0UGNEk04mrr3fto1eb6GMdBxOy1Z5SWLS+A1JeP4oQLRpxeBUjZKckfOnMQ7GA4F226icSMew2AniojSrAG/eihczlynCCyARSACxpxnK+6QZO6FqNZ2iTsinBm8waD+DN1lYaCBEhbjJgSjEHbGxbmi8C3r1N41jtxrF1H4fNWPtMdMQvBP0HnhrS2am2TyaxnXyS+YDyW68/Bs3AvnV9cqSAI2u/kZ7kgX+ieCs1hlupX5UAmlNwFWisK7tBAJClyFb2tBjol59WqFZuPai22/iPS9JwMZqO4MjiGu6HuX5+msa9C1emEymnhnQGak9qGED/g=
@@ -30,6 +31,7 @@ install:
 - mkdir -p ~/.planemo/ && virtualenv ~/.planemo/gx_venv
 - $CONDA_BIN build --python "$TRAVIS_PYTHON_VERSION" conda/multiprocessing-logging
 - $CONDA_BIN build --python "$TRAVIS_PYTHON_VERSION" conda/readtagger
+- curl -L https://github.com/bardin-lab/dmel-transposon-reference-data/raw/master/fasta_sequences/dm6_TE_annotations_sequences.fasta -o ~/ref.fa
 script: tox
 after_success:
 - chmod +x conda/deploy.sh galaxy/deploy.sh

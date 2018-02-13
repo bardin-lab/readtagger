@@ -8,4 +8,5 @@ pytest-cov==2.5.1
 pytest-datadir-ng==1.1.0
 pytest-flake8==0.9.1
 pytest-mock==1.6.3
+pytest-xdist==1.22.0
 tox==2.9.1
