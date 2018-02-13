@@ -76,10 +76,13 @@ AAGGAACTCAGAGAAAGGCCAGCTCCTTTAAGCATCTTACAGCTAAAGGTAGCAAAAATA'''
 
 @pytest.fixture(scope='module')
 def reference_fasta():  # noqa: D103
-    filename = tempfile.mkstemp()[1]
-    url = 'https://github.com/bardin-lab/dmel-transposon-reference-data/raw/master/fasta_sequences/dm6_TE_annotations_sequences.fasta'
-    yield download_file(url=url, filename=filename)
-    os.remove(filename)
+    if not os.environ.get('TE_SEQUENCE_FASTA'):
+        filename = tempfile.mkstemp()[1]
+        url = 'https://github.com/bardin-lab/dmel-transposon-reference-data/raw/master/fasta_sequences/dm6_TE_annotations_sequences.fasta'
+        yield download_file(url=url, filename=filename)
+        os.remove(filename)
+    else:
+        yield os.environ.get('TE_SEQUENCE_FASTA')
 
 
 def download_file(url, filename):  # noqa: D103
