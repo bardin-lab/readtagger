@@ -468,7 +468,15 @@ class Cluster(list):
                 bp_sequences[three_p_breakpoint] = {right_sequence}
             else:
                 bp_sequences[three_p_breakpoint].add(right_sequence)
-        return (self.id, self.start, self.end, self.read_index.copy(), bp_sequences)
+        if five_p_breakpoint and three_p_breakpoint:
+            single_breakpoint = False
+        elif five_p_breakpoint:
+            single_breakpoint = five_p_breakpoint
+        elif three_p_breakpoint:
+            single_breakpoint = three_p_breakpoint
+        else:
+            single_breakpoint = None  # Shouldn't happen IRL I think
+        return (self.id, self.start, self.end, self.read_index.copy(), bp_sequences, single_breakpoint)
 
 
 def non_evidence(data):
@@ -521,21 +529,30 @@ def add_to_clusters(chunk, r, result):
     else:
         min_start = min([reference_start, r.next_reference_start])
         max_end = max(reference_end, r.reference_start + r.isize)
-    for index, start, end, supporting_read_index, bp_sequence in chunk:
+    for index, start, end, supporting_read_index, bp_sequence, single_breakpoint in chunk:
         if index not in result['against']:
             result['against'][index] = set()
         if index not in result['for']:
             result['for'][index] = dict()
         query_name = r.query_name
         if query_name not in supporting_read_index:
-            if bp_sequence and ({reference_start, reference_end} & set(bp_sequence) and (r.qstart != 0 or r.qend != r.query_length)):
-                evidence = evidence_for(read=r, breakpoint_sequences=bp_sequence)
-                if evidence:
-                    result['for'][index][query_name] = (r.to_string(), evidence)
-                    supporting_read_index.add(query_name)
-                    continue
-            if (min_start < start < max_end and min_start < end < max_end):
+            if bp_sequence:
+                if ({reference_start, reference_end} & set(bp_sequence)):
+                    evidence = evidence_for(read=r, breakpoint_sequences=bp_sequence)
+                    if evidence:
+                        result['for'][index][query_name] = (r.to_string(), evidence)
+                        supporting_read_index.add(query_name)
+                        continue
+            if single_breakpoint:
+                # We only konw where one of the breakpoints is, so we ask if any reads overlap that breakpoint
+                if (min_start + 1 < single_breakpoint < max_end - 1):
+                    result['against'][index].add(query_name)
+            elif (min_start + 1 < start < max_end - 1 and min_start + 1 < end < max_end - 1):
                 # A read is only incompatible if it overlaps both ends
+                # We require the overlap to be more than 1 nucleotide (by adding 1 to min_start and subtracting 1 from max_end)
+                # to avoid dealing with reads with a single mismatch at the start/end,
+                # which wouldn't be soft-clipped. This shouldn't introduce any bias since we also can't assign these
+                # reads to an insertion, so we simple ignore them.
                 result['against'][index].add(query_name)
 
 
@@ -558,6 +575,7 @@ def evidence_for(read, breakpoint_sequences):
     bp_sequences = breakpoint_sequences.get(read.reference_start)
     if bp_sequences:
         soft_clipped_sequence = read.seq[:read.qstart]
-        if any(s.endswith(soft_clipped_sequence[:4]) for s in bp_sequences):
-            return 'three_p'
+        if soft_clipped_sequence:
+            if any(s.endswith(soft_clipped_sequence[-4:]) for s in bp_sequences):
+                return 'three_p'
     return False

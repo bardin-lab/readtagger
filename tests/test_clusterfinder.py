@@ -17,8 +17,10 @@ CORNERCASE3 = 'cornercase3.bam'
 EXTENDED = 'extended_and_annotated_roi.bam'
 GENOME_FRAGMENT = 'genome_fragment.fa'
 COMPLEX = 'extended_annotated_updated_all_reads.bam'
+HOMOZYGOUS_COPIA = 'homozygous_copia.bam'
 REORGANIZE_CLUSTER = 'reorganize_cluster.bam'
 NON_SUPPORT = 'non_support_test.bam'
+MATE_SUPPORT_REFERENCE_GENOTYPE = 'mate_support_reference_genotype.bam'
 REFINE_COORD = 'refine_coord.bam'
 REASSEMBLE = 'reassemble_input.bam'
 SPLIT_CLUSTER = 'hum3_false_merge.bam'
@@ -85,7 +87,7 @@ def test_clusterfinder_refine_split(datadir_copy, tmpdir):  # noqa: D103
     cluster = clusters.cluster[0]
     genotype = cluster.genotype_likelihood()
     assert genotype.nref == 72
-    assert genotype.nalt == 107
+    assert genotype.nalt == 116
     assert genotype.genotype == 'heterozygous'
 
 
@@ -180,6 +182,22 @@ def test_clusterfinder_blast(datadir_copy, tmpdir, mocker, reference_fasta):  # 
     findcluster.cli()
 
 
+def test_clusterfinder_homozygous_copia(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
+    input_path = str(datadir_copy[HOMOZYGOUS_COPIA])
+    output_bam = tmpdir.join('output.bam').strpath
+    output_gff = tmpdir.join('output.gff').strpath
+    clusters = ClusterFinder(input_path=input_path,
+                             output_bam=output_bam,
+                             output_gff=output_gff,
+                             transposon_reference_fasta=reference_fasta)
+    cluster = clusters.cluster[0]
+    assert cluster.nalt == 57
+    genotype = cluster.genotype_likelihood()
+    assert genotype.genotype == 'homozygous'
+    assert genotype.nref == 0
+    assert genotype.nalt == 57
+
+
 def test_clusterfinder_complex_genotype(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
     input_path = str(datadir_copy[COMPLEX])
     output_bam = tmpdir.join('output.bam').strpath
@@ -191,10 +209,10 @@ def test_clusterfinder_complex_genotype(datadir_copy, tmpdir, reference_fasta): 
                              transposon_reference_fasta=reference_fasta,
                              output_fasta=output_fasta)
     cluster = clusters.cluster[0]
-    assert cluster.nalt == 24
+    assert cluster.nalt == 30
     genotype = cluster.genotype_likelihood()
     assert genotype.nref == 17
-    assert genotype.nalt == 24
+    assert genotype.nalt == 30
     assert genotype.genotype == 'heterozygous'
     assert len(open(output_fasta).readlines()) == 6
 
@@ -224,6 +242,22 @@ def test_clusterfinder_nonsupport(datadir_copy, tmpdir):  # noqa: D103
     genotype = cluster.genotype_likelihood()
     assert genotype.nref == 25
     assert genotype.nalt == 1
+    assert genotype.genotype == 'reference'
+
+
+def test_clusterfinder_nonsupport_reference_genotype(datadir_copy, tmpdir):  # noqa: D103
+    input_path = str(datadir_copy[MATE_SUPPORT_REFERENCE_GENOTYPE])
+    output_bam = tmpdir.join('output.bam').strpath
+    clusters = ClusterFinder(input_path=input_path,
+                             output_bam=output_bam,
+                             output_gff=None,
+                             transposon_reference_fasta=None,
+                             max_proper_pair_size=578)
+    cluster = clusters.cluster[-1]
+    assert cluster.nref == 50  # Could also be 26 -- need to figure that out.
+    genotype = cluster.genotype_likelihood()
+    assert genotype.nref == 50
+    assert genotype.nalt == 2
     assert genotype.genotype == 'reference'
 
 

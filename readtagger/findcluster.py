@@ -325,7 +325,7 @@ class ClusterFinder(object):
                         r.set_tag('CD', i)
                         r.set_tag('XD', 5)
                         writer.write(r)
-                    for r in cluster.evidence_for_five_p:
+                    for r in cluster.evidence_for_three_p:
                         r.set_tag('CD', i)
                         r.set_tag('XD', 3)
                         writer.write(r)

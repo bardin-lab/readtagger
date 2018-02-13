@@ -135,7 +135,7 @@ class TagCluster(object):
             for r in self.tsd.three_p_reads:
                 soft_clipped_sequences.append(r.seq[:r.qstart])
         if len(soft_clipped_sequences) > 1:
-            return dumb_consensus(soft_clipped_sequences, left_align=which == 'True')
+            return dumb_consensus(soft_clipped_sequences, left_align=which == 'left')
         else:
             if soft_clipped_sequences:
                 return soft_clipped_sequences[0]

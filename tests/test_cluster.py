@@ -13,13 +13,13 @@ def test_nonevidence(datadir_copy):  # noqa: D103
                               'HWI-D00405:129:C6KNAANXX:4:1107:2350:7034',
                               'HWI-D00405:129:C6KNAANXX:4:1203:4769:64885',
                               'HWI-D00405:129:C6KNAANXX:4:2211:6930:94448'},
-              for_evidence_kwargs),
+              for_evidence_kwargs, None),
              (1, 6056, 6057, {'HWI-D00405:129:C6KNAANXX:4:1309:8446:97215'},
-              for_evidence_kwargs),
+              for_evidence_kwargs, None),
              (2, 16008, 16009, {'HWI-D00405:129:C6KNAANXX:4:1113:5245:46615'},
-              for_evidence_kwargs),
+              for_evidence_kwargs, None),
              (3, 16422, 16423, {'HWI-D00405:129:C6KNAANXX:4:1310:9444:11374'},
-              for_evidence_kwargs)]
+              for_evidence_kwargs, None)]
     data = {'chromosome': '2L', 'input_path': input_path, 'chunk': chunk}
     result = non_evidence(data)['against']
     assert len(result) == 4
@@ -39,12 +39,12 @@ def test_nonevidence_exception_handling(datadir_copy):  # noqa: D103
                               'HWI-D00405:129:C6KNAANXX:4:1107:2350:7034',
                               'HWI-D00405:129:C6KNAANXX:4:1203:4769:64885',
                               'HWI-D00405:129:C6KNAANXX:4:2211:6930:94448'},
-              for_evidence_kwargs),
+              for_evidence_kwargs, None),
              (1, 6056, 6057, {'HWI-D00405:129:C6KNAANXX:4:1309:8446:97215'},
-              for_evidence_kwargs),
+              for_evidence_kwargs, None),
              (2, 16008, 16009, {'HWI-D00405:129:C6KNAANXX:4:1113:5245:46615'},
-              for_evidence_kwargs),
+              for_evidence_kwargs, None),
              (3, 16422, 16423, {'HWI-D00405:129:C6KNAANXX:4:1310:9444:11374'},
-              for_evidence_kwargs)]
+              for_evidence_kwargs, None)]
     data = {'chromosome': '2L', 'input_path': input_path, 'chunk': chunk}
     assert len(non_evidence(data)['against']) == 0
