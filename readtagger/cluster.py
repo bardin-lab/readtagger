@@ -27,6 +27,7 @@ class Cluster(list):
         self.max_proper_size = max_proper_size
         self.reference_name = None
         self.shm_dir = shm_dir
+        self.evidence_against = set()
         self.evidence_for_five_p = set()
         self.evidence_for_three_p = set()
 
@@ -529,31 +530,41 @@ def add_to_clusters(chunk, r, result):
     else:
         min_start = min([reference_start, r.next_reference_start])
         max_end = max(reference_end, r.reference_start + r.isize)
+    # TODO: the for loop below is a little wasteful, since we call it for each read,
+    # but a single read is unlikely to provide evidence for more than 2 or 3 clusters.
+    # We could jump ahhead in the loop somehow.
     for index, start, end, supporting_read_index, bp_sequence, single_breakpoint in chunk:
         if index not in result['against']:
-            result['against'][index] = set()
+            result['against'][index] = dict()
         if index not in result['for']:
             result['for'][index] = dict()
         query_name = r.query_name
-        if query_name not in supporting_read_index:
+        if query_name not in supporting_read_index and query_name not in result['for'][index]:
             if bp_sequence:
                 if ({reference_start, reference_end} & set(bp_sequence)):
                     evidence = evidence_for(read=r, breakpoint_sequences=bp_sequence)
                     if evidence:
                         result['for'][index][query_name] = (r.to_string(), evidence)
-                        supporting_read_index.add(query_name)
                         continue
             if single_breakpoint:
-                # We only konw where one of the breakpoints is, so we ask if any reads overlap that breakpoint
+                # We only know where one of the breakpoints is, so we ask if any reads overlap that breakpoint
+                # If there is actually a TSD but we didn't detect it we slightly bias the count in favor of counting against
+                # the insertion.
                 if (min_start + 1 < single_breakpoint < max_end - 1):
-                    result['against'][index].add(query_name)
+                    if query_name in result['against'][index]:
+                        result['against'][index][query_name].append(r.to_string())
+                    else:
+                        result['against'][index][query_name] = [r.to_string()]
             elif (min_start + 1 < start < max_end - 1 and min_start + 1 < end < max_end - 1):
                 # A read is only incompatible if it overlaps both ends
                 # We require the overlap to be more than 1 nucleotide (by adding 1 to min_start and subtracting 1 from max_end)
                 # to avoid dealing with reads with a single mismatch at the start/end,
                 # which wouldn't be soft-clipped. This shouldn't introduce any bias since we also can't assign these
                 # reads to an insertion, so we simple ignore them.
-                result['against'][index].add(query_name)
+                if query_name in result['against'][index]:
+                    result['against'][index][query_name].append(r.to_string())
+                else:
+                    result['against'][index][query_name] = [r.to_string()]
 
 
 def evidence_for(read, breakpoint_sequences):
