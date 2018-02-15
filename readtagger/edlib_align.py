@@ -22,7 +22,7 @@ def sequences_overlap(query, targets, min_match=30):
     """Check if a query overlaps with any sequence in targets."""
     for target in targets:
         cigar = align(query, target, 'HW', 'path')['cigar']
-        if max([int(i) for i in re.split(r"[=IDX]+", cigar) if i]) > min_match:
+        if cigar_to_max_operation(cigar) > min_match:
             return True
         else:
             cigar = align(revcom(query), target, 'HW', 'path')['cigar']
