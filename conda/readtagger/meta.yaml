@@ -15,6 +15,7 @@ requirements:
     - setuptools
 
   run:
+    - backports.functools_lru_cache  # [not py3k]
     - bcbiogff
     - biopython
     - bwa
@@ -27,7 +28,7 @@ requirements:
     - multiprocessing-logging
     - pandas
     - pysam >=0.14
-    - python
+    - python-edlib
     - scipy
     - shutilwhich  # [not py3k]
     - six
