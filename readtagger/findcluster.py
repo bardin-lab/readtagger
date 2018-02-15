@@ -277,8 +277,8 @@ class ClusterFinder(object):
             r = executor.map(non_evidence, chunks.chunks)
             for result in r:
                 for index, evidence_against in result['against'].items():
-                    self.cluster[index].evidence_against = {pysam.AlignedSegment.fromstring(sam_str, self.header) for l in evidence_against.values() for sam_str in l}
-                    self.cluster[index].nref = len(self.cluster[index].evidence_against)
+                    self.cluster[index].evidence_against = {pysam.AlignedSegment.fromstring(s, self.header) for l in evidence_against.values() for s in l}
+                    self.cluster[index].nref = len(evidence_against)
                 for index, evidence_for in result['for'].items():
                     for sam_str, evidence in evidence_for.values():
                         if evidence == 'five_p':

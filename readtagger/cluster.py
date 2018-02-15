@@ -510,7 +510,8 @@ def non_evidence(data):
         logging.warn("Encountered Exception '%s' on chromosome %s for start %s and end %s of chunks %s" % (str(e), chromosome, start, end, chunk))
     for index in result['against']:
         for_reads = set(result['for'][index])
-        result['against'][index] = result['against'][index] - for_reads
+        against_reads = set(result['against'][index])
+        result['against'][index] = {k: result['against'][index][k] for k in against_reads - for_reads}
     return result
 
 
