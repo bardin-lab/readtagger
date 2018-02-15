@@ -6,8 +6,11 @@ from itertools import (
 
 import pysam
 from cached_property import cached_property
+from .edlib_align import (
+    multiple_sequences_overlap,
+    sequences_overlap
+)
 from .genotype import Genotype
-from .bwa import SimpleAligner
 from .cap3 import Cap3Assembly
 from .tagcluster import TagCluster
 
@@ -156,36 +159,34 @@ class Cluster(list):
         cluster_a_contig_reads = set()
         for index in cluster_a_contigs:
             cluster_a_contig_reads.update(contig_reads[index])
-        contig_sequences = [contig.sequence for i, contig in enumerate(contigs) if i in cluster_a_contigs]
+        contig_sequences = {contig.sequence for i, contig in enumerate(contigs) if i in cluster_a_contigs}
         if contig_sequences:
             # Not all reads are assigned to contigs,
             # so we use bwa to check if a read belongs to a contig
-            with SimpleAligner(reference_sequences=contig_sequences, tmp_dir=self.shm_dir) as simple_aligner:
-                if len(putative_cluster_a.orientation_switches) > 1:
-                    switch_reads = putative_cluster_a[putative_cluster_a.orientation_switches[1][1]:]
-                    # Are the reads that caused the orientation switch actually contributing to cluster a?
-                    # Because if they don't, they should probably be ignored and treated as a separate insertion.
-                    sequences_to_align = [r.get_tag('MS') for r in switch_reads if r.has_tag('MS')]
-                    if sequences_to_align and not simple_aligner.align(sequences_to_align):
-                        putative_cluster_a = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_size)
-                        putative_cluster_a.extend(switch_reads)
-                        putative_cluster_b = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_size)
-                        putative_cluster_b.extend(r for r in self if r.query_name not in putative_cluster_a.read_index)
-                        simple_aligner.cleanup_index()
-                        return putative_cluster_a, putative_cluster_b
-                reads_to_remove = set()
-                for read in putative_cluster_b:
-                    if read.query_name in cluster_a_contig_reads:
-                        putative_cluster_a.append(read)
-                        reads_to_remove.add(read)
-                    elif read.has_tag('MS') and read.has_tag('BD'):
-                        ms = read.get_tag('MS')
-                        for i, contig in enumerate(contig_sequences):
-                            if i in cluster_a_contigs and simple_aligner.align(ms):
-                                putative_cluster_a.append(read)
-                                reads_to_remove.add(read)
-                for read in reads_to_remove:
-                    putative_cluster_b.remove(read)
+            if len(putative_cluster_a.orientation_switches) > 1:
+                switch_reads = putative_cluster_a[putative_cluster_a.orientation_switches[1][1]:]
+                # Are the reads that caused the orientation switch actually contributing to cluster a?
+                # Because if they don't, they should probably be ignored and treated as a separate insertion.
+                sequences_to_align = [r.get_tag('MS') for r in switch_reads if r.has_tag('MS')]
+                if sequences_to_align and not multiple_sequences_overlap(queries=sequences_to_align, targets=contig_sequences):
+                    putative_cluster_a = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_size)
+                    putative_cluster_a.extend(switch_reads)
+                    putative_cluster_b = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_size)
+                    putative_cluster_b.extend(r for r in self if r.query_name not in putative_cluster_a.read_index)
+                    return putative_cluster_a, putative_cluster_b
+            reads_to_remove = set()
+            for read in putative_cluster_b:
+                if read.query_name in cluster_a_contig_reads:
+                    putative_cluster_a.append(read)
+                    reads_to_remove.add(read)
+                elif read.has_tag('MS') and read.has_tag('BD'):
+                    ms = read.get_tag('MS')
+                    for i, contig in enumerate(contig_sequences):
+                        if i in cluster_a_contigs and sequences_overlap(query=ms, targets=contig_sequences):
+                            putative_cluster_a.append(read)
+                            reads_to_remove.add(read)
+            for read in reads_to_remove:
+                putative_cluster_b.remove(read)
         return putative_cluster_a, putative_cluster_b
 
     @property
@@ -261,7 +262,7 @@ class Cluster(list):
             # That's a bit confusing, since the mates are to the right of the cluster ... but that's how it is.
             if (other_clustertag.five_p_breakpoint - self.clustertag.five_p_breakpoint) < max_distance:
                 # We don't want clusters to be spaced too far away. Not sure if this is really a problem in practice.
-                if Cap3Assembly.sequences_contribute_to_same_contig(self.clustertag.left_sequences, other_clustertag.left_sequences):
+                if multiple_sequences_overlap(self.clustertag.left_sequences.values(), other_clustertag.left_sequences.values()):
                     self._can_join_d = {self.hash: other_cluster.hash}
                     return True
         # TODO: Refactor this to a common function for left-left and right-right assembly
@@ -270,7 +271,7 @@ class Cluster(list):
             # That's a bit confusing, since the mates are to the right of the cluster ... but that's how it is.
             if (other_clustertag.three_p_breakpoint - self.clustertag.three_p_breakpoint) < max_distance:
                 # We don't want clusters to be spaced too far away. Not sure if this is really a problem in practice.
-                if Cap3Assembly.sequences_contribute_to_same_contig(self.clustertag.right_sequences, other_clustertag.right_sequences):
+                if multiple_sequences_overlap(self.clustertag.right_sequences.values(), other_clustertag.right_sequences.values()):
                     self._can_join_d = {self.hash: other_cluster.hash}
                     return True
         self_switches = self.orientation_switches
