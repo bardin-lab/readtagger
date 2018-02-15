@@ -15,7 +15,7 @@ def write_cluster(clusters, header, output_path, sample='sample', threads=1):
     with open(output_path, "w") as out_handle:
         tp = ThreadPoolExecutor(threads)
         futures = []
-        records = {tid: SeqRecord(Seq(""), header['SQ'][tid]['SN']) for tid in range(len(header['SQ']))}
+        records = {tid: SeqRecord(Seq(""), sn) for tid, sn in enumerate(header.references)}
         for i, cluster in enumerate(clusters):
             func = partial(get_feature, cluster, sample, i)
             futures.append(tp.submit(func))
