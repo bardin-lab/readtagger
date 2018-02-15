@@ -131,19 +131,6 @@ def test_clusterfinder_multiple_cluster_gff(datadir_copy, tmpdir):  # noqa: D103
     assert len(cf.cluster) == 2
 
 
-def test_clusterfinder_cache_threads(datadir_copy, tmpdir, mocker):  # noqa: D103
-    input_path = str(datadir_copy[EXTENDED])
-    output_gff = tmpdir.join('output.gff')
-    cf = ClusterFinder(input_path=input_path, output_gff=output_gff.strpath, threads=2)
-    assert len(cf.cluster) == 2
-    mocker.spy(cf.cluster[0], 'can_join')
-    mocker.spy(cf.cluster[0], '_can_join')
-    cf.join_clusters()
-    assert cf.cluster[0].can_join.call_count == 5
-    assert cf.cluster[0]._can_join.call_count == 0
-    assert len(cf.cluster) == 2
-
-
 def test_clustermanager_single_core(datadir_copy, tmpdir):  # noqa: D103
     input_path = str(datadir_copy[EXTENDED])
     output_gff = tmpdir.join('output.gff').strpath

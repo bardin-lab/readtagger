@@ -245,7 +245,6 @@ class ClusterFinder(object):
             cluster_length = len(self.cluster)
             new_clusterlength = 0
             while new_clusterlength != cluster_length:
-                self._cache_join()  # TODO: not super efficient, should probably cache cluster.join_adjacent?
                 cluster_length = new_clusterlength
                 for cluster in self.cluster:
                     cluster.join_adjacent(all_clusters=self.cluster)
@@ -261,14 +260,6 @@ class ClusterFinder(object):
             cluster.join_adjacent(all_clusters=self.cluster)
         # We are done, we can give the clusters a numeric index, so that we can distribute the processing and recover the results
         [c.set_id(i) for i, c in enumerate(self.cluster)]
-
-    def _cache_join(self):
-        futures = []
-        prev_cluster = self.cluster[0]
-        for cluster in self.cluster[1:]:
-            futures.append(self.tp.submit(prev_cluster.can_join, cluster))
-            prev_cluster = cluster
-        wait(futures)
 
     def collect_non_evidence(self):
         """Count reads that overlap cluster site but do not provide evidence for an insertion."""
