@@ -1,5 +1,10 @@
 from collections import namedtuple
 from itertools import groupby
+try:
+    from functools import lru_cache
+except ImportError:
+    from backports.functools_lru_cache import lru_cache
+
 
 CODE2CIGAR = "MIDNSHP=XB"
 CIGAR2CODE = dict([y, x] for x, y in enumerate(CODE2CIGAR))
@@ -44,6 +49,7 @@ def cigartuples_to_cigarstring(cigartuple):
     return "".join(["%s%s" % (l, CODE2CIGAR[op]) for op, l in cigartuple])
 
 
+@lru_cache(maxsize=10000)
 def cigar_split(cigarstring):
     """
     Group cigarstring.
@@ -59,6 +65,7 @@ def cigar_split(cigarstring):
         yield ("".join(n)), "".join(next(cig_iter)[1], )
 
 
+@lru_cache(maxsize=10000)
 def cigar_to_tuple(cigar):
     """
     Turn a cigar into a list of tuples.
