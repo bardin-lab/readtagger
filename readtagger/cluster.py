@@ -129,7 +129,12 @@ class Cluster(list):
             cluster_b = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_size)
             cluster_a.extend(self[:putative_break])
             cluster_b.extend(self[putative_break:])
-            return self.assign_reads_to_split(cluster_a, cluster_b)
+            cluster_a, cluster_b = self.assign_reads_to_split(cluster_a, cluster_b)
+            # We know these clusters have been split on purpose, don't tru to merge them back together!
+            # TODO: make this more convenient
+            cluster_a._cannot_join_d = {cluster_a.hash: cluster_b.hash}
+            cluster_b._cannot_join_d = {cluster_b.hash: cluster_a.hash}
+            return cluster_a, cluster_b
         return None, None
 
     def assign_reads_to_split(self, putative_cluster_a, putative_cluster_b):
