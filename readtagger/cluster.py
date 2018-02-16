@@ -139,7 +139,7 @@ class Cluster(list):
             cluster_a.extend(self[:putative_break])
             cluster_b.extend(self[putative_break:])
             cluster_a, cluster_b = self.assign_reads_to_split(cluster_a, cluster_b)
-            # We know these clusters have been split on purpose, don't tru to merge them back together!
+            # We know these clusters have been split on purpose, don't try to merge them back together!
             # TODO: make this more convenient
             cluster_a._cannot_join_d = {cluster_a.hash: cluster_b.hash}
             cluster_b._cannot_join_d = {cluster_b.hash: cluster_a.hash}
@@ -566,7 +566,7 @@ def add_to_clusters(chunk, r, result):
         query_name = r.query_name
         if query_name not in supporting_read_index and query_name not in result['for'][index]:
             if bp_sequence:
-                if ({reference_start, reference_end} & set(bp_sequence)):
+                if {reference_start, reference_end} & set(bp_sequence):
                     evidence = evidence_for(read=r, breakpoint_sequences=bp_sequence)
                     if evidence:
                         result['for'][index][query_name] = (r.to_string(), evidence)
@@ -583,7 +583,7 @@ def add_to_clusters(chunk, r, result):
                         result['against'][index][query_name].append(r.to_string())
                     else:
                         result['against'][index][query_name] = [r.to_string()]
-            elif (min_start + 1 < start < max_end - 1 and min_start + 1 < end < max_end - 1):
+            elif min_start + 1 < start < max_end - 1 and min_start + 1 < end < max_end - 1:
                 # A read is only incompatible if it overlaps both ends
                 # We require the overlap to be more than 1 nucleotide (by adding 1 to min_start and subtracting 1 from max_end)
                 # to avoid dealing with reads with a single mismatch at the start/end,
