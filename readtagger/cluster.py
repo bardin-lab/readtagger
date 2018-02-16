@@ -14,6 +14,15 @@ from .genotype import Genotype
 from .cap3 import Cap3Assembly
 from .tagcluster import TagCluster
 
+MIN_LONG_READ = 200
+# Minimum read length to consider a read coming from longread tech
+MAX_VALID_ISIZE = 10000
+# Should cover a lot of deletions, while sufficiently small to not include reads
+# that aligned to a TE somewhere else on the same chromosome
+MIN_VALID_ISIZE_FOR_NON_PROPER_PAIR = 700
+# If a read is not a proper pair we still consider it if is not a proper pair because
+# of an isize that is too big, which can happen with deletions.
+
 
 class Cluster(list):
     """A Cluster of reads."""
@@ -515,7 +524,11 @@ def non_evidence(data):
                 f = pysam.AlignmentFile(input_path)
                 reads = f.fetch(chromosome, min_start, max_end)
             for r in reads:
-                if not r.is_duplicate and (r.is_proper_pair or (r.reference_length and r.reference_length > 200)) and r.mapq > 0:
+                if not r.is_duplicate \
+                    and r.mapq > 0 \
+                    and (r.is_proper_pair or
+                         r.next_reference_name == r.reference_name == chromosome and
+                         MIN_VALID_ISIZE_FOR_NON_PROPER_PAIR > abs(r.isize) < MAX_VALID_ISIZE):
                     add_to_clusters(chunk, r, result)
     except Exception as e:
         logging.warn("Encountered Exception '%s' on chromosome %s for start %s and end %s of chunks %s" % (str(e), chromosome, start, end, chunk))
@@ -536,7 +549,7 @@ def add_to_clusters(chunk, r, result):
     """
     reference_start = r.reference_start
     reference_end = r.reference_end
-    if r.is_supplementary or r.alen > 200:  # supplementary or long read
+    if r.is_supplementary or r.alen > MIN_LONG_READ:  # supplementary or long read
         min_start = reference_start
         max_end = reference_end
     else:
@@ -562,6 +575,9 @@ def add_to_clusters(chunk, r, result):
                 # We only know where one of the breakpoints is, so we ask if any reads overlap that breakpoint
                 # If there is actually a TSD but we didn't detect it we slightly bias the count in favor of counting against
                 # the insertion.
+                # TODO: this doesn't work if we actually don't know the breakpoint, i.e when a cluster is defined
+                # only by mate pairs. In that instance it might be more accurate to sample the coverage at the breakpoint
+                # boundaries, and assume that  nalt / coverage estimates the AF.
                 if (min_start + 1 < single_breakpoint < max_end - 1):
                     if query_name in result['against'][index]:
                         result['against'][index][query_name].append(r.to_string())

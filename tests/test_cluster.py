@@ -24,8 +24,8 @@ def test_nonevidence(datadir_copy):  # noqa: D103
     result = non_evidence(data)['against']
     assert len(result) == 4
     assert len(result[0]) == 12
-    assert len(result[1]) == 38
-    assert len(result[2]) == 31
+    assert len(result[1]) == 39
+    assert len(result[2]) == 32
     assert len(result[3]) == 30
 
 

@@ -90,8 +90,8 @@ def test_clusterfinder_refine_split(datadir_copy, tmpdir):  # noqa: D103
                              max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
     cluster = clusters.cluster[0]
     genotype = cluster.genotype_likelihood()
-    assert genotype.nref == 72
-    assert genotype.nalt == 116
+    assert genotype.nref == 73
+    assert genotype.nalt == 117
     assert genotype.genotype == 'heterozygous'
 
 
@@ -309,9 +309,9 @@ def test_clusterfinder_do_not_merge(datadir_copy, tmpdir, reference_fasta):  # n
                              max_proper_pair_size=649)
     cluster_one = clusters.cluster[0]
     assert cluster_one.genotype_likelihood().genotype == 'reference'
-    assert cluster_one.nref == 98
+    assert cluster_one.nref == 101
     assert cluster_one.nalt == 1
     cluster_two = clusters.cluster[1]
     assert cluster_two.genotype_likelihood().genotype == 'reference'
-    assert cluster_two.nref == 1
-    assert cluster_two.nalt == 81
+    assert cluster_two.nref == 81
+    assert cluster_two.nalt == 1
