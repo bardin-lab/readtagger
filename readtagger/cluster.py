@@ -93,7 +93,7 @@ class Cluster(list):
     def join_adjacent(self, all_clusters):
         """Join clusters thar can be joined."""
         for other_cluster in self.reachable(all_clusters=all_clusters):
-            if self.can_join(other_cluster):
+            if self.can_join(other_cluster, max_distance=self.max_proper_size):
                 self.extend(other_cluster)
                 all_clusters.remove(other_cluster)
 
@@ -283,10 +283,15 @@ class Cluster(list):
         other_switches = other_cluster.orientation_switches
         if len(self_switches) == 1 and len(other_switches) == 1 and self_switches != other_switches:
             if abs(other_cluster.min - self.max) < max_distance:
-                # Merge a cluster that is split by an insertion and not connected via split reads
-                if self_switches[0][0] == 'F' and other_switches[0][0] == 'R':
-                    self._can_join_d = {self.hash: other_cluster.hash}
-                    return True
+                # This check doesn't take into account the read length, as the isize
+                # is determined as read-length 1 +  inner distance  + readlength 2
+                min_read_read_length = min([r.reference_length for r in other_cluster if r.reference_start == other_cluster.min])
+                max_read_read_length = min([r.reference_length for r in self if r.reference_end == self.max])
+                if abs(other_cluster.min - self.max) < (max_distance - min_read_read_length - max_read_read_length):
+                    # Merge a cluster that is split by an insertion and not connected via split reads
+                    if self_switches[0][0] == 'F' and other_switches[0][0] == 'R':
+                        self._can_join_d = {self.hash: other_cluster.hash}
+                        return True
         # We know this cluster (self) cannot be joined with other_cluster, so we cache this result,
         # Since we may ask this question multiple times when joining the clusters.
         self._cannot_join_d = {self.hash: other_cluster.hash}
