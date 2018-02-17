@@ -250,11 +250,15 @@ class ClusterFinder(object):
                     cluster.join_adjacent(all_clusters=self.cluster)
                 new_clusterlength = len(self.cluster)
         for index, cluster in enumerate(self.cluster):
-            cluster_a, cluster_b = cluster.split_cluster_at_polarity_switch()
-            if cluster_a:
-                self.cluster[index] = cluster_a
-            if cluster_b:
-                self.cluster.insert(index + 1, cluster_b)
+            new_clusters = cluster.split_cluster_at_polarity_switch()
+            current_index = index
+            for cluster in new_clusters:
+                if cluster:
+                    if current_index == index:
+                        self.cluster[current_index] = cluster
+                    else:
+                        self.cluster.insert(current_index, cluster)
+                    current_index += 1
         for cluster in self.cluster:
             cluster.refine_members(self.assembly_realigner)
             cluster.join_adjacent(all_clusters=self.cluster)
