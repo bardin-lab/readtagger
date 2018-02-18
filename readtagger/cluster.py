@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 from itertools import (
     chain,
     groupby
@@ -598,7 +599,7 @@ def add_to_clusters(chunk, r, result):
     # We could jump ahhead in the loop somehow.
     for index, start, end, supporting_read_index, bp_sequence, single_breakpoint in chunk:
         if index not in result['against']:
-            result['against'][index] = dict()
+            result['against'][index] = defaultdict(list)
         if index not in result['for']:
             result['for'][index] = dict()
         query_name = r.query_name
@@ -617,20 +618,22 @@ def add_to_clusters(chunk, r, result):
                 # only by mate pairs. In that instance it might be more accurate to sample the coverage at the breakpoint
                 # boundaries, and assume that  nalt / coverage estimates the AF.
                 if (min_start + 1 < single_breakpoint < max_end - 1):
-                    if query_name in result['against'][index]:
-                        result['against'][index][query_name].append(r.to_string())
-                    else:
-                        result['against'][index][query_name] = [r.to_string()]
-            elif min_start + 1 < start < max_end - 1 and min_start + 1 < end < max_end - 1:
-                # A read is only incompatible if it overlaps both ends
-                # We require the overlap to be more than 1 nucleotide (by adding 1 to min_start and subtracting 1 from max_end)
-                # to avoid dealing with reads with a single mismatch at the start/end,
-                # which wouldn't be soft-clipped. This shouldn't introduce any bias since we also can't assign these
-                # reads to an insertion, so we simple ignore them.
-                if query_name in result['against'][index]:
                     result['against'][index][query_name].append(r.to_string())
-                else:
-                    result['against'][index][query_name] = [r.to_string()]
+            elif end - start < 50:
+                if min_start + 1 < start < max_end - 1 and min_start + 1 < end < max_end - 1:
+                    # A read is only incompatible if it overlaps both ends
+                    # We require the overlap to be more than 1 nucleotide (by adding 1 to min_start and subtracting 1 from max_end)
+                    # to avoid dealing with reads with a single mismatch at the start/end,
+                    # which wouldn't be soft-clipped. This shouldn't introduce any bias since we also can't assign these
+                    # reads to an insertion, so we simple ignore them.
+                    result['against'][index][query_name].append(r.to_string())
+            else:
+                # We were not able to narrow down the insertion breakpoints.
+                # We can estimate the insertion frequency by looking at how many reads overlap
+                # start and end of the insertion. This isn't very precise, but insertions without
+                # exact start/end are probably low in frequency anyways.
+                if (min_start + 1 < start < max_end - 1) or (min_start + 1 < end < max_end - 1):
+                    result['against'][index][query_name].append(r.to_string())
 
 
 def evidence_for(read, breakpoint_sequences):

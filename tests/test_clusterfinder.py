@@ -338,6 +338,21 @@ def test_clusterfinder_do_not_merge5(datadir_copy, tmpdir, reference_fasta):  # 
     assert cluster_two.nalt == 4
 
 
+def test_clusterfinder_estimate_coverage(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
+    input_path = str(datadir_copy[DONT_MERGE_5])
+    output_gff = tmpdir.join('output.gff').strpath
+    output_bam = tmpdir.join('output.bam').strpath
+    clusters = ClusterFinder(input_path=input_path,
+                             output_bam=output_bam,
+                             output_gff=output_gff,
+                             transposon_reference_fasta=reference_fasta,
+                             max_proper_pair_size=1500)
+    cluster_one = clusters.cluster[0]
+    assert cluster_one.genotype_likelihood().genotype == 'reference'
+    assert cluster_one.nref == 174
+    assert cluster_one.nalt == 8
+
+
 def test_clusterfinder_check_consistency(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
     input_path = str(datadir_copy[DONT_MERGE_6])
     output_gff = tmpdir.join('output.gff').strpath
