@@ -29,6 +29,8 @@ SPLIT_CLUSTER_OPT2 = 'improve_clustering.bam'
 MULTIPROCESSING = 'pasteurianus.bam'
 NANOPORE_ROVER = 'long_rover_insert_heterozygous.bam'
 DONT_MERGE = 'do_not_merge.bam'
+DONT_MERGE_5 = 'dont_merge_5.bam'
+DONT_MERGE_6 = 'dont_merge_6.bam'
 
 DEFAULT_MAX_PROPER_PAIR_SIZE = 700
 
@@ -314,4 +316,41 @@ def test_clusterfinder_do_not_merge(datadir_copy, tmpdir, reference_fasta):  # n
     cluster_two = clusters.cluster[1]
     assert cluster_two.genotype_likelihood().genotype == 'reference'
     assert cluster_two.nref == 81
+    assert cluster_two.nalt == 1
+
+
+def test_clusterfinder_do_not_merge5(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
+    input_path = str(datadir_copy[DONT_MERGE_5])
+    output_gff = tmpdir.join('output.gff').strpath
+    output_bam = tmpdir.join('output.bam').strpath
+    clusters = ClusterFinder(input_path=input_path,
+                             output_bam=output_bam,
+                             output_gff=output_gff,
+                             transposon_reference_fasta=reference_fasta,
+                             max_proper_pair_size=649)
+    cluster_one = clusters.cluster[0]
+    assert cluster_one.genotype_likelihood().genotype == 'reference'
+    assert cluster_one.nref == 108
+    assert cluster_one.nalt == 4
+    cluster_two = clusters.cluster[1]
+    assert cluster_two.genotype_likelihood().genotype == 'reference'
+    assert cluster_two.nref == 66
+    assert cluster_two.nalt == 4
+
+
+def test_clusterfinder_check_consistency(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
+    input_path = str(datadir_copy[DONT_MERGE_6])
+    output_gff = tmpdir.join('output.gff').strpath
+    clusters = ClusterFinder(input_path=input_path,
+                             output_bam=None,
+                             output_gff=output_gff,
+                             transposon_reference_fasta=reference_fasta,
+                             max_proper_pair_size=649)
+    cluster_one = clusters.cluster[0]
+    assert cluster_one.genotype_likelihood().genotype == 'reference'
+    assert cluster_one.nref == 69
+    assert cluster_one.nalt == 3
+    cluster_two = clusters.cluster[1]
+    assert cluster_two.genotype_likelihood().genotype == 'reference'
+    assert cluster_two.nref == 64
     assert cluster_two.nalt == 1

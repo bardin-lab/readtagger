@@ -134,17 +134,55 @@ class Cluster(list):
             # Clusters shouldn't really start with reverse BD reads
             putative_break = switches[1][1]
         if putative_break:
-            cluster_a = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_size)
-            cluster_b = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_size)
+            cluster_a, cluster_b = self._make_new_clusters()
             cluster_a.extend(self[:putative_break])
             cluster_b.extend(self[putative_break:])
             cluster_a, cluster_b = self.assign_reads_to_split(cluster_a, cluster_b)
-            # We know these clusters have been split on purpose, don't try to merge them back together!
-            # TODO: make this more convenient
-            cluster_a._cannot_join_d = {cluster_a.hash: cluster_b.hash}
-            cluster_b._cannot_join_d = {cluster_b.hash: cluster_a.hash}
-            return cluster_a, cluster_b
-        return None, None
+            self._mark_clusters_incompatible(cluster_a, cluster_b)
+            return (cluster_a, cluster_b)
+        return (None, None)
+
+    def _make_new_clusters(self, count=2):
+        """Return a set of new clusters."""
+        return [Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_size) for _ in range(count)]
+
+    @staticmethod
+    def _mark_clusters_incompatible(cluster_a, cluster_b):
+        # We know these clusters have been split on purpose, don't try to merge them back together!
+        cluster_a._cannot_join_d = {cluster_a.hash: cluster_b.hash}
+        cluster_b._cannot_join_d = {cluster_b.hash: cluster_a.hash}
+
+    def check_cluster_consistency(self):
+        """
+        Check that clusters are internally consistent.
+
+        If we have left or right mates without AD tags the breakpoint cannot be within the region covered by the mates.
+        """
+        three_p_reads_to_to_discard = set()
+        five_p_reads_to_to_discard = set()
+        for read in self.right_mate_support.values():
+            if self.clustertag.three_p_breakpoint and read.reference_start < self.clustertag.three_p_breakpoint:
+                for support_read in self.clustertag.tsd.three_p_reads:
+                    three_p_reads_to_to_discard.add(support_read)
+        for read in self.left_mate_support.values():
+            if self.clustertag.five_p_breakpoint and read.reference_end > self.clustertag.five_p_breakpoint:
+                for support_read in self.clustertag.tsd.three_p_reads:
+                    five_p_reads_to_to_discard.add(support_read)
+        new_clusters = [self]
+        if three_p_reads_to_to_discard:
+            new_three_p_cluster = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_size)
+            for read in three_p_reads_to_to_discard:
+                new_three_p_cluster.append(read)
+                self.remove(read)
+            new_clusters.append(new_three_p_cluster)
+        if five_p_reads_to_to_discard:
+            new_five_p_cluster = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_size)
+            for read in five_p_reads_to_to_discard:
+                new_five_p_cluster.append(read)
+                self.remove(read)
+            new_clusters.append(new_five_p_cluster)
+        # TODO: may want to remove any mates that correspond to the removed reads
+        return new_clusters
 
     def assign_reads_to_split(self, putative_cluster_a, putative_cluster_b):
         """

@@ -251,19 +251,25 @@ class ClusterFinder(object):
                 new_clusterlength = len(self.cluster)
         for index, cluster in enumerate(self.cluster):
             new_clusters = cluster.split_cluster_at_polarity_switch()
-            current_index = index
-            for cluster in new_clusters:
-                if cluster:
-                    if current_index == index:
-                        self.cluster[current_index] = cluster
-                    else:
-                        self.cluster.insert(current_index, cluster)
-                    current_index += 1
+            self._add_new_clusters(new_clusters, index)
+        for index, cluster in enumerate(self.cluster):
+            new_clusters = cluster.check_cluster_consistency()
+            self._add_new_clusters(new_clusters, index)
         for cluster in self.cluster:
             cluster.refine_members(self.assembly_realigner)
             cluster.join_adjacent(all_clusters=self.cluster)
         # We are done, we can give the clusters a numeric index, so that we can distribute the processing and recover the results
         [c.set_id(i) for i, c in enumerate(self.cluster)]
+
+    def _add_new_clusters(self, new_clusters, index):
+        current_index = index
+        for cluster in new_clusters:
+            if cluster:
+                if current_index == index:
+                    self.cluster[current_index] = cluster
+                else:
+                    self.cluster.insert(current_index, cluster)
+                current_index += 1
 
     def collect_non_evidence(self):
         """Count reads that overlap cluster site but do not provide evidence for an insertion."""
