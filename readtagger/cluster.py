@@ -2,7 +2,8 @@ import logging
 from collections import defaultdict
 from itertools import (
     chain,
-    groupby
+    groupby,
+    permutations
 )
 
 import pysam
@@ -43,6 +44,8 @@ class Cluster(list):
         self.evidence_against = set()
         self.evidence_for_five_p = set()
         self.evidence_for_three_p = set()
+        self._can_join_d = {}
+        self._cannot_join_d = {}
 
     @cached_property
     def min(self):
@@ -101,7 +104,7 @@ class Cluster(list):
                     self.append(read)
 
     def join_adjacent(self, all_clusters):
-        """Join clusters thar can be joined."""
+        """Join clusters that can be joined."""
         for other_cluster in self.reachable(all_clusters=all_clusters):
             if self.can_join(other_cluster, max_distance=self.max_proper_size):
                 self.extend(other_cluster)
@@ -123,7 +126,7 @@ class Cluster(list):
         """
         Split cluster if the direction of the mates switches.
 
-        This is quite a rough estimate, I should probaby do some more checks to ensure a single
+        This is quite a rough estimate, should probaby do some more checks to ensure a single
         stray read in the wrong orientation does not split a cluster.
         """
         switches = self.orientation_switches
@@ -148,10 +151,16 @@ class Cluster(list):
         return [Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_size) for _ in range(count)]
 
     @staticmethod
-    def _mark_clusters_incompatible(cluster_a, cluster_b):
+    def _mark_clusters_compatible(*clusters):
         # We know these clusters have been split on purpose, don't try to merge them back together!
-        cluster_a._cannot_join_d = {cluster_a.hash: cluster_b.hash}
-        cluster_b._cannot_join_d = {cluster_b.hash: cluster_a.hash}
+        for (cluster_a, cluster_b) in permutations(clusters, r=2):
+            cluster_a._can_join_d[cluster_a.hash] = cluster_b.hash
+
+    @staticmethod
+    def _mark_clusters_incompatible(*clusters):
+        # We know these clusters have been split on purpose, don't try to merge them back together!
+        for (cluster_a, cluster_b) in permutations(clusters, r=2):
+            cluster_a._cannot_join_d[cluster_a.hash] = cluster_b.hash
 
     def check_cluster_consistency(self):
         """
@@ -182,6 +191,7 @@ class Cluster(list):
                 new_five_p_cluster.append(read)
                 self.remove(read)
             new_clusters.append(new_five_p_cluster)
+        self._mark_clusters_incompatible(*new_clusters)
         # TODO: may want to remove any mates that correspond to the removed reads
         return new_clusters
 
@@ -284,30 +294,28 @@ class Cluster(list):
           - clipped reads should overlap (except if a large number of nucleotides have been eroded: that could be an interesting mechanism.)
           - inferred insert should point to same TE # TODO: implement this
         """
-        if hasattr(self, '_cannot_join_d'):
+        self_hash = self.hash
+        other_hash = other_cluster.hash
+        if self._cannot_join_d.get(other_hash, None) == self_hash:
             # We already tried joining this cluster with another cluster,
             # so if we checked if we can try joining the exact same clusters
             # (self.hash is key in self._cannot_join and other_cluster.hash is value in self._cannot_join)
             # we know this didn't work and save ourselves the expensive assembly check
-            other_hash = self._cannot_join_d.get(self.hash)
-            if other_hash == other_cluster.hash:
-                return False
-        if hasattr(self, '_can_join_d'):
-            other_hash = self._can_join_d.get(self.hash)
-            if other_hash == other_cluster.hash:
-                return True
+            return False
+        elif self._can_join_d.get(other_hash, None) == self_hash:
+            return True
         return self._can_join(other_cluster, max_distance)
 
     def _can_join(self, other_cluster, max_distance):
         other_clustertag = TagCluster(other_cluster, shm_dir=self.shm_dir)
-        # TODO: ... the should be no additional polarity switch if clusters are to be joined?
+        # TODO: there should be no additional polarity switch if clusters are to be joined?
         # Second check ... are three_p and five_p of cluster overlapping?
         if not self.clustertag.tsd.three_p and not other_clustertag.tsd.five_p:
             if self.clustertag.tsd.five_p and other_clustertag.tsd.three_p:
                 extended_three_p = other_clustertag.tsd.three_p - other_clustertag.tsd.three_p_clip_length
                 extended_five_p = self.clustertag.tsd.five_p_clip_length + self.clustertag.tsd.five_p
                 if extended_three_p <= extended_five_p:
-                    self._can_join_d = {self.hash: other_cluster.hash}
+                    self._mark_clusters_compatible(self, other_cluster)
                     return True
         # Next check ... can informative parts of mates be assembled into the proper insert sequence
         if self.clustertag.left_sequences and other_clustertag.left_sequences:
@@ -316,7 +324,7 @@ class Cluster(list):
             if (other_clustertag.five_p_breakpoint - self.clustertag.five_p_breakpoint) < max_distance:
                 # We don't want clusters to be spaced too far away. Not sure if this is really a problem in practice.
                 if multiple_sequences_overlap(self.clustertag.left_sequences.values(), other_clustertag.left_sequences.values()):
-                    self._can_join_d = {self.hash: other_cluster.hash}
+                    self._mark_clusters_compatible(self, other_cluster)
                     return True
         # TODO: Refactor this to a common function for left-left and right-right assembly
         if self.clustertag.right_sequences and other_clustertag.right_sequences:
@@ -325,7 +333,7 @@ class Cluster(list):
             if (other_clustertag.three_p_breakpoint - self.clustertag.three_p_breakpoint) < max_distance:
                 # We don't want clusters to be spaced too far away. Not sure if this is really a problem in practice.
                 if multiple_sequences_overlap(self.clustertag.right_sequences.values(), other_clustertag.right_sequences.values()):
-                    self._can_join_d = {self.hash: other_cluster.hash}
+                    self._mark_clusters_compatible(self, other_cluster)
                     return True
         self_switches = self.orientation_switches
         other_switches = other_cluster.orientation_switches
@@ -338,11 +346,11 @@ class Cluster(list):
                 if abs(other_cluster.min - self.max) < (max_distance - min_read_read_length - max_read_read_length):
                     # Merge a cluster that is split by an insertion and not connected via split reads
                     if self_switches[0][0] == 'F' and other_switches[0][0] == 'R':
-                        self._can_join_d = {self.hash: other_cluster.hash}
+                        self._mark_clusters_compatible(self, other_cluster)
                         return True
         # We know this cluster (self) cannot be joined with other_cluster, so we cache this result,
         # Since we may ask this question multiple times when joining the clusters.
-        self._cannot_join_d = {self.hash: other_cluster.hash}
+        self._mark_clusters_incompatible(self, other_cluster)
         return False
 
     @property
@@ -439,6 +447,7 @@ class Cluster(list):
         May be extended by maximum insert size length minus the most distant 5' mate if no exact TSD exists.
         """
         if not self.clustertag.tsd.three_p_support and len(self.orientation_switches) < 2:
+            # No TSD and no orientation switch, we don't know where the cluster starts
             three_p_reads = self.right_mate_support.values()
             if three_p_reads:
                 start_position = min([r.reference_start for r in three_p_reads])
@@ -455,6 +464,7 @@ class Cluster(list):
         May be extended by maximum insert size length plus the most distant 3' mate end if no exact TSD exists.
         """
         if not self.clustertag.tsd.five_p_support and len(self.orientation_switches) < 2:
+            # No TSD and no orientation switch, we don't know where the cluster ends
             three_p_reads = self.left_mate_support.values()
             if three_p_reads:
                 start_position = min([r.reference_start for r in three_p_reads])
