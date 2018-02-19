@@ -53,7 +53,7 @@ class AssemblyRealigner(object):
         if len(reads) > 500:
             return []
         assembly = Cap3Assembly(reads)
-        contig_sequences = {i: contig.sequence for i, contig in enumerate(assembly.assembly.contigs)}
+        contig_sequences = {i: contig.sequence for i, contig in enumerate(assembly.contigs)}
         genome_aligned_contigs, genome_header = self.genome_aligner.align_contigs(contig_sequences)
         transposon_aligned_contigs, transposon_header = self.transposon_aligner.align_contigs(contig_sequences)
         informative_reads = []

@@ -225,7 +225,7 @@ class Cluster(list):
         all_reads.update(self.clustertag.left_sequences)
         all_reads.update(self.clustertag.right_sequences)
         assembly = Cap3Assembly(all_reads)
-        contigs = assembly.assembly.contigs
+        contigs = assembly.contigs
         contig_reads = []
         cluster_a_contigs = set()
         # Establish a list of contigs and their readnames,
@@ -439,7 +439,7 @@ class Cluster(list):
     def left_contigs(self):
         """Left contigs for this cluster."""
         if self.clustertag.left_sequences:
-            return [contig.sequence for contig in self.clustertag.left_insert.assembly.contigs]
+            return [contig.sequence for contig in self.clustertag.left_insert.contigs]
         else:
             return []
 
