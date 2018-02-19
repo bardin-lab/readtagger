@@ -6,8 +6,9 @@ contextlib2==0.5.5
 futures==3.1.1
 pysam==0.14
 scipy==1.0.0
-shutilwhich==1.1.0
+shutilwhich==1.1.0; python_version < '3.3'
 six==1.11.0
 temporary==3.0.0
+backports.tempfile==1.0; python_version < '3.3'
 multiprocessing_logging==0.2.4
 edlib==1.2.3

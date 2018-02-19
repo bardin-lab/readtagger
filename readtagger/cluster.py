@@ -87,8 +87,27 @@ class Cluster(list):
         return self.tid == r.tid
 
     def read_is_compatible(self, r, strict=False):
-        """Determine if read overlaps cluster and is on same chromosome."""
-        return self.overlaps(r, strict=strict) and self.same_chromosome(r)
+        """
+        Ensure read is compatible with  cluster.
+
+        Determines if read
+          - overlaps cluster
+          - is on same chromosome
+          - read orientation is consistent with this cluster.
+        """
+        return self.overlaps(r, strict=strict) and self.same_chromosome(r) and self.read_consistent_with_clusters(r)
+
+    def read_consistent_with_clusters(self, read):
+        """Check that mater orientation within cluster is consistent."""
+        if read.has_tag('BD'):
+            # We got a mate, this means it cannot extend either 3' or 5' of the breakpoint
+            if read.is_reverse:
+                if read.reference_start < self.start:
+                    return False
+            else:
+                if read.reference_end > self.end:
+                    return False
+        return True
 
     @property
     def orientation_switches(self):
@@ -338,7 +357,10 @@ class Cluster(list):
         self_switches = self.orientation_switches
         other_switches = other_cluster.orientation_switches
         if len(self_switches) == 1 and len(other_switches) == 1 and self_switches != other_switches:
-            if abs(other_cluster.min - self.max) < max_distance:
+            if abs(other_cluster.min - self.max) < max_distance and self._strict_overlap(start1=self.start,
+                                                                                         end1=self.end,
+                                                                                         start2=other_cluster.start,
+                                                                                         end2=other_cluster.end):
                 # This check doesn't take into account the read length, as the isize
                 # is determined as read-length 1 +  inner distance  + readlength 2
                 min_read_read_length = min([r.reference_length for r in other_cluster if r.reference_start == other_cluster.min])
@@ -425,16 +447,16 @@ class Cluster(list):
     def right_contigs(self):
         """Right contigs for this cluster."""
         if self.clustertag.right_sequences:
-            return [contig.sequence for contig in self.clustertag.right_insert.assembly.contigs]
+            return [contig.sequence for contig in self.clustertag.right_insert.contigs]
         else:
             return []
 
-    @cached_property
+    @property
     def start(self):
         """Start coordinate for this cluster."""
         return self._start_and_end[0]
 
-    @cached_property
+    @property
     def end(self):
         """End coordinate for this cluster."""
         return self._start_and_end[1]
@@ -473,7 +495,7 @@ class Cluster(list):
                     return start_position + self.max_proper_size
         return self.clustertag.three_p_breakpoint
 
-    @cached_property
+    @property
     def _start_and_end(self):
         start = self.start_corrected
         end = self.end_corrected

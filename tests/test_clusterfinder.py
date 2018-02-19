@@ -31,27 +31,34 @@ NANOPORE_ROVER = 'long_rover_insert_heterozygous.bam'
 DONT_MERGE = 'do_not_merge.bam'
 DONT_MERGE_5 = 'dont_merge_5.bam'
 DONT_MERGE_6 = 'dont_merge_6.bam'
+DONT_MERGE_7 = 'dont_merge_back7.bam'
 
 DEFAULT_MAX_PROPER_PAIR_SIZE = 700
 
 
 def test_clusterfinder_single_cluster(datadir_copy):  # noqa: D103
     input_path = str(datadir_copy[INPUT])
-    cf = ClusterFinder(input_path=input_path)
+    cf = ClusterFinder(input_path=input_path,
+                       max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
     assert len(cf.cluster) == 1
     assert cf.cluster[0].nalt == 19
 
 
 def test_clusterfinder_include_duplicates(datadir_copy):  # noqa: D103
     input_path = str(datadir_copy[INPUT])
-    cf = ClusterFinder(input_path=input_path, include_duplicates=True)
+    cf = ClusterFinder(input_path=input_path,
+                       include_duplicates=True,
+                       max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
     assert len(cf.cluster) == 1
     assert cf.cluster[0].nalt == 26
 
 
 def test_clusterfinder_remove_supplementary(datadir_copy):  # noqa: D103
     input_path = str(datadir_copy[INPUT])
-    cf = ClusterFinder(input_path=input_path, include_duplicates=True, remove_supplementary_without_primary=True)
+    cf = ClusterFinder(input_path=input_path,
+                       include_duplicates=True,
+                       remove_supplementary_without_primary=True,
+                       max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
     assert len(cf.cluster) == 1
     assert cf.cluster[0].nalt == 24
 
@@ -104,11 +111,14 @@ def test_clusterfinder_refine_split2(datadir_copy, tmpdir):  # noqa: D103
                              output_bam=output_bam,
                              output_gff=tmpdir.join('output.gff').strpath,
                              transposon_reference_fasta=None,
-                             max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
-    assert len(clusters.cluster) == 2
-    cluster_one, cluster_two = clusters.cluster
-    assert cluster_one.nalt == 2
-    assert cluster_two.nalt == 134
+                             max_proper_pair_size=1500)
+    # Should be 3 clusters -- one mate pointing away from the cluster (1),
+    # one read with BD and AD tag (2), which doesn't join with the large cluster to the right (3)
+    assert len(clusters.cluster) == 3
+    cluster_one, cluster_two, cluster_three = clusters.cluster
+    assert cluster_one.nalt == 134
+    assert cluster_two.nalt == 1
+    assert cluster_three.nalt == 1
 
 
 def test_cornercase(datadir_copy, tmpdir):  # noqa: D103
@@ -336,6 +346,25 @@ def test_clusterfinder_do_not_merge5(datadir_copy, tmpdir, reference_fasta):  # 
     assert cluster_two.genotype_likelihood().genotype == 'reference'
     assert cluster_two.nref == 66
     assert cluster_two.nalt == 4
+
+
+def test_clusterfinder_do_not_merge7(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
+    input_path = str(datadir_copy[DONT_MERGE_7])
+    output_gff = tmpdir.join('output.gff').strpath
+    output_bam = tmpdir.join('output.bam').strpath
+    clusters = ClusterFinder(input_path=input_path,
+                             output_bam=output_bam,
+                             output_gff=output_gff,
+                             transposon_reference_fasta=reference_fasta,
+                             max_proper_pair_size=900)
+    assert len(clusters.cluster) == 2
+    cluster_one, cluster_two = clusters.cluster
+    assert cluster_one.genotype_likelihood().genotype == 'heterozygous'
+    assert cluster_one.nref == 45
+    assert cluster_one.nalt == 71
+    assert cluster_two.genotype_likelihood().genotype == 'reference'
+    assert cluster_two.nref == 31
+    assert cluster_two.nalt == 2
 
 
 def test_clusterfinder_estimate_coverage(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
