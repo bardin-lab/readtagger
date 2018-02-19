@@ -1,9 +1,6 @@
 from collections import namedtuple
 from itertools import groupby
-try:
-    from functools import lru_cache
-except ImportError:
-    from backports.functools_lru_cache import lru_cache
+from .instance_lru import lru_cache
 
 
 CODE2CIGAR = "MIDNSHP=XB"

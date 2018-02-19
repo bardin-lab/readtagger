@@ -7,13 +7,13 @@ from itertools import (
 )
 
 import pysam
-from cached_property import cached_property
 from .edlib_align import (
     multiple_sequences_overlap,
     sequences_overlap
 )
-from .genotype import Genotype
 from .cap3 import Cap3Assembly
+from .genotype import Genotype
+from .instance_lru import instance_method_lru_cache
 from .tagcluster import TagCluster
 
 MIN_LONG_READ = 200
@@ -47,7 +47,19 @@ class Cluster(list):
         self._can_join_d = {}
         self._cannot_join_d = {}
 
-    @cached_property
+    def __hash__(self):
+        """Delegate to self.hash for hash specific to this cluster."""
+        return self.hash
+
+    def __eq__(self, other):
+        """Define equality as mathcing hashes."""
+        return self.hash == other.hash
+
+    def __ne__(self, other):
+        """Define not equal as not equal."""
+        return self != other
+
+    @property
     def min(self):
         """
         Cache leftmost start of cluster.
@@ -56,7 +68,7 @@ class Cluster(list):
         """
         return self[0].reference_start
 
-    @cached_property
+    @property
     def tid(self):
         """Cache current reference id."""
         return self[0].tid
@@ -274,6 +286,10 @@ class Cluster(list):
     @property
     def orientation_vector(self):
         """Return orientation of all reads with 'BD' tag."""
+        return self._get_orientation_vector()
+
+    @instance_method_lru_cache()
+    def _get_orientation_vector(self):
         return [('R', i) if r.is_reverse else ('F', i) for i, r in enumerate(self) if not r.has_tag('AD')]
 
     @property
@@ -284,16 +300,16 @@ class Cluster(list):
     @property
     def hash(self):
         """Calculate a hash based on read name and read sequence for all reads in this cluster."""
-        string_to_hash = "|".join(["%s%s" % (r.query_name, r.query_sequence) for r in self])
-        return hash(string_to_hash)
+        return hash("".join(("%s" % id(r) for r in self)))
 
     @property
     def clustertag(self):
         """Return clustertag for current cluster of reads."""
-        if not hasattr(self, '_clustertag') or (hasattr(self, '_clusterlen') and len(self) != self._clusterlen):
-            self._clusterlen = len(self)
-            self._clustertag = TagCluster(self, shm_dir=self.shm_dir)
-        return self._clustertag
+        return self._get_clustertag()
+
+    @instance_method_lru_cache()
+    def _get_clustertag(self):
+        return TagCluster(self, shm_dir=self.shm_dir)
 
     def can_join(self, other_cluster, max_distance=1500):
         """
@@ -435,17 +451,25 @@ class Cluster(list):
         for contigs in self.right_contigs:
             pass
 
-    @cached_property
+    @property
     def left_contigs(self):
         """Left contigs for this cluster."""
+        return self._get_left_contigs()
+
+    @instance_method_lru_cache()
+    def _get_left_contigs(self):
         if self.clustertag.left_sequences:
             return [contig.sequence for contig in self.clustertag.left_insert.contigs]
         else:
             return []
 
-    @cached_property
+    @property
     def right_contigs(self):
         """Right contigs for this cluster."""
+        return self._get_right_contigs()
+
+    @instance_method_lru_cache()
+    def _get_right_contigs(self):
         if self.clustertag.right_sequences:
             return [contig.sequence for contig in self.clustertag.right_insert.contigs]
         else:
@@ -497,6 +521,10 @@ class Cluster(list):
 
     @property
     def _start_and_end(self):
+        return self._get_start_and_end()
+
+    @instance_method_lru_cache()
+    def _get_start_and_end(self):
         start = self.start_corrected
         end = self.end_corrected
         if start is None:
@@ -511,7 +539,7 @@ class Cluster(list):
             end += 1
         return start, end
 
-    @cached_property
+    @property
     def valid_tsd(self):
         """Return whether current cluster has a valid TSD."""
         return self.clustertag.tsd.is_valid

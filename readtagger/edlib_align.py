@@ -1,10 +1,7 @@
 import re
-try:
-    from functools import lru_cache
-except ImportError:
-    from backports.functools_lru_cache import lru_cache
-
 from edlib import align
+
+from .instance_lru import lru_cache
 
 
 COMPLEMENTARY_SEQUENCES = {'A': 'T', 'T': 'A', 'G': 'C', 'C': 'G', 'N': 'N'}

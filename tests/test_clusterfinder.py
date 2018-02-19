@@ -376,6 +376,7 @@ def test_clusterfinder_estimate_coverage(datadir_copy, tmpdir, reference_fasta):
                              output_gff=output_gff,
                              transposon_reference_fasta=reference_fasta,
                              max_proper_pair_size=1500)
+    assert len(clusters.cluster) == 1
     cluster_one = clusters.cluster[0]
     assert cluster_one.genotype_likelihood().genotype == 'reference'
     assert cluster_one.nref == 174
