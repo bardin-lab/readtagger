@@ -342,7 +342,7 @@ class Cluster(list):
         return self._can_join(other_cluster, max_distance)
 
     def _can_join(self, other_cluster, max_distance):
-        other_clustertag = TagCluster(other_cluster, shm_dir=self.shm_dir)
+        other_clustertag = other_cluster.clustertag
         # TODO: there should be no additional polarity switch if clusters are to be joined?
         # Second check ... are three_p and five_p of cluster overlapping?
         if not self.clustertag.tsd.three_p and not other_clustertag.tsd.five_p:

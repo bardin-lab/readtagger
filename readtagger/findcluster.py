@@ -243,24 +243,33 @@ class ClusterFinder(object):
 
     def join_clusters(self):
         """Iterate over self.cluster and attempt to join consecutive clusters."""
+        new_clusterlength = 0
         if len(self.cluster) > 1:
             cluster_length = len(self.cluster)
-            new_clusterlength = 0
             while new_clusterlength != cluster_length:
                 cluster_length = new_clusterlength
                 for cluster in self.cluster:
                     cluster.join_adjacent(all_clusters=self.cluster)
                 new_clusterlength = len(self.cluster)
+        logging.info("Found %d cluster after first pass of cluster joining.", new_clusterlength)
+        logging.info("Splitting cluster at polarity switches")
         for index, cluster in enumerate(self.cluster):
             new_clusters = cluster.split_cluster_at_polarity_switch()
             self._add_new_clusters(new_clusters, index)
+        logging.info("After splitting at polarity switches we have %d cluster (was: %d)",
+                     len(self.cluster),
+                     new_clusterlength)
+        logging.info("Checking cluster consistency")
         for index, cluster in enumerate(self.cluster):
             new_clusters = cluster.check_cluster_consistency()
             self._add_new_clusters(new_clusters, index)
+        logging.info("After splitting inconsistent clusters we have %d cluster", len(self.cluster))
+        logging.info("Last pass of joining cluster")
         for cluster in self.cluster:
             cluster.refine_members(self.assembly_realigner)
             cluster.join_adjacent(all_clusters=self.cluster)
         # We are done, we can give the clusters a numeric index, so that we can distribute the processing and recover the results
+        logging.info("Found %d cluster overall", len(self.cluster))
         [c.set_id(i) for i, c in enumerate(self.cluster)]
 
     def _add_new_clusters(self, new_clusters, index):
