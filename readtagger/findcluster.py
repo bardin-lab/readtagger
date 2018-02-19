@@ -1,7 +1,6 @@
 import logging
 import os
 import shutil
-import tempfile
 
 import pysam
 from cached_property import cached_property
@@ -33,6 +32,11 @@ from .gff_io import (
 )
 from .readtagger import get_max_proper_pair_size
 from .verify import discard_supplementary
+try:
+    from tempfile import TemporaryDirectory
+except ImportError:
+    from backports.tempfile import TemporaryDirectory
+
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s - %(message)s', level=logging.DEBUG)
@@ -59,24 +63,23 @@ class ClusterManager(object):
 
     def process(self):
         """Process input bam in chunks."""
-        with ProcessPoolExecutor(max_workers=self.threads) as executor:
-            futures = []
-            tempdir = tempfile.mkdtemp()
-            chunks = split_locations_between_clusters(self.kwds['input_path'])
-            if self.kwds['transposon_reference_fasta'] and not self.kwds['transposon_bwa_index']:
-                self.kwds['transposon_bwa_index'], _ = make_bwa_index(self.kwds['transposon_reference_fasta'], dir=tempdir)
-            if self.kwds['genome_reference_fasta'] and not self.kwds['genome_bwa_index']:
-                self.kwds['genome_bwa_index'], _ = make_bwa_index(self.kwds['genome_reference_fasta'], dir=tempdir)
-            for i, region in enumerate(chunks):
-                kwds = self.kwds.copy()
-                kwds['region'] = region
-                kwds['output_bam'] = os.path.join(tempdir, "%d.bam" % i)
-                kwds['output_gff'] = os.path.join(tempdir, "%d.gff" % i)
-                kwds['output_fasta'] = os.path.join(tempdir, "%d.fasta" % i)
-                self.process_list.append(kwds)
-                futures.append(executor.submit(wrapper, kwds))
-        self.merge_outputs()
-        shutil.rmtree(tempdir, ignore_errors=True)
+        with TemporaryDirectory(prefix='ClusterManager_') as tempdir:
+            with ProcessPoolExecutor(max_workers=self.threads) as executor:
+                futures = []
+                chunks = split_locations_between_clusters(self.kwds['input_path'])
+                if self.kwds['transposon_reference_fasta'] and not self.kwds['transposon_bwa_index']:
+                    self.kwds['transposon_bwa_index'], _ = make_bwa_index(self.kwds['transposon_reference_fasta'], dir=tempdir)
+                if self.kwds['genome_reference_fasta'] and not self.kwds['genome_bwa_index']:
+                    self.kwds['genome_bwa_index'], _ = make_bwa_index(self.kwds['genome_reference_fasta'], dir=tempdir)
+                for i, region in enumerate(chunks):
+                    kwds = self.kwds.copy()
+                    kwds['region'] = region
+                    kwds['output_bam'] = os.path.join(tempdir, "%d.bam" % i)
+                    kwds['output_gff'] = os.path.join(tempdir, "%d.gff" % i)
+                    kwds['output_fasta'] = os.path.join(tempdir, "%d.fasta" % i)
+                    self.process_list.append(kwds)
+                    futures.append(executor.submit(wrapper, kwds))
+            self.merge_outputs()
 
     def merge_outputs(self):
         """Merge outputs produced by working over smaller chunks with ClusterManager."""
@@ -158,26 +161,25 @@ class ClusterFinder(object):
         self.min_mapq = min_mapq
         self.max_clustersupport = max_clustersupport
         self.max_proper_pair_size = max_proper_pair_size
-        self._tempdir = tempfile.mkdtemp()
-        self.transposon_bwa_index, self.genome_bwa_index = self.setup_bwa_indexes()
-        self.remove_supplementary_without_primary = remove_supplementary_without_primary
-        self.threads = threads
-        self.tp = ThreadPoolExecutor(threads)  # max threads
-        if self.genome_bwa_index and self.transposon_bwa_index:
-            self.assembly_realigner = AssemblyRealigner(input_alignment_file=self.input_path,
-                                                        genome_bwa_index=self.genome_bwa_index,
-                                                        transposon_bwa_index=self.transposon_bwa_index)
-        else:
-            self.assembly_realigner = None
-        self.cluster = self.find_cluster()
-        self.clean_clusters()
-        self.join_clusters()
-        self.to_fasta()
-        self.align_bwa()
-        self.collect_non_evidence()
-        self.to_bam()
-        self.to_gff()
-        shutil.rmtree(self._tempdir, ignore_errors=True)
+        with TemporaryDirectory(prefix='ClusterFinder_') as self._tempdir:
+            self.transposon_bwa_index, self.genome_bwa_index = self.setup_bwa_indexes()
+            self.remove_supplementary_without_primary = remove_supplementary_without_primary
+            self.threads = threads
+            self.tp = ThreadPoolExecutor(threads)  # max threads
+            if self.genome_bwa_index and self.transposon_bwa_index:
+                self.assembly_realigner = AssemblyRealigner(input_alignment_file=self.input_path,
+                                                            genome_bwa_index=self.genome_bwa_index,
+                                                            transposon_bwa_index=self.transposon_bwa_index)
+            else:
+                self.assembly_realigner = None
+            self.cluster = self.find_cluster()
+            self.clean_clusters()
+            self.join_clusters()
+            self.to_fasta()
+            self.align_bwa()
+            self.collect_non_evidence()
+            self.to_bam()
+            self.to_gff()
 
     def setup_bwa_indexes(self):
         """Handle setting up BWA indexes."""

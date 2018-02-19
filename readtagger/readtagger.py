@@ -26,6 +26,10 @@ from .tags import (
     make_tag
 )
 from .tag_softclip import TagSoftClip
+try:
+    from tempfile import TemporaryDirectory
+except ImportError:
+    from backports.tempfile import TemporaryDirectory
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s - %(message)s', level=logging.DEBUG)
@@ -73,9 +77,9 @@ class TagManager(object):
         self.tag_prefix_mate = tag_prefix_mate
         self.cores = cores
         self.chunk_size = chunk_size
-        self.tempdir = tempfile.mkdtemp()
-        self.setup_input_files()
-        self.process()
+        with TemporaryDirectory(prefix='TagManager_') as self.tempdir:
+            self.setup_input_files()
+            self.process()
 
     def setup_input_files(self):
         """Coordinate sort input files if necessary."""
@@ -98,8 +102,7 @@ class TagManager(object):
             self.max_proper_size = get_max_proper_pair_size(self.annotate_path)
         mean_read_length = get_mean_read_length(self.annotate_path)
         if not self.bwa_index and self.reference_fasta:
-            tempdir = tempfile.mkdtemp()
-            self.bwa_index, _ = make_bwa_index(reference_fasta=self.reference_fasta, dir=tempdir)
+            self.bwa_index, _ = make_bwa_index(reference_fasta=self.reference_fasta, dir=self.tempdir)
         kwds = {}
         kwds['source_path'] = self.source_path_sorted
         kwds['annotate_path'] = self.annotate_path_sorted
