@@ -49,6 +49,10 @@ from readtagger import VERSION
               help='Genome BWA index to align clipped reads to',
               default=None,
               required=False)
+@click.option('--min_mapq',
+              help="Only consider reads with MAPQ equal to or higher than this setting.",
+              default=4,
+              type=click.IntRange(0, 60))
 @click.option('--threads', help='Threads to use for cap3 assembly step', default=1, type=click.IntRange(1, 100))
 @click.option('--shm_dir', envvar="SHM_DIR", help='Path to shared memory folder', default=None, type=click.Path(exists=True))
 @click.version_option(version=VERSION)

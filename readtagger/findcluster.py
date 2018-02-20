@@ -131,7 +131,7 @@ class ClusterFinder(object):
                  include_duplicates=False,
                  sample_name=None,
                  threads=1,
-                 min_mapq=1,
+                 min_mapq=4,
                  max_clustersupport=800,
                  max_proper_pair_size=0,
                  remove_supplementary_without_primary=False,
@@ -219,7 +219,7 @@ class ClusterFinder(object):
                 if not self.include_duplicates:
                     if r.is_duplicate:
                         continue
-                if not r.mapping_quality > self.min_mapq:
+                if not r.mapping_quality >= self.min_mapq:
                     continue
                 if not (r.has_tag('BD') or r.has_tag('AD')):
                     continue
