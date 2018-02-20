@@ -432,6 +432,11 @@ class Cluster(list):
         return self.clustertag.right_sequence_count + len(self.evidence_for_three_p)
 
     @property
+    def maximum_mapq(self):
+        """Return the highest MAPQ observed for this cluster."""
+        return max((r.mapq for r in self))
+
+    @property
     def score(self):
         """Return sum of all supporting reads for this cluster."""
         return self.nalt

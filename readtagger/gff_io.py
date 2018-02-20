@@ -1,6 +1,7 @@
 import os
 import subprocess
 import tempfile
+from collections import OrderedDict
 from functools import partial
 
 from concurrent.futures import ThreadPoolExecutor
@@ -29,19 +30,22 @@ def write_cluster(clusters, header, output_path, sample='sample', threads=1):
 def get_feature(cluster, sample, i):
     """Turn a cluster into a biopython SeqFeature."""
     genotype = cluster.genotype_likelihood()
-    qualifiers = {"source": "findcluster",
-                  "score": cluster.score,
-                  "total_left_support": cluster.total_left_support,
-                  "left_mate_support": cluster.left_mate_count,
-                  "total_right_support": cluster.total_right_support,
-                  "right_mate_support": cluster.right_mate_count,
-                  "non_support": genotype.nref,
-                  "genotype": genotype.genotype,
-                  "genotype_likelihoods": [genotype.reference, genotype.heterozygous, genotype.homozygous],
-                  "left_insert": [v for pair in enumerate(cluster.left_contigs) for v in pair],
-                  "right_insert": [v for pair in enumerate(cluster.right_contigs) for v in pair],
-                  "ID": "%s_%d" % (sample, i),
-                  "valid_TSD": cluster.valid_tsd}
+    qualifiers = OrderedDict(
+        source="findcluster",
+        score=cluster.score,
+        total_left_support=cluster.total_left_support,
+        left_mate_support=cluster.left_mate_count,
+        total_right_support=cluster.total_right_support,
+        right_mate_support=cluster.right_mate_count,
+        non_support=genotype.nref,
+        max_mapq=cluster.maximum_mapq,
+        genotype=genotype.genotype,
+        genotype_likelihoods=[genotype.reference, genotype.heterozygous, genotype.homozygous],
+        ID="%s_%d" % (sample, i),
+        valid_TSD=cluster.valid_tsd,
+        left_insert=[v for pair in enumerate(cluster.left_contigs) for v in pair],
+        right_insert=[v for pair in enumerate(cluster.right_contigs) for v in pair]
+    )
     if cluster.reference_name:
         qualifiers['insert_reference'] = cluster.reference_name
     feature = SeqFeature(FeatureLocation(cluster.start, cluster.end), type=cluster.reference_name or "TE", strand=1, qualifiers=qualifiers)
