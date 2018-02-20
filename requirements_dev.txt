@@ -3,7 +3,7 @@ cookiecutter==1.6.0
 pydocstyle==2.1.1
 flake8_docstrings==1.1.0
 planemo==0.46.1
-pytest==3.2.5
+pytest==3.4.1
 pytest-cov==2.5.1
 pytest-datadir-ng==1.1.0
 pytest-flake8==0.9.1
