@@ -210,6 +210,7 @@ class ClusterFinder(object):
 
     def find_cluster(self):
         """Find clusters by iterating over input_path and creating clusters if reads are disjointed."""
+        logging.info("Finding clusters in region '%s'", self.region or 0)
         if self.remove_supplementary_without_primary:
             self._remove_supplementary_without_primary()
         clusters = []
@@ -234,7 +235,7 @@ class ClusterFinder(object):
                     cluster = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_pair_size)
                     cluster.append(r)
                     clusters.append(cluster)
-        logging.info('Found %d cluster on first pass', len(clusters))
+        logging.info('Found %d cluster on first pass (%s)', len(clusters), self.region or 0)
         return clusters
 
     def clean_clusters(self):
@@ -251,25 +252,26 @@ class ClusterFinder(object):
                 for cluster in self.cluster:
                     cluster.join_adjacent(all_clusters=self.cluster)
                 new_clusterlength = len(self.cluster)
-        logging.info("Found %d cluster after first pass of cluster joining.", new_clusterlength)
+        logging.info("Found %d cluster after first pass of cluster joining (%s).", new_clusterlength, self.region or 0)
         logging.info("Splitting cluster at polarity switches")
         for index, cluster in enumerate(self.cluster):
             new_clusters = cluster.split_cluster_at_polarity_switch()
             self._add_new_clusters(new_clusters, index)
-        logging.info("After splitting at polarity switches we have %d cluster (was: %d)",
+        logging.info("After splitting at polarity switches we have %d cluster (was: %d) (%s)",
                      len(self.cluster),
-                     new_clusterlength)
-        logging.info("Checking cluster consistency")
+                     new_clusterlength,
+                     self.region or 0)
+        logging.info("Checking cluster consistency (%s)", self.region or 0)
         for index, cluster in enumerate(self.cluster):
             new_clusters = cluster.check_cluster_consistency()
             self._add_new_clusters(new_clusters, index)
         logging.info("After splitting inconsistent clusters we have %d cluster", len(self.cluster))
-        logging.info("Last pass of joining cluster")
+        logging.info("Last pass of joining cluster (%s)", self.region or 0)
         for cluster in self.cluster:
             cluster.refine_members(self.assembly_realigner)
             cluster.join_adjacent(all_clusters=self.cluster)
         # We are done, we can give the clusters a numeric index, so that we can distribute the processing and recover the results
-        logging.info("Found %d cluster overall", len(self.cluster))
+        logging.info("Found %d cluster overall (%s)", len(self.cluster), self.region or 0)
         [c.set_id(i) for i, c in enumerate(self.cluster)]
 
     def _add_new_clusters(self, new_clusters, index):
