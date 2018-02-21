@@ -220,7 +220,10 @@ class Cluster(list):
             new_five_p_cluster = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_size)
             for read in five_p_reads_to_to_discard:
                 new_five_p_cluster.append(read)
-                self.remove(read)
+                if read not in three_p_reads_to_to_discard:
+                    # Can't remove read twice ...
+                    # I suppose this can happen with very small TE inserts whre we can have mates on both sides
+                    self.remove(read)
             new_clusters.append(new_five_p_cluster)
         self._mark_clusters_incompatible(*new_clusters)
         # TODO: may want to remove any mates that correspond to the removed reads
