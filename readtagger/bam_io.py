@@ -175,19 +175,31 @@ def index_bam(inpath):
         pysam.index(inpath)
 
 
-def split_locations_between_clusters(bamfile, self_tag='AD', other_tag='BD', distance=1000000):
+def split_locations_between_clusters(bamfile, self_tag='AD', other_tag='BD', distance=1000000, region=None):
     """Split a bam file into multiple chunks, where chunks have no tagged reads close to the split."""
     # TODO: modify this so we don't split small chromosomes, instead we should "merge" small chromosomes
     index_bam(bamfile)
+    limit_chrom = None
+    limit_start = None
+    limit_end = None
+    if region:
+        region = region.split(':')
+        limit_chrom = region[0]
+        limit_start, limit_end = [int(i) for i in region[1].split('-')]
     with pysam.AlignmentFile(bamfile) as f:
         name_length = [(chrom['SN'], chrom['LN']) for chrom in f.header['SQ']]
         chunks = []
         for (name, length) in name_length:
+            if limit_chrom and limit_chrom != name:
+                continue
             chunk = []
             split_pos = [i for i in range(0, length, distance)]
             split_pos.append(length)
             start_end_pos = [list(z) for z in zip(split_pos[:-1], split_pos[1:])]
             for i, (start, end) in enumerate(start_end_pos):
+                if limit_end:
+                    if end > limit_end or start < limit_start:
+                        continue
                 if not end == length:  # i.e this is not the last chunk
                     end = find_end(f, chrom=name, end=end, self_tag=self_tag, other_tag=other_tag)
                     start_end_pos[i + 1][0] = end  # Update the next start position with the new end

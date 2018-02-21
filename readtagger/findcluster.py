@@ -66,7 +66,7 @@ class ClusterManager(object):
         with TemporaryDirectory(prefix='ClusterManager_') as tempdir:
             with ProcessPoolExecutor(max_workers=self.threads) as executor:
                 futures = []
-                chunks = split_locations_between_clusters(self.kwds['input_path'])
+                chunks = split_locations_between_clusters(self.kwds['input_path'], region=self.kwds.get('region'))
                 if self.kwds['transposon_reference_fasta'] and not self.kwds['transposon_bwa_index']:
                     self.kwds['transposon_bwa_index'], _ = make_bwa_index(self.kwds['transposon_reference_fasta'], dir=tempdir)
                 if self.kwds['genome_reference_fasta'] and not self.kwds['genome_bwa_index']:
