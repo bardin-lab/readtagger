@@ -64,7 +64,7 @@ class Cap3Assembly(BaseAssembly):
             return Ace.read(open(os.path.join(self.input_dir, 'multialign.fa.cap.ace'))).contigs
         else:
             # We return an empty record if there are too many sequences to assemble
-            return Ace.ACEFileRecord()
+            return Ace.ACEFileRecord().contigs
 
     @staticmethod
     def join_assemblies(assemblies, shm_dir=None):
