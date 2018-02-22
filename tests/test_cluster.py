@@ -1,3 +1,4 @@
+import pytest
 from readtagger.cluster import non_evidence
 
 NON_SUPPORT = 'non_support_test.bam'
@@ -47,4 +48,5 @@ def test_nonevidence_exception_handling(datadir_copy):  # noqa: D103
              (3, 16422, 16423, {'HWI-D00405:129:C6KNAANXX:4:1310:9444:11374'},
               for_evidence_kwargs, None)]
     data = {'chromosome': '2L', 'input_path': input_path, 'chunk': chunk}
-    assert len(non_evidence(data)['against']) == 0
+    with pytest.raises(Exception):
+        non_evidence(data)

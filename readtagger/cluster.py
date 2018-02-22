@@ -1,4 +1,3 @@
-import logging
 from collections import defaultdict
 from itertools import (
     chain,
@@ -14,6 +13,7 @@ from .edlib_align import (
 from .cap3 import Cap3Assembly
 from .genotype import Genotype
 from .instance_lru import instance_method_lru_cache
+from .reraise_with_stack import reraise_with_stack
 from .tagcluster import TagCluster
 
 MIN_LONG_READ = 200
@@ -607,6 +607,7 @@ class Cluster(list):
         return (self.id, self.start, self.end, self.read_index.copy(), bp_sequences, single_breakpoint)
 
 
+@reraise_with_stack
 def non_evidence(data):
     """Count all reads that point against evidence for a transposon insertion."""
     result = {'against': {},
@@ -622,23 +623,20 @@ def non_evidence(data):
         # Avoid pysam error for negative start coordinates
         min_start = 0
     max_end = end + 500
-    try:
-        with pysam.AlignmentFile(input_path) as f:
-            try:
-                reads = f.fetch(chromosome, min_start, max_end)
-            except Exception:
-                pysam.index(input_path)
-                f = pysam.AlignmentFile(input_path)
-                reads = f.fetch(chromosome, min_start, max_end)
-            for r in reads:
-                if not r.is_duplicate \
-                    and r.mapq > 0 \
-                    and (r.is_proper_pair or
-                         r.next_reference_name == r.reference_name == chromosome and
-                         MIN_VALID_ISIZE_FOR_NON_PROPER_PAIR > abs(r.isize) < MAX_VALID_ISIZE):
-                    add_to_clusters(chunk, r, result)
-    except Exception as e:
-        logging.warn("Encountered Exception '%s' on chromosome %s for start %s and end %s of chunks %s" % (str(e), chromosome, start, end, chunk))
+    with pysam.AlignmentFile(input_path) as f:
+        try:
+            reads = f.fetch(chromosome, min_start, max_end)
+        except Exception:
+            pysam.index(input_path)
+            f = pysam.AlignmentFile(input_path)
+            reads = f.fetch(chromosome, min_start, max_end)
+        for r in reads:
+            if not r.is_duplicate \
+                and r.mapq > 0 \
+                and (r.is_proper_pair or
+                     r.next_reference_name == r.reference_name == chromosome and
+                     MIN_VALID_ISIZE_FOR_NON_PROPER_PAIR > abs(r.isize) < MAX_VALID_ISIZE):
+                add_to_clusters(chunk, r, result)
     for index in result['against']:
         for_reads = set(result['for'][index])
         against_reads = set(result['against'][index])

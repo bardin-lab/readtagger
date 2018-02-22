@@ -5,6 +5,7 @@ import shutil
 import pysam
 from cached_property import cached_property
 from concurrent.futures import (
+    as_completed,
     wait,
     ThreadPoolExecutor,
     ProcessPoolExecutor
@@ -31,12 +32,12 @@ from .gff_io import (
     write_cluster
 )
 from .readtagger import get_max_proper_pair_size
+from .reraise_with_stack import reraise_with_stack
 from .verify import discard_supplementary
 try:
     from tempfile import TemporaryDirectory
 except ImportError:
     from backports.tempfile import TemporaryDirectory
-
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s - %(message)s', level=logging.DEBUG)
@@ -64,21 +65,30 @@ class ClusterManager(object):
     def process(self):
         """Process input bam in chunks."""
         with TemporaryDirectory(prefix='ClusterManager_') as tempdir:
-            with ProcessPoolExecutor(max_workers=self.threads) as executor:
-                futures = []
-                chunks = split_locations_between_clusters(self.kwds['input_path'], region=self.kwds.get('region'))
-                if self.kwds['transposon_reference_fasta'] and not self.kwds['transposon_bwa_index']:
-                    self.kwds['transposon_bwa_index'], _ = make_bwa_index(self.kwds['transposon_reference_fasta'], dir=tempdir)
-                if self.kwds['genome_reference_fasta'] and not self.kwds['genome_bwa_index']:
-                    self.kwds['genome_bwa_index'], _ = make_bwa_index(self.kwds['genome_reference_fasta'], dir=tempdir)
-                for i, region in enumerate(chunks):
-                    kwds = self.kwds.copy()
-                    kwds['region'] = region
-                    kwds['output_bam'] = os.path.join(tempdir, "%d.bam" % i)
-                    kwds['output_gff'] = os.path.join(tempdir, "%d.gff" % i)
-                    kwds['output_fasta'] = os.path.join(tempdir, "%d.fasta" % i)
-                    self.process_list.append(kwds)
-                    futures.append(executor.submit(wrapper, kwds))
+            executor = ProcessPoolExecutor(max_workers=self.threads)
+            futures = []
+            chunks = split_locations_between_clusters(self.kwds['input_path'], region=self.kwds.get('region'))
+            if self.kwds['transposon_reference_fasta'] and not self.kwds['transposon_bwa_index']:
+                self.kwds['transposon_bwa_index'], _ = make_bwa_index(self.kwds['transposon_reference_fasta'], dir=tempdir)
+            if self.kwds['genome_reference_fasta'] and not self.kwds['genome_bwa_index']:
+                self.kwds['genome_bwa_index'], _ = make_bwa_index(self.kwds['genome_reference_fasta'], dir=tempdir)
+            for i, region in enumerate(chunks):
+                kwds = self.kwds.copy()
+                kwds['region'] = region
+                kwds['output_bam'] = os.path.join(tempdir, "%d.bam" % i)
+                kwds['output_gff'] = os.path.join(tempdir, "%d.gff" % i)
+                kwds['output_fasta'] = os.path.join(tempdir, "%d.fasta" % i)
+                self.process_list.append(kwds)
+                futures.append(executor.submit(wrapper, kwds))
+            for f in as_completed(fs=futures):
+                if f.exception() is not None:
+                    logging.error("Shutting down futures, an Exception occured.")
+                    wait_for_running_futures = []
+                    for rf in futures[::-1]:
+                        if rf.cancel():
+                            wait_for_running_futures.append(rf)
+                    wait(wait_for_running_futures)
+                    raise f.exception()
             self.merge_outputs()
 
     def merge_outputs(self):
@@ -111,6 +121,7 @@ class ClusterManager(object):
             sort_gff(input_path=output_gff, output_path=output_gff)
 
 
+@reraise_with_stack
 def wrapper(kwds):
     """Launch ClusterFinder instances."""
     ClusterFinder(**kwds)
