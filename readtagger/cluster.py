@@ -672,7 +672,7 @@ def add_to_clusters(chunk, r, result):
                 if {reference_start, reference_end} & set(bp_sequence):
                     evidence = evidence_for(read=r, breakpoint_sequences=bp_sequence)
                     if evidence:
-                        result['for'][index][query_name] = (r.to_string(), evidence)
+                        result['for'][index][query_name] = (r, evidence)
                         continue
             if single_breakpoint:
                 # We only know where one of the breakpoints is, so we ask if any reads overlap that breakpoint
@@ -682,7 +682,7 @@ def add_to_clusters(chunk, r, result):
                 # only by mate pairs. In that instance it might be more accurate to sample the coverage at the breakpoint
                 # boundaries, and assume that  nalt / coverage estimates the AF.
                 if (min_start + 1 < single_breakpoint < max_end - 1):
-                    result['against'][index][query_name].append(r.to_string())
+                    result['against'][index][query_name].append(r)
             elif end - start < 50:
                 if min_start + 1 < start < max_end - 1 and min_start + 1 < end < max_end - 1:
                     # A read is only incompatible if it overlaps both ends
@@ -690,14 +690,14 @@ def add_to_clusters(chunk, r, result):
                     # to avoid dealing with reads with a single mismatch at the start/end,
                     # which wouldn't be soft-clipped. This shouldn't introduce any bias since we also can't assign these
                     # reads to an insertion, so we simple ignore them.
-                    result['against'][index][query_name].append(r.to_string())
+                    result['against'][index][query_name].append(r)
             else:
                 # We were not able to narrow down the insertion breakpoints.
                 # We can estimate the insertion frequency by looking at how many reads overlap
                 # start and end of the insertion. This isn't very precise, but insertions without
                 # exact start/end are probably low in frequency anyways.
                 if (min_start + 1 < start < max_end - 1) or (min_start + 1 < end < max_end - 1):
-                    result['against'][index][query_name].append(r.to_string())
+                    result['against'][index][query_name].append(r)
 
 
 def evidence_for(read, breakpoint_sequences):

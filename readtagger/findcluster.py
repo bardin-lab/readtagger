@@ -2,7 +2,6 @@ import logging
 import os
 import shutil
 
-import pysam
 from cached_property import cached_property
 from concurrent.futures import (
     as_completed,
@@ -296,18 +295,18 @@ class ClusterFinder(object):
     def collect_non_evidence(self):
         """Count reads that overlap cluster site but do not provide evidence for an insertion."""
         chunks = Chunks(clusters=self.cluster, header=self.header, input_path=self.input_path)
-        with ProcessPoolExecutor(max_workers=self.threads) as executor:
-            r = executor.map(non_evidence, chunks.chunks)
-            for result in r:
-                for index, evidence_against in result['against'].items():
-                    self.cluster[index].evidence_against = {pysam.AlignedSegment.fromstring(s, self.header) for l in evidence_against.values() for s in l}
-                    self.cluster[index].nref = len(evidence_against)
-                for index, evidence_for in result['for'].items():
-                    for sam_str, evidence in evidence_for.values():
-                        if evidence == 'five_p':
-                            self.cluster[index].evidence_for_five_p.add(pysam.AlignedSegment.fromstring(sam_str, self.header))
-                        else:
-                            self.cluster[index].evidence_for_three_p.add(pysam.AlignedSegment.fromstring(sam_str, self.header))
+        logging.info("Collecting evidence")
+        for chunk in chunks.chunks:
+            result = non_evidence(chunk)
+            for index, evidence_against in result['against'].items():
+                self.cluster[index].evidence_against = {r for l in evidence_against.values() for r in l}
+                self.cluster[index].nref = len(evidence_against)
+            for index, evidence_for in result['for'].items():
+                for r, evidence in evidence_for.values():
+                    if evidence == 'five_p':
+                        self.cluster[index].evidence_for_five_p.add(r)
+                    else:
+                        self.cluster[index].evidence_for_three_p.add(r)
 
     def _create_contigs(self):
         futures = []
