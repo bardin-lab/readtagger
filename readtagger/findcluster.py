@@ -32,7 +32,6 @@ from .gff_io import (
     write_cluster
 )
 from .readtagger import get_max_proper_pair_size
-from .reraise_with_stack import reraise_with_stack
 from .verify import discard_supplementary
 try:
     from tempfile import TemporaryDirectory
@@ -121,7 +120,6 @@ class ClusterManager(object):
             sort_gff(input_path=output_gff, output_path=output_gff)
 
 
-@reraise_with_stack
 def wrapper(kwds):
     """Launch ClusterFinder instances."""
     ClusterFinder(**kwds)

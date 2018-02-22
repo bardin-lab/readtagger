@@ -13,7 +13,6 @@ from .edlib_align import (
 from .cap3 import Cap3Assembly
 from .genotype import Genotype
 from .instance_lru import instance_method_lru_cache
-from .reraise_with_stack import reraise_with_stack
 from .tagcluster import TagCluster
 
 MIN_LONG_READ = 200
@@ -607,7 +606,6 @@ class Cluster(list):
         return (self.id, self.start, self.end, self.read_index.copy(), bp_sequences, single_breakpoint)
 
 
-@reraise_with_stack
 def non_evidence(data):
     """Count all reads that point against evidence for a transposon insertion."""
     result = {'against': {},
