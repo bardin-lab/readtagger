@@ -66,7 +66,7 @@ class Cluster(list):
 
         This assumes that the cluster is filled from left to right.
         """
-        return self[0].reference_start
+        return min((r.reference_start for r in self))
 
     @property
     def tid(self):
@@ -76,7 +76,7 @@ class Cluster(list):
     @property
     def max(self):
         """Return reference end of last read added to cluster."""
-        return self[-1].reference_end
+        return max((r.reference_end for r in self))
 
     @staticmethod
     def _strict_overlap(start1, end1, start2, end2):
@@ -222,7 +222,7 @@ class Cluster(list):
                 new_five_p_cluster.append(read)
                 if read not in three_p_reads_to_to_discard:
                     # Can't remove read twice ...
-                    # I suppose this can happen with very small TE inserts whre we can have mates on both sides
+                    # I suppose this can happen with very small TE inserts where we can have mates on both sides
                     self.remove(read)
             new_clusters.append(new_five_p_cluster)
         self._mark_clusters_incompatible(*new_clusters)
