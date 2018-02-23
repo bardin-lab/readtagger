@@ -184,13 +184,13 @@ class Cluster(list):
     def _mark_clusters_compatible(*clusters):
         # We know these clusters have been split on purpose, don't try to merge them back together!
         for (cluster_a, cluster_b) in permutations(clusters, r=2):
-            cluster_a._can_join_d[cluster_a.hash] = cluster_b.hash
+            cluster_a._can_join_d[cluster_b.hash] = cluster_a.hash
 
     @staticmethod
     def _mark_clusters_incompatible(*clusters):
         # We know these clusters have been split on purpose, don't try to merge them back together!
         for (cluster_a, cluster_b) in permutations(clusters, r=2):
-            cluster_a._cannot_join_d[cluster_a.hash] = cluster_b.hash
+            cluster_a._cannot_join_d[cluster_b.hash] = cluster_a.hash
 
     def check_cluster_consistency(self):
         """

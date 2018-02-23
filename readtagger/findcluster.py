@@ -180,14 +180,16 @@ class ClusterFinder(object):
                                                             transposon_bwa_index=self.transposon_bwa_index)
             else:
                 self.assembly_realigner = None
+            self.is_decoy = False
             self.cluster = self.find_cluster()
-            self.clean_clusters()
-            self.join_clusters()
-            self.to_fasta()
-            self.align_bwa()
-            self.collect_non_evidence()
-            self.to_bam()
-            self.to_gff()
+            if not self.is_decoy:
+                self.clean_clusters()
+                self.join_clusters()
+                self.to_fasta()
+                self.align_bwa()
+                self.collect_non_evidence()
+                self.to_bam()
+                self.to_gff()
 
     def setup_bwa_indexes(self):
         """Handle setting up BWA indexes."""
@@ -244,6 +246,16 @@ class ClusterFinder(object):
                     cluster.append(r)
                     clusters.append(cluster)
         logging.info('Found %d cluster on first pass (%s)', len(clusters), self.region or 0)
+        if clusters:
+            minimum_start = clusters[0].min
+            maximum_end = clusters[-1].max
+            cluster_density = len(clusters) / float(maximum_end - minimum_start)
+            if cluster_density > 0.1:
+                # every 10th nt a cluster, that should only happen on decoys.
+                self.is_decoy = True
+                logging.info('Skipping region with abnormally high cluster density (%s), probably a decoy (%s)',
+                             cluster_density,
+                             self.region or 0)
         return clusters
 
     def clean_clusters(self):
