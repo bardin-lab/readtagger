@@ -224,7 +224,7 @@ class ClusterFinder(object):
         if self.remove_supplementary_without_primary:
             self._remove_supplementary_without_primary()
         clusters = []
-        with Reader(self.input_path, region=self.region, index=True) as reader:
+        with Reader(self.input_path, external_bin=False, region=self.region, index=True) as reader:
             self.header = reader.header
             for r in reader:
                 if not self.include_duplicates:
