@@ -290,7 +290,7 @@ class Cluster(list):
         """Return orientation of all reads with 'BD' tag."""
         return self._get_orientation_vector()
 
-    @instance_method_lru_cache()
+    @instance_method_lru_cache(maxsize=10000)
     def _get_orientation_vector(self):
         return [('R', i) if r.is_reverse else ('F', i) for i, r in enumerate(self) if not r.has_tag('AD')]
 
@@ -309,7 +309,7 @@ class Cluster(list):
         """Return clustertag for current cluster of reads."""
         return self._get_clustertag()
 
-    @instance_method_lru_cache()
+    @instance_method_lru_cache(maxsize=10000)
     def _get_clustertag(self):
         return TagCluster(self, shm_dir=self.shm_dir)
 
@@ -463,7 +463,7 @@ class Cluster(list):
         """Left contigs for this cluster."""
         return self._get_left_contigs()
 
-    @instance_method_lru_cache()
+    @instance_method_lru_cache(maxsize=10000)
     def _get_left_contigs(self):
         if self.clustertag.left_sequences:
             return [contig.sequence for contig in self.clustertag.left_insert.contigs]
@@ -475,7 +475,7 @@ class Cluster(list):
         """Right contigs for this cluster."""
         return self._get_right_contigs()
 
-    @instance_method_lru_cache()
+    @instance_method_lru_cache(maxsize=10000)
     def _get_right_contigs(self):
         if self.clustertag.right_sequences:
             return [contig.sequence for contig in self.clustertag.right_insert.contigs]
@@ -530,7 +530,7 @@ class Cluster(list):
     def _start_and_end(self):
         return self._get_start_and_end()
 
-    @instance_method_lru_cache()
+    @instance_method_lru_cache(maxsize=10000)
     def _get_start_and_end(self):
         start = self.start_corrected
         end = self.end_corrected
