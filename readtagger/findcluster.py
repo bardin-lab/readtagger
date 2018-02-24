@@ -79,14 +79,18 @@ class ClusterManager(object):
                 self.process_list.append(kwds)
                 futures.append(executor.submit(wrapper, kwds))
             for f in as_completed(fs=futures):
-                if f.exception() is not None:
-                    logging.error("Shutting down futures, an Exception occured.")
-                    wait_for_running_futures = []
-                    for rf in futures[::-1]:
-                        if rf.cancel():
-                            wait_for_running_futures.append(rf)
-                    wait(wait_for_running_futures)
-                    raise f.exception()
+                e = f.exception()
+                if e is not None:
+                    if isinstance(e, RuntimeError):
+                        logging.error("Runtime error occured: %s", e)
+                    else:
+                        logging.error("Shutting down futures, an Exception occured.")
+                        wait_for_running_futures = []
+                        for rf in futures[::-1]:
+                            if rf.cancel():
+                                wait_for_running_futures.append(rf)
+                        wait(wait_for_running_futures)
+                        raise f.exception()
             self.merge_outputs()
 
     def merge_outputs(self):
