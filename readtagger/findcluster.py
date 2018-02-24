@@ -226,7 +226,7 @@ class ClusterFinder(object):
         clusters = []
         with Reader(self.input_path, external_bin=False, region=self.region, index=True) as reader:
             self.header = reader.header
-            for r in reader:
+            for r in reader.fetch(region=self.region):
                 if not self.include_duplicates:
                     if r.is_duplicate:
                         continue
