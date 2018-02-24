@@ -193,7 +193,7 @@ def split_locations_between_clusters(bamfile, self_tag='AD', other_tag='BD', dis
             if limit_chrom and limit_chrom != name:
                 continue
             chunk = []
-            split_pos = [i for i in range(0, length, distance)]
+            split_pos = [i for i in range(1, length, distance)]
             split_pos.append(length)
             start_end_pos = [list(z) for z in zip(split_pos[:-1], split_pos[1:])]
             for i, (start, end) in enumerate(start_end_pos):
@@ -204,7 +204,7 @@ def split_locations_between_clusters(bamfile, self_tag='AD', other_tag='BD', dis
                     end = find_end(f, chrom=name, end=end, self_tag=self_tag, other_tag=other_tag)
                     start_end_pos[i + 1][0] = end  # Update the next start position with the new end
                 # pysam doesn't like to start coordinates at 0, so we just add +1
-                chunk.append("%s:%s-%s" % (name, start + 1, end + 1))
+                chunk.append("%s:%s-%s" % (name, start, end))
             chunks.extend(chunk)
     return chunks
 
