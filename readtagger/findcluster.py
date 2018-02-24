@@ -246,6 +246,11 @@ class ClusterFinder(object):
                 if clusters[-1].read_is_compatible(r):
                     clusters[-1].append(r)
                 else:
+                    if r.reference_start == clusters[-1][-1].reference_start == clusters[-2][-1].reference_start:
+                        clusters[-1].abnormal = True
+                        clusters[-2].abnormal = True
+                        # Could be X:23,024,713-23,045,272, a huge accumulation of fragments with rover homology.
+                        continue
                     cluster = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_pair_size)
                     cluster.append(r)
                     clusters.append(cluster)
@@ -271,7 +276,10 @@ class ClusterFinder(object):
         new_clusterlength = 0
         if len(self.cluster) > 1:
             cluster_length = len(self.cluster)
+            i = 0
             while new_clusterlength != cluster_length:
+                i += 1
+                logging.info("Joining clusters (currently %d), round %i (%s)", cluster_length, i, self.region or 0)
                 cluster_length = new_clusterlength
                 for cluster in self.cluster:
                     cluster.join_adjacent(all_clusters=self.cluster)
@@ -311,7 +319,7 @@ class ClusterFinder(object):
     def collect_non_evidence(self):
         """Count reads that overlap cluster site but do not provide evidence for an insertion."""
         chunks = Chunks(clusters=self.cluster, header=self.header, input_path=self.input_path)
-        logging.info("Collecting evidence")
+        logging.info("Collecting evidence (%s)", self.region or 0)
         for chunk in chunks.chunks:
             result = non_evidence(chunk)
             for index, evidence_against in result['against'].items():
@@ -332,6 +340,7 @@ class ClusterFinder(object):
 
     def to_fasta(self):
         """Write supporting sequences to fasta file for detailed analysis."""
+        logging.info("Writing contig fasta (%s)", self.region or 0)
         if self.output_fasta:
             self._create_contigs()
             with open(self.output_fasta, 'w') as out:
@@ -341,6 +350,7 @@ class ClusterFinder(object):
 
     def align_bwa(self):
         """Align cluster contigs or invidiual reads to a reference and write result into cluster."""
+        logging.info("Aligning reads with BWA to describe cluster (%s)", self.region or 0)
         if self.output_fasta and (self.transposon_reference_fasta or self.transposon_bwa_index):
             bwa = Bwa(input_path=self.output_fasta,
                       bwa_index=self.transposon_bwa_index,
@@ -354,6 +364,7 @@ class ClusterFinder(object):
 
     def to_bam(self):
         """Write clusters of reads and include cluster number in CD tag."""
+        logging.info("Writing clusters of reads (%s)", self.region or 0)
         if self.output_bam:
             with Writer(self.output_bam, header=self.header) as writer:
                 for i, cluster in enumerate(self.cluster):
@@ -379,6 +390,7 @@ class ClusterFinder(object):
 
     def to_gff(self):
         """Write clusters as GFF file."""
+        logging.info("Writing clusters of GFF (%s)", self.region or 0)
         if self.output_gff:
             write_cluster(clusters=self.cluster,
                           header=self.header,
@@ -403,6 +415,8 @@ class Chunks(object):
     def _chunks(self):
         regions_d = {}
         for cluster in self.clusters:
+            if cluster.abnormal:
+                continue
             if cluster.tid not in regions_d:
                 regions_d[cluster.tid] = []
             regions_d[cluster.tid].append(cluster)

@@ -1,4 +1,5 @@
 """Genotype module."""
+import logging
 import scipy.stats
 
 
@@ -47,4 +48,7 @@ class Genotype(object):
             genotype = 'heterozygous'
         if genotype_p == self.reference:
             genotype = 'reference'
+        else:
+            logging.info("Could not determine genotype, nref: %s, nalt: %s", self.nref, self.nalt)
+            genotype = 'NA'
         self.genotype = genotype

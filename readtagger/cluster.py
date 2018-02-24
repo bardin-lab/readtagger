@@ -45,6 +45,7 @@ class Cluster(list):
         self.evidence_for_three_p = set()
         self._can_join_d = {}
         self._cannot_join_d = {}
+        self.abnormal = False
 
     def __hash__(self):
         """Delegate to self.hash for hash specific to this cluster."""
@@ -127,7 +128,7 @@ class Cluster(list):
 
     def refine_members(self, assembly_realigner):
         """Try to recover more reads that support a specific insertion."""
-        if assembly_realigner:
+        if assembly_realigner and not self.abnormal:
             informative_reads = assembly_realigner.collect_reads(self)
             for read in informative_reads:
                 if self.read_is_compatible(read, strict=True):
@@ -136,7 +137,7 @@ class Cluster(list):
     def join_adjacent(self, all_clusters):
         """Join clusters that can be joined."""
         for other_cluster in self.reachable(all_clusters=all_clusters):
-            if self.can_join(other_cluster, max_distance=self.max_proper_size):
+            if not self.abnormal and self.can_join(other_cluster, max_distance=self.max_proper_size):
                 self.extend(other_cluster)
                 all_clusters.remove(other_cluster)
 
@@ -159,6 +160,8 @@ class Cluster(list):
         This is quite a rough estimate, should probaby do some more checks to ensure a single
         stray read in the wrong orientation does not split a cluster.
         """
+        if self.abnormal:
+            return (None, None)
         switches = self.orientation_switches
         putative_break = None
         # Make sure
@@ -198,6 +201,8 @@ class Cluster(list):
 
         If we have left or right mates without AD tags the breakpoint cannot be within the region covered by the mates.
         """
+        if self.abnormal:
+            return [self]
         three_p_reads_to_to_discard = set()
         five_p_reads_to_to_discard = set()
         for read in self.right_mate_support.values():
@@ -331,6 +336,8 @@ class Cluster(list):
           - clipped reads should overlap (except if a large number of nucleotides have been eroded: that could be an interesting mechanism.)
           - inferred insert should point to same TE # TODO: implement this
         """
+        if self.abnormal or other_cluster.abnormal:
+            return False
         self_hash = self.hash
         other_hash = other_cluster.hash
         if self._cannot_join_d.get(other_hash, None) == self_hash:
@@ -465,7 +472,7 @@ class Cluster(list):
 
     @instance_method_lru_cache(maxsize=10000)
     def _get_left_contigs(self):
-        if self.clustertag.left_sequences:
+        if not self.abnormal and self.clustertag.left_sequences:
             return [contig.sequence for contig in self.clustertag.left_insert.contigs]
         else:
             return []
@@ -477,7 +484,7 @@ class Cluster(list):
 
     @instance_method_lru_cache(maxsize=10000)
     def _get_right_contigs(self):
-        if self.clustertag.right_sequences:
+        if not self.abnormal and self.clustertag.right_sequences:
             return [contig.sequence for contig in self.clustertag.right_insert.contigs]
         else:
             return []
