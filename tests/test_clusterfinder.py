@@ -118,8 +118,8 @@ def test_clusterfinder_refine_split2(datadir_copy, tmpdir):  # noqa: D103
     # one read with BD and AD tag (2), which doesn't join with the large cluster to the right (3)
     assert len(clusters.cluster) == 3
     cluster_one, cluster_two, cluster_three = clusters.cluster
-    assert cluster_one.nalt == 134
-    assert cluster_two.nalt == 1
+    assert cluster_one.nalt == 1
+    assert cluster_two.nalt == 134
     assert cluster_three.nalt == 1
 
 
@@ -415,6 +415,8 @@ def test_clusterfinder_decoy_chromosome(datadir_copy, tmpdir, reference_fasta): 
 
 
 def test_clusterfinder_dont_split(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
+    # This cluster should not be split, since there is a small deletion
+    # associated with a TE insertion.
     input_path = str(datadir_copy[DONT_SPLIT])
     output_gff = tmpdir.join('output.gff').strpath
     clusters = ClusterFinder(input_path=input_path,

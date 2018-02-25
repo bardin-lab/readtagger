@@ -79,10 +79,10 @@ class Cluster(list):
         return max((r.reference_end for r in self))
 
     @staticmethod
-    def _strict_overlap(start1, end1, start2, end2):
+    def _strict_overlap(start1, end1, start2, end2, tolerance=0):
         """Check that range (start1, end1) overlaps with (start2, end2)."""
         # Taken from https://nedbatchelder.com/blog/201310/range_overlap_in_two_compares.html
-        return end1 >= start2 and end2 >= start1
+        return end1 + tolerance >= start2 and end2 + tolerance >= start1
 
     def overlaps(self, r, strict=False):
         """Determine if r overlaps the current cluster."""
@@ -382,10 +382,12 @@ class Cluster(list):
         self_switches = self.orientation_switches
         other_switches = other_cluster.orientation_switches
         if len(self_switches) == 1 and len(other_switches) == 1 and self_switches != other_switches:
+            tolerance = 0 if self.valid_tsd else 10
             if abs(other_cluster.min - self.max) < max_distance and self._strict_overlap(start1=self.start,
                                                                                          end1=self.end,
                                                                                          start2=other_cluster.start,
-                                                                                         end2=other_cluster.end):
+                                                                                         end2=other_cluster.end,
+                                                                                         tolerance=tolerance):
                 # This check doesn't take into account the read length, as the isize
                 # is determined as read-length 1 +  inner distance  + readlength 2
                 min_read_read_length = min([r.reference_length for r in other_cluster if r.reference_start == other_cluster.min])
