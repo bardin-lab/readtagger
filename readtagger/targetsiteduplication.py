@@ -4,6 +4,7 @@ from .tags import Tag
 
 MAX_TSD_SIZE = 50
 HARD_CLIP = 5
+BEST_TSD_POSITION_SEARCH_WINDOW = 10
 
 
 class TargetSiteDuplication(object):
@@ -120,7 +121,8 @@ class TargetSiteDuplication(object):
                     continue
                 if p in best_ends:
                     return p
-                else:
+                elif p - min_five_p_aligned_end > BEST_TSD_POSITION_SEARCH_WINDOW:
+                    # Give 10nt wiggle-room to deal with alignment issues
                     break
         return min_five_p_aligned_end
 
@@ -164,7 +166,8 @@ class TargetSiteDuplication(object):
                     continue
                 if p in best_starts:
                     return p
-                else:
+                elif max_starting_position - p > BEST_TSD_POSITION_SEARCH_WINDOW:
+                    # Give 10nt wiggle-room to deal with alignment issues
                     break
         return max_starting_position
 

@@ -34,6 +34,7 @@ DONT_MERGE_6 = 'dont_merge_6.bam'
 DONT_MERGE_7 = 'dont_merge_back7.bam'
 DECOY = 'decoy.bam'
 DONT_SPLIT = 'dont_split.bam'
+REFINE_TSD = 'wrong_tsd.bam'
 
 DEFAULT_MAX_PROPER_PAIR_SIZE = 700
 
@@ -412,6 +413,20 @@ def test_clusterfinder_decoy_chromosome(datadir_copy, tmpdir, reference_fasta): 
                              transposon_reference_fasta=reference_fasta,
                              max_proper_pair_size=649)
     assert len(clusters.cluster) == 85
+
+
+def test_clusterfinder_refine_tsd(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
+    # This cluster should not be split, since there is a small deletion
+    # associated with a TE insertion.
+    input_path = str(datadir_copy[REFINE_TSD])
+    output_gff = tmpdir.join('output.gff').strpath
+    clusters = ClusterFinder(input_path=input_path,
+                             output_bam=None,
+                             output_gff=output_gff,
+                             transposon_reference_fasta=reference_fasta,
+                             max_proper_pair_size=649)
+    cluster = clusters.cluster[0]
+    assert cluster.valid_tsd
 
 
 def test_clusterfinder_dont_split(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
