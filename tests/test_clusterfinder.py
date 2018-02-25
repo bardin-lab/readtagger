@@ -410,4 +410,4 @@ def test_clusterfinder_decoy_chromosome(datadir_copy, tmpdir, reference_fasta): 
                              output_gff=output_gff,
                              transposon_reference_fasta=reference_fasta,
                              max_proper_pair_size=649)
-    assert len(clusters.cluster) == 90
+    assert len(clusters.cluster) == 85

@@ -245,12 +245,11 @@ class ClusterFinder(object):
                     continue
                 if clusters[-1].read_is_compatible(r):
                     clusters[-1].append(r)
-                else:
-                    if r.reference_start == clusters[-1][-1].reference_start == clusters[-2][-1].reference_start:
+                elif len(clusters) >= 2 and r.reference_start == clusters[-1][-1].reference_start == clusters[-2][-1].reference_start:
                         clusters[-1].abnormal = True
                         clusters[-2].abnormal = True
                         # Could be X:23,024,713-23,045,272, a huge accumulation of fragments with rover homology.
-                        continue
+                else:
                     cluster = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_pair_size)
                     cluster.append(r)
                     clusters.append(cluster)
