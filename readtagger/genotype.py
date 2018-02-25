@@ -44,9 +44,9 @@ class Genotype(object):
         genotype_p = max([self.reference, self.heterozygous, self.homozygous])
         if genotype_p == self.homozygous:
             genotype = 'homozygous'
-        if genotype_p == self.heterozygous:
+        elif genotype_p == self.heterozygous:
             genotype = 'heterozygous'
-        if genotype_p == self.reference:
+        elif genotype_p == self.reference:
             genotype = 'reference'
         else:
             logging.info("Could not determine genotype, nref: %s, nalt: %s", self.nref, self.nalt)
