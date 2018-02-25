@@ -23,8 +23,6 @@ MAX_VALID_ISIZE = 10000
 MIN_VALID_ISIZE_FOR_NON_PROPER_PAIR = 700
 # If a read is not a proper pair we still consider it if is not a proper pair because
 # of an isize that is too big, which can happen with deletions.
-MAX_DELETION_AT_INSERTION = 10
-# Maximum length of deletion that we tolerate at the insertion breakpoint.
 
 
 class Cluster(list):
@@ -112,17 +110,14 @@ class Cluster(list):
         return self.overlaps(r, strict=strict) and self.same_chromosome(r) and self.read_consistent_with_clusters(r)
 
     def read_consistent_with_clusters(self, read):
-        """Check that mate orientation within cluster is consistent."""
+        """Check that mater orientation within cluster is consistent."""
         if read.has_tag('BD'):
-            # This read has a mate in a TE, meaning the read cannot extend either 3' or 5' of the breakpoint
-            # **if** there is a TSD associated with the insertion. If instead we observe a small
-            # deletion this would be valid.
-            tolerated_deletion = 0 if self.valid_tsd else MAX_DELETION_AT_INSERTION
+            # We got a mate, this means it cannot extend either 3' or 5' of the breakpoint
             if read.is_reverse:
-                if read.reference_start < self.start - tolerated_deletion:
+                if read.reference_start < self.start:
                     return False
             else:
-                if read.reference_end > self.end + tolerated_deletion:
+                if read.reference_end > self.end:
                     return False
         return True
 
