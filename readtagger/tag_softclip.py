@@ -14,6 +14,17 @@ from .tags import Tag
 SOFT_CLIP = 4  # This is the cigar operation for softclipped reads
 
 
+def get_softclipped_portion(read, min_clip_length):
+    """Find the softclipped portion of a read."""
+    softclipped_portions = []
+    cigar_lengths = cigar_tuple_to_cigar_length(read.cigar)
+    if len(cigar_lengths) > 1:
+        for (start, end), operation in (cigar_lengths[0], cigar_lengths[-1]):
+            if operation == SOFT_CLIP and end - start >= min_clip_length:
+                softclipped_portions.append((read, start, end))
+    return softclipped_portions
+
+
 class TagSoftClip(object):
     """Extract all softclipped sequences in a set of reads."""
 
@@ -64,13 +75,7 @@ class TagSoftClip(object):
             self.source.reset()
 
     def _get_softclipped_portion(self, read):
-        softclipped_portions = []
-        cigar_lengths = cigar_tuple_to_cigar_length(read.cigar)
-        if len(cigar_lengths) > 1:
-            for (start, end), operation in (cigar_lengths[0], cigar_lengths[-1]):
-                if operation == SOFT_CLIP and end - start >= self.min_clip_length:
-                    softclipped_portions.append((read, start, end))
-        return softclipped_portions
+        return get_softclipped_portion(read, min_clip_length=self.min_clip_length)
 
     def align_clipped_portion(self):
         """Align fasta file against reference fasta."""

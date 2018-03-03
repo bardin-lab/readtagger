@@ -128,7 +128,38 @@ def wrapper(kwds):
     ClusterFinder(**kwds)
 
 
-class ClusterFinder(object):
+class SampleNameMixin(object):
+    """Provide a sample name property."""
+
+    @cached_property
+    def sample_name(self):
+        """Return sample name if passed in manually, else guess sample name from input file."""
+        if not self._sample_name:
+            basename = os.path.basename(self.input_path)
+            if '.' in basename:
+                basename = basename.rsplit('.', 1)[0]
+            return basename
+        else:
+            return self._sample_name
+
+
+class ToGffMixin(object):
+    """Provide a `to_gff` function."""
+
+    def to_gff(self):
+        """Write clusters as GFF file."""
+        logging.info("Writing clusters of GFF (%s)", self.region or 0)
+        if self.output_gff:
+            write_cluster(clusters=self.cluster,
+                          header=self.header,
+                          output_path=self.output_gff,
+                          sample=self.sample_name,
+                          threads=self.threads)
+            if self.threads < 2:
+                sort_gff(self.output_gff, output_path=self.output_gff)
+
+
+class ClusterFinder(SampleNameMixin, ToGffMixin):
     """Find clusters of reads."""
 
     def __init__(self,
@@ -158,10 +189,10 @@ class ClusterFinder(object):
         The join_cluster method will then join clusters that overlap through their clipped sequences and cluster that can be assembled based on their proximity
         and the fact that they support the same same insertion (and can hence contribute to the same contig if assembled).
         """
+        self._sample_name = sample_name
         self.shm_dir = shm_dir
         self.region = region
         self.input_path = input_path
-        self._sample_name = sample_name
         self.output_bam = output_bam
         self.output_gff = output_gff
         self.output_fasta = output_fasta
@@ -303,7 +334,7 @@ class ClusterFinder(object):
             cluster.join_adjacent(all_clusters=self.cluster)
         # We are done, we can give the clusters a numeric index, so that we can distribute the processing and recover the results
         logging.info("Found %d cluster overall (%s)", len(self.cluster), self.region or 0)
-        [c.set_id(i) for i, c in enumerate(self.cluster)]
+        [c.set_id(idx) for idx, c in enumerate(self.cluster)]
 
     def _add_new_clusters(self, new_clusters, index):
         current_index = index
@@ -386,18 +417,6 @@ class ClusterFinder(object):
                 # We do this only if not using threads, since with multiple threads we split and merge at the end,
                 # so there we'd need to sort again anyway.
                 sort_bam(inpath=self.output_bam, output=self.output_bam, sort_order='coordinate', threads=self.threads)
-
-    def to_gff(self):
-        """Write clusters as GFF file."""
-        logging.info("Writing clusters of GFF (%s)", self.region or 0)
-        if self.output_gff:
-            write_cluster(clusters=self.cluster,
-                          header=self.header,
-                          output_path=self.output_gff,
-                          sample=self.sample_name,
-                          threads=self.threads)
-            if self.threads < 2:
-                sort_gff(self.output_gff, output_path=self.output_gff)
 
 
 class Chunks(object):

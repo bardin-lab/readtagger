@@ -3,7 +3,7 @@ import logging
 import scipy.stats
 
 
-class Genotype(object):
+class Genotype(list):
     """A Genotype object."""
 
     def __init__(self, nref, nalt):
@@ -16,6 +16,30 @@ class Genotype(object):
         self.nref = nref
         self.nalt = nalt
         self.genotype_likelihood()
+
+    @property
+    def reference(self):
+        """Return p-value decribing the probability that the genotype is reference."""
+        if len(self) == 3:
+            return self[0]
+        else:
+            return None
+
+    @property
+    def heterozygous(self):
+        """Return p-value decribing the probability that the genotype is heterozygous."""
+        if len(self) == 3:
+            return self[1]
+        else:
+            return None
+
+    @property
+    def homozygous(self):
+        """Return p-value decribing the probability that the genotype is homozygous."""
+        if len(self) == 3:
+            return self[2]
+        else:
+            return None
 
     def genotype_likelihood(self):
         r"""
@@ -38,9 +62,9 @@ class Genotype(object):
             pdg[g] = pbin * prior
         regularization = sum([pbinp for pbinp in pdg.values()])
         posterior = {g: p / regularization for g, p in pdg.items()}
-        self.reference = posterior[reference]
-        self.heterozygous = posterior[heterozygous]
-        self.homozygous = posterior[homozygous]
+        self.append(posterior[reference])
+        self.append(posterior[heterozygous])
+        self.append(posterior[homozygous])
         genotype_p = max([self.reference, self.heterozygous, self.homozygous])
         if genotype_p == self.homozygous:
             genotype = 'homozygous'

@@ -1,0 +1,100 @@
+import logging
+
+from .bam_io import BamAlignmentReader as Reader
+from .cluster import BaseCluster
+from .dumb_consensus import dumb_consensus
+from .findcluster import (
+    SampleNameMixin,
+    ToGffMixin
+)
+from .tag_softclip import get_softclipped_portion
+
+
+class SoftClipCluster(BaseCluster):
+    """A cluster that groups reads with the same soft clipping position."""
+
+    def __init__(self, clip_position, clip_type):
+        """Collect all reads with same `clip_position` and `clip_type`."""
+        super(SoftClipCluster, self).__init__()
+        self.clip_position = clip_position
+        self.clip_type = clip_type
+        self.clipped_sequences = []
+
+    def append(self, read, seq=None):
+        """Append read to `self`."""
+        super(SoftClipCluster, self).append(read)
+        if seq:
+            self.clipped_sequences.append(seq)
+
+    def read_is_compatible(self, clip_position, clip_type):
+        """Determine if `clip_position` and `clip_type` are compatible with this cluster."""
+        return clip_position == self.clip_position and clip_type == self.clip_type
+
+    @property
+    def dumb_consensus(self):
+        """Return a consensus sequence for the clipped sequences im this cluster."""
+        return dumb_consensus(string_list=self.clipped_sequences, left_align=self.clip_type == 'right')
+
+    def reachable(self, all_clusters):
+        """Find all cluster that are at the same position and have the same clip_type."""
+        idx = all_clusters.index(self)
+        clip_position = self.clip_position
+        clip_type = self.clip_type
+        for i, cluster in enumerate(all_clusters[idx + 1:]):
+            if cluster.clip_position == clip_position:
+                if cluster.clip_type == clip_type:
+                    yield cluster
+            else:
+                break
+
+
+class SoftClipClusterFinder(SampleNameMixin, ToGffMixin):
+    """Find clusters of softclipped reads."""
+
+    def __init__(self, input_path, region=None, min_mapq=4, sample_name=None):
+        """Find and report clusters of softclipped reads."""
+        self._sample_name = sample_name
+        self.input_path = input_path
+        self.region = region
+        self.min_mapq = min_mapq
+        self.clusters = self.find_clusters()
+        self.merge_clusters()
+        self.header = None
+
+    def find_clusters(self):
+        """Find clusters by iterating over input_path and creating clusters if reads are softclipped."""
+        clusters = []
+        cluster = None
+        logging.info("Finding clusters of softclipped reads (%s)" % self.region or 0)
+        with Reader(self.input_path, index=True, sort_order='coordinate') as reader:
+            self.header = reader.header
+            for r in reader.fetch(region=self.region):
+                if r.is_duplicate or r.mapping_quality >= self.min_mapq:
+                    softclipped_portions = get_softclipped_portion(read=r, min_clip_length=2)
+                    for read, start, end in softclipped_portions:
+                        if start == 0:
+                            clip_position = read.reference_start
+                            clip_type = 'left'
+                        elif end == read.query_length:
+                            clip_position = read.reference_end
+                            clip_type = 'right'
+                        # That should cover all relevant possibilities
+                        seq = read.query_sequence[start:end]
+                        if cluster is None:
+                            cluster = SoftClipCluster(clip_position=clip_position, clip_type=clip_type)
+                        if not cluster.read_is_compatible(clip_position, clip_type=clip_type):
+                            clusters.append(cluster)
+                            cluster = SoftClipCluster(clip_position=clip_position, clip_type=clip_type)
+                        cluster.append(read=read, seq=seq)
+        clusters.append(cluster)
+        clusters.sort(key=lambda x: x.clip_position)
+        logging.info("Found %d clusters (%s)", len(clusters), self.region or 0)
+        return clusters
+
+    def merge_clusters(self):
+        """Merge clusters with same cluster_type and same `clip_type`."""
+        for cluster in self.clusters:
+            for reachable in cluster.reachable(all_clusters=self.clusters):
+                cluster.extend(reachable)
+                self.clusters.remove(reachable)
+        logging.info("Found %s clusters after merging clusters", len(self.clusters))

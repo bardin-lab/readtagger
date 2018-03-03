@@ -25,27 +25,18 @@ MIN_VALID_ISIZE_FOR_NON_PROPER_PAIR = 700
 # of an isize that is too big, which can happen with deletions.
 
 
-class Cluster(list):
-    """A Cluster of reads."""
+class BaseCluster(list):
+    """Common attributes for clusters of reads."""
 
-    left_blast_result = None
-    right_blast_result = None
-
-    def __init__(self, shm_dir, max_proper_size=0):
-        """Initialize Cluster object."""
-        super(Cluster, self).__init__()
+    def __init__(self):
+        """Initialize BaseCluster instance."""
+        super(BaseCluster, self).__init__()
         self.nref = 0
         self.id = -1
-        self.feature_args = None
-        self.max_proper_size = max_proper_size
         self.reference_name = None
-        self.shm_dir = shm_dir
         self.evidence_against = set()
         self.evidence_for_five_p = set()
         self.evidence_for_three_p = set()
-        self._can_join_d = {}
-        self._cannot_join_d = {}
-        self.abnormal = False
 
     def __hash__(self):
         """Delegate to self.hash for hash specific to this cluster."""
@@ -58,6 +49,76 @@ class Cluster(list):
     def __ne__(self, other):
         """Define not equal as not equal."""
         return self != other
+
+    @property
+    def read_index(self):
+        """Index of read names in cluster."""
+        return set(r.query_name for r in chain(self, self.evidence_for_five_p, self.evidence_for_three_p) if not r.has_tag('AC'))  # AC is assembled contig
+
+    @property
+    def hash(self):
+        """Calculate a hash based on read name and read sequence for all reads in this cluster."""
+        return hash("".join(("%s" % id(r) for r in self)))
+
+    @property
+    def max_mapq(self):
+        """Return the highest MAPQ observed for this cluster."""
+        return max((r.mapq for r in self))
+
+    @property
+    def score(self):
+        """Return sum of all supporting reads for this cluster."""
+        return self.nalt
+
+    @property
+    def nalt(self):
+        """Return number of unique read names that support an insertion."""
+        # The read index contains all read names that contribute to this cluster (proper cluster sequences, but also split reads
+        # picked up with `evidence_for`)
+        return len(self.read_index)
+
+    @property
+    def genotype(self):
+        """Return most likely genotype for this cluster."""
+        return self.genotype_likelihoods.genotype
+
+    @property
+    def genotype_likelihoods(self):
+        r"""
+        Calculate genotype likelihood for current cluster.
+
+        P(g|D) = P(g)P(D\g)/sum(P(g)P(D|g')) where P(D|g) = Pbin(Nalt, Nalt + Nfef)
+        :return:
+        """
+        return Genotype(nref=self.nref, nalt=self.nalt)
+
+    def set_id(self, id):
+        """Set a numeric id that identifies this cluster."""
+        self.id = id
+
+
+class Cluster(BaseCluster):
+    """A Cluster of reads."""
+
+    exportable = ['source', 'score', 'total_left_count', 'left_mate_count',
+                  'total_right_count', 'right_mate_count', 'nref',
+                  'max_mapq', 'genotype', 'genotype_likelihoods', 'valid_TSD',
+                  'left_inserts', 'right_inserts']
+    source = "findcluster"
+    left_blast_result = None
+    right_blast_result = None
+
+    def __init__(self, shm_dir, max_proper_size=0):
+        """Initialize Cluster instance."""
+        super(Cluster, self).__init__()
+        self.feature_args = None
+        self.max_proper_size = max_proper_size
+        self.reference_name = None
+        self.shm_dir = shm_dir
+        self.evidence_against = set()
+        self._can_join_d = {}
+        self._cannot_join_d = {}
+        self.abnormal = False
 
     @property
     def min(self):
@@ -300,16 +361,6 @@ class Cluster(list):
         return [('R', i) if r.is_reverse else ('F', i) for i, r in enumerate(self) if not r.has_tag('AD')]
 
     @property
-    def read_index(self):
-        """Index of read names in cluster."""
-        return set(r.query_name for r in chain(self, self.evidence_for_five_p, self.evidence_for_three_p) if not r.has_tag('AC'))  # AC is assembled contig
-
-    @property
-    def hash(self):
-        """Calculate a hash based on read name and read sequence for all reads in this cluster."""
-        return hash("".join(("%s" % id(r) for r in self)))
-
-    @property
     def clustertag(self):
         """Return clustertag for current cluster of reads."""
         return self._get_clustertag()
@@ -403,7 +454,7 @@ class Cluster(list):
         return False
 
     @property
-    def total_left_support(self):
+    def total_left_count(self):
         """Return number of supporting reads on the left side of cluster."""
         return self.clustertag.left_sequence_count + len(self.evidence_for_five_p)
 
@@ -438,26 +489,9 @@ class Cluster(list):
         return len(self.right_mate_support)
 
     @property
-    def total_right_support(self):
+    def total_right_count(self):
         """Return number of supporting reads on the right side of cluster."""
         return self.clustertag.right_sequence_count + len(self.evidence_for_three_p)
-
-    @property
-    def maximum_mapq(self):
-        """Return the highest MAPQ observed for this cluster."""
-        return max((r.mapq for r in self))
-
-    @property
-    def score(self):
-        """Return sum of all supporting reads for this cluster."""
-        return self.nalt
-
-    @property
-    def nalt(self):
-        """Return number of unique read names that support an insertion."""
-        # The read index contains all read names that contribute to this cluster (proper cluster sequences, but also split reads
-        # picked up with `evidence_for`)
-        return len(self.read_index)
 
     def _make_contigs(self):
         # We just touch the contigs in threading mode,
@@ -480,6 +514,11 @@ class Cluster(list):
             return []
 
     @property
+    def left_inserts(self):
+        """Get a list of assembled inserts, prefixed with index."""
+        return [v for pair in enumerate(self.left_contigs) for v in pair]
+
+    @property
     def right_contigs(self):
         """Right contigs for this cluster."""
         return self._get_right_contigs()
@@ -490,6 +529,11 @@ class Cluster(list):
             return [contig.sequence for contig in self.clustertag.right_insert.contigs]
         else:
             return []
+
+    @property
+    def right_inserts(self):
+        """Get a list of assembled inserts, prefixed with index."""
+        return [v for pair in enumerate(self.right_contigs) for v in pair]
 
     @property
     def start(self):
@@ -559,19 +603,6 @@ class Cluster(list):
     def valid_tsd(self):
         """Return whether current cluster has a valid TSD."""
         return self.clustertag.tsd.is_valid
-
-    def genotype_likelihood(self):
-        r"""
-        Calculate genotype likelihood for current cluster.
-
-        P(g|D) = P(g)P(D\g)/sum(P(g)P(D|g')) where P(D|g) = Pbin(Nalt, Nalt + Nfef)
-        :return:
-        """
-        return Genotype(nref=self.nref, nalt=self.nalt)
-
-    def set_id(self, id):
-        """Set a numeric id that identifies this cluster."""
-        self.id = id
 
     def to_fasta(self):
         """Write contigs (or reads if no contig) out as fasta items."""

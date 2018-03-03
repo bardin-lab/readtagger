@@ -101,7 +101,7 @@ def test_clusterfinder_refine_split(datadir_copy, tmpdir):  # noqa: D103
                              transposon_reference_fasta=None,
                              max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
     cluster = clusters.cluster[0]
-    genotype = cluster.genotype_likelihood()
+    genotype = cluster.genotype_likelihoods
     assert genotype.nref == 73
     assert genotype.nalt == 117
     assert genotype.genotype == 'heterozygous'
@@ -211,7 +211,7 @@ def test_clusterfinder_homozygous_copia(datadir_copy, tmpdir, reference_fasta): 
                              max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
     cluster = clusters.cluster[0]
     assert cluster.nalt == 57
-    genotype = cluster.genotype_likelihood()
+    genotype = cluster.genotype_likelihoods
     assert genotype.genotype == 'homozygous'
     assert genotype.nref == 0
     assert genotype.nalt == 57
@@ -230,7 +230,7 @@ def test_clusterfinder_complex_genotype(datadir_copy, tmpdir, reference_fasta): 
                              max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
     cluster = clusters.cluster[0]
     assert cluster.nalt == 28
-    genotype = cluster.genotype_likelihood()
+    genotype = cluster.genotype_likelihoods
     assert genotype.nref == 17
     assert genotype.nalt == 28
     assert genotype.genotype == 'heterozygous'
@@ -250,8 +250,8 @@ def test_clusterfinder_nanopore(datadir_copy, tmpdir, reference_fasta):  # noqa:
                              max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
     cluster = clusters.cluster[0]
     assert cluster.nalt == 7
-    assert cluster.total_left_support == 1
-    assert cluster.total_right_support == 6
+    assert cluster.total_left_count == 1
+    assert cluster.total_right_count == 6
 
 
 def test_clusterfinder_nonsupport(datadir_copy, tmpdir):  # noqa: D103
@@ -264,7 +264,7 @@ def test_clusterfinder_nonsupport(datadir_copy, tmpdir):  # noqa: D103
                              max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
     cluster = clusters.cluster[-1]
     assert cluster.nref == 25  # Could also be 26 -- need to figure that out.
-    genotype = cluster.genotype_likelihood()
+    genotype = cluster.genotype_likelihoods
     assert genotype.nref == 25
     assert genotype.nalt == 1
     assert genotype.genotype == 'reference'
@@ -280,7 +280,7 @@ def test_clusterfinder_nonsupport_reference_genotype(datadir_copy, tmpdir):  # n
                              max_proper_pair_size=578)
     cluster = clusters.cluster[-1]
     assert cluster.nref == 50  # Could also be 26 -- need to figure that out.
-    genotype = cluster.genotype_likelihood()
+    genotype = cluster.genotype_likelihoods
     assert genotype.nref == 50
     assert genotype.nalt == 2
     assert genotype.genotype == 'reference'
@@ -295,7 +295,7 @@ def test_clusterfinder_refine_coord(datadir_copy, tmpdir):  # noqa: D103
                              transposon_reference_fasta=None,
                              max_proper_pair_size=480)
     cluster = clusters.cluster[-1]
-    genotype = cluster.genotype_likelihood()
+    genotype = cluster.genotype_likelihoods
     assert genotype.nref == 0
     assert genotype.nalt == 5
     assert genotype.genotype == 'homozygous'
@@ -310,7 +310,7 @@ def test_clusterfinder_reorganize_cluster(datadir_copy, tmpdir, reference_fasta)
                              transposon_reference_fasta=reference_fasta,
                              max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
     cluster = clusters.cluster[-1]
-    genotype = cluster.genotype_likelihood()
+    genotype = cluster.genotype_likelihoods
     assert genotype.genotype == 'homozygous'
 
 
@@ -323,11 +323,11 @@ def test_clusterfinder_do_not_merge(datadir_copy, tmpdir, reference_fasta):  # n
                              transposon_reference_fasta=reference_fasta,
                              max_proper_pair_size=649)
     cluster_one = clusters.cluster[0]
-    assert cluster_one.genotype_likelihood().genotype == 'reference'
+    assert cluster_one.genotype == 'reference'
     assert cluster_one.nref == 101
     assert cluster_one.nalt == 1
     cluster_two = clusters.cluster[1]
-    assert cluster_two.genotype_likelihood().genotype == 'reference'
+    assert cluster_two.genotype == 'reference'
     assert cluster_two.nref == 81
     assert cluster_two.nalt == 1
 
@@ -342,11 +342,11 @@ def test_clusterfinder_do_not_merge5(datadir_copy, tmpdir, reference_fasta):  # 
                              transposon_reference_fasta=reference_fasta,
                              max_proper_pair_size=649)
     cluster_one = clusters.cluster[0]
-    assert cluster_one.genotype_likelihood().genotype == 'reference'
+    assert cluster_one.genotype == 'reference'
     assert cluster_one.nref == 108
     assert cluster_one.nalt == 4
     cluster_two = clusters.cluster[1]
-    assert cluster_two.genotype_likelihood().genotype == 'reference'
+    assert cluster_two.genotype == 'reference'
     assert cluster_two.nref == 66
     assert cluster_two.nalt == 4
 
@@ -362,10 +362,10 @@ def test_clusterfinder_do_not_merge7(datadir_copy, tmpdir, reference_fasta):  # 
                              max_proper_pair_size=900)
     assert len(clusters.cluster) == 2
     cluster_one, cluster_two = clusters.cluster
-    assert cluster_one.genotype_likelihood().genotype == 'heterozygous'
+    assert cluster_one.genotype == 'heterozygous'
     assert cluster_one.nref == 45
     assert cluster_one.nalt == 71
-    assert cluster_two.genotype_likelihood().genotype == 'reference'
+    assert cluster_two.genotype == 'reference'
     assert cluster_two.nref == 31
     assert cluster_two.nalt == 2
 
@@ -381,7 +381,7 @@ def test_clusterfinder_estimate_coverage(datadir_copy, tmpdir, reference_fasta):
                              max_proper_pair_size=1500)
     assert len(clusters.cluster) == 1
     cluster_one = clusters.cluster[0]
-    assert cluster_one.genotype_likelihood().genotype == 'reference'
+    assert cluster_one.genotype == 'reference'
     assert cluster_one.nref == 174
     assert cluster_one.nalt == 8
 
@@ -395,11 +395,11 @@ def test_clusterfinder_check_consistency(datadir_copy, tmpdir, reference_fasta):
                              transposon_reference_fasta=reference_fasta,
                              max_proper_pair_size=649)
     cluster_one = clusters.cluster[0]
-    assert cluster_one.genotype_likelihood().genotype == 'reference'
+    assert cluster_one.genotype == 'reference'
     assert cluster_one.nref == 69
     assert cluster_one.nalt == 3
     cluster_two = clusters.cluster[1]
-    assert cluster_two.genotype_likelihood().genotype == 'reference'
+    assert cluster_two.genotype == 'reference'
     assert cluster_two.nref == 64
     assert cluster_two.nalt == 1
 
