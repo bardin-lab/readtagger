@@ -91,6 +91,7 @@ class ClusterManager(object):
                                 wait_for_running_futures.append(rf)
                         wait(wait_for_running_futures)
                         raise f.exception()
+                executor.shutdown()
             self.merge_outputs()
 
     def merge_outputs(self):
@@ -150,7 +151,7 @@ class ToGffMixin(object):
         """Write clusters as GFF file."""
         logging.info("Writing clusters of GFF (%s)", self.region or 0)
         if self.output_gff:
-            write_cluster(clusters=self.cluster,
+            write_cluster(clusters=self.clusters,
                           header=self.header,
                           output_path=self.output_gff,
                           sample=self.sample_name,
@@ -216,7 +217,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
             else:
                 self.assembly_realigner = None
             self.is_decoy = False
-            self.cluster = self.find_cluster()
+            self.clusters = self.find_cluster()
             if not self.is_decoy:
                 self.clean_clusters()
                 self.join_clusters()
@@ -235,17 +236,6 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
         if not genome_bwa_index and self.genome_reference_fasta:
             genome_bwa_index, _ = make_bwa_index(self.genome_reference_fasta, dir=self._tempdir)
         return transposon_bwa_index, genome_bwa_index
-
-    @cached_property
-    def sample_name(self):
-        """Return sample name if passed in manually, else guess sample name from input file."""
-        if not self._sample_name:
-            basename = os.path.basename(self.input_path)
-            if '.' in basename:
-                basename = basename.rsplit('.', 1)[0]
-            return basename
-        else:
-            return self._sample_name
 
     def _remove_supplementary_without_primary(self):
         """Remove supplementary reads without primary alignments."""
@@ -299,72 +289,72 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
 
     def clean_clusters(self):
         """Remove clusters that have more reads supporting an insertion than specified in self.max_clustersupport."""
-        self.cluster = [c for c in self.cluster if not len(c.read_index) > self.max_clustersupport]
+        self.clusters = [c for c in self.clusters if not len(c.read_index) > self.max_clustersupport]
 
     def join_clusters(self):
         """Iterate over self.cluster and attempt to join consecutive clusters."""
         new_clusterlength = 0
-        if len(self.cluster) > 1:
-            cluster_length = len(self.cluster)
+        if len(self.clusters) > 1:
+            cluster_length = len(self.clusters)
             i = 0
             while new_clusterlength != cluster_length:
                 i += 1
                 logging.info("Joining clusters (currently %d), round %i (%s)", cluster_length, i, self.region or 0)
                 cluster_length = new_clusterlength
-                for cluster in self.cluster:
-                    cluster.join_adjacent(all_clusters=self.cluster)
-                new_clusterlength = len(self.cluster)
+                for cluster in self.clusters:
+                    cluster.join_adjacent(all_clusters=self.clusters)
+                new_clusterlength = len(self.clusters)
         logging.info("Found %d cluster after first pass of cluster joining (%s).", new_clusterlength, self.region or 0)
         logging.info("Splitting cluster at polarity switches")
-        for index, cluster in enumerate(self.cluster):
+        for index, cluster in enumerate(self.clusters):
             new_clusters = cluster.split_cluster_at_polarity_switch()
             self._add_new_clusters(new_clusters, index)
         logging.info("After splitting at polarity switches we have %d cluster (was: %d) (%s)",
-                     len(self.cluster),
+                     len(self.clusters),
                      new_clusterlength,
                      self.region or 0)
         logging.info("Checking cluster consistency (%s)", self.region or 0)
-        for index, cluster in enumerate(self.cluster):
+        for index, cluster in enumerate(self.clusters):
             new_clusters = cluster.check_cluster_consistency()
             self._add_new_clusters(new_clusters, index)
-        logging.info("After splitting inconsistent clusters we have %d cluster", len(self.cluster))
+        logging.info("After splitting inconsistent clusters we have %d cluster", len(self.clusters))
         logging.info("Last pass of joining cluster (%s)", self.region or 0)
-        for cluster in self.cluster:
+        for cluster in self.clusters:
             cluster.refine_members(self.assembly_realigner)
-            cluster.join_adjacent(all_clusters=self.cluster)
+            cluster.join_adjacent(all_clusters=self.clusters)
         # We are done, we can give the clusters a numeric index, so that we can distribute the processing and recover the results
-        logging.info("Found %d cluster overall (%s)", len(self.cluster), self.region or 0)
-        [c.set_id(idx) for idx, c in enumerate(self.cluster)]
+        logging.info("Found %d cluster overall (%s)", len(self.clusters), self.region or 0)
+        [c.set_id(idx) for idx, c in enumerate(self.clusters)]
 
     def _add_new_clusters(self, new_clusters, index):
         current_index = index
         for cluster in new_clusters:
             if cluster:
                 if current_index == index:
-                    self.cluster[current_index] = cluster
+                    self.clusters[current_index] = cluster
                 else:
-                    self.cluster.insert(current_index, cluster)
+                    self.clusters.insert(current_index, cluster)
                 current_index += 1
 
     def collect_non_evidence(self):
         """Count reads that overlap cluster site but do not provide evidence for an insertion."""
-        chunks = Chunks(clusters=self.cluster, header=self.header, input_path=self.input_path)
+        chunks = Chunks(clusters=self.clusters, header=self.header, input_path=self.input_path)
         logging.info("Collecting evidence (%s)", self.region or 0)
         for chunk in chunks.chunks:
             result = non_evidence(chunk)
             for index, evidence_against in result['against'].items():
-                self.cluster[index].evidence_against = {r for l in evidence_against.values() for r in l}
-                self.cluster[index].nref = len(evidence_against)
+                self.clusters[index].evidence_against = {r for l in evidence_against.values() for r in l}
+                self.clusters[index].nref = len(evidence_against)
             for index, evidence_for in result['for'].items():
                 for r, evidence in evidence_for.values():
                     if evidence == 'five_p':
-                        self.cluster[index].evidence_for_five_p.add(r)
+                        self.clusters[index].evidence_for_five_p.add(r)
                     else:
-                        self.cluster[index].evidence_for_three_p.add(r)
+                        self.clusters[index].evidence_for_three_p.add(r)
 
     def _create_contigs(self):
         futures = []
-        for cluster in self.cluster:
+        for cluster in self.clusters:
             futures.append(self.tp.submit(cluster._make_contigs))
         wait(futures)
 
@@ -374,7 +364,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
         if self.output_fasta:
             self._create_contigs()
             with open(self.output_fasta, 'w') as out:
-                for cluster in self.cluster:
+                for cluster in self.clusters:
                     for seq in cluster.to_fasta():
                         out.write(seq)
 
@@ -386,10 +376,10 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
                       bwa_index=self.transposon_bwa_index,
                       reference_fasta=self.transposon_reference_fasta,
                       threads=self.threads)
-            for i, cluster in enumerate(self.cluster):
+            for i, cluster in enumerate(self.clusters):
                 description = bwa.desciption.get(i)
                 if description:
-                    cluster.reference_name = description.pop(-1)
+                    cluster.insert_reference_name = description.pop(-1)
                 cluster.feature_args = description
 
     def to_bam(self):
@@ -397,7 +387,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
         logging.info("Writing clusters of reads (%s)", self.region or 0)
         if self.output_bam:
             with Writer(self.output_bam, header=self.header) as writer:
-                for i, cluster in enumerate(self.cluster):
+                for i, cluster in enumerate(self.clusters):
                     for r in cluster:
                         r.set_tag('CD', i)
                         writer.write(r)

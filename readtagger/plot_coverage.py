@@ -121,6 +121,7 @@ def plot_coverage_in_regions(files, labels, output_path, regions=None, cores=1):
     else:
         pool = ProcessPoolExecutor(max_workers=cores)
         r = pool.map(mp_get_coverage, starmap_args)
+        pool.shutdown()
     contigs_coverage = next(r)
     for d in r:
         dict_merge(contigs_coverage, d)

@@ -22,24 +22,18 @@ class Genotype(list):
         """Return p-value decribing the probability that the genotype is reference."""
         if len(self) == 3:
             return self[0]
-        else:
-            return None
 
     @property
     def heterozygous(self):
         """Return p-value decribing the probability that the genotype is heterozygous."""
         if len(self) == 3:
             return self[1]
-        else:
-            return None
 
     @property
     def homozygous(self):
         """Return p-value decribing the probability that the genotype is homozygous."""
         if len(self) == 3:
             return self[2]
-        else:
-            return None
 
     def genotype_likelihood(self):
         r"""

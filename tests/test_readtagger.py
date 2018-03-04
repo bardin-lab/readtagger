@@ -75,6 +75,16 @@ def test_main_keep_suboptimal(datadir_copy, tmpdir):  # noqa: D103
                cores=1)
 
 
+def test_multicore(datadir_copy, tmpdir):  # noqa: D103
+    # Annotate dm6 with pasteurianus reads, keep suboptimal tags
+    discarded, verified, output = get_output_files(tmpdir)
+    source_path = str(datadir_copy[TEST_BAM_B])
+    target_path = str(datadir_copy[TEST_BAM_A])
+    TagManager(source_path=source_path, target_path=target_path, reference_fasta=None, allow_dovetailing=True, discard_suboptimal_alternate_tags=True,
+               discard_if_proper_pair=False, output_path=output.strpath, discarded_path=discarded.strpath, verified_path=verified.strpath,
+               cores=2)
+
+
 def test_main_discard_suboptimal(datadir_copy, tmpdir):  # noqa: D103
     # Annotate dm6 with pasteurianus reads, keep suboptimal tags
     discarded, verified, output = get_output_files(tmpdir)

@@ -33,10 +33,10 @@ class BaseCluster(list):
         super(BaseCluster, self).__init__()
         self.nref = 0
         self.id = -1
-        self.reference_name = None
         self.evidence_against = set()
         self.evidence_for_five_p = set()
         self.evidence_for_three_p = set()
+        self.feature_args = None
 
     def __hash__(self):
         """Delegate to self.hash for hash specific to this cluster."""
@@ -49,6 +49,19 @@ class BaseCluster(list):
     def __ne__(self, other):
         """Define not equal as not equal."""
         return self != other
+
+    @property
+    def reference_name(self):
+        """Return current reference name."""
+        if self:
+            return next(iter(self)).reference_name
+        else:
+            return None
+
+    @property
+    def tid(self):
+        """Cache current reference id."""
+        return next(iter(self)).tid
 
     @property
     def read_index(self):
@@ -103,7 +116,7 @@ class Cluster(BaseCluster):
     exportable = ['source', 'score', 'total_left_count', 'left_mate_count',
                   'total_right_count', 'right_mate_count', 'nref',
                   'max_mapq', 'genotype', 'genotype_likelihoods', 'valid_TSD',
-                  'left_inserts', 'right_inserts']
+                  'left_inserts', 'right_inserts', 'insert_reference_name']
     source = "findcluster"
     left_blast_result = None
     right_blast_result = None
@@ -111,14 +124,18 @@ class Cluster(BaseCluster):
     def __init__(self, shm_dir, max_proper_size=0):
         """Initialize Cluster instance."""
         super(Cluster, self).__init__()
-        self.feature_args = None
+        self.insert_reference_name = None
         self.max_proper_size = max_proper_size
-        self.reference_name = None
         self.shm_dir = shm_dir
         self.evidence_against = set()
         self._can_join_d = {}
         self._cannot_join_d = {}
         self.abnormal = False
+
+    @property
+    def type(self):
+        """Return the type of insert."""
+        return self.insert_reference_name or "TE"
 
     @property
     def min(self):
@@ -128,11 +145,6 @@ class Cluster(BaseCluster):
         This assumes that the cluster is filled from left to right.
         """
         return min((r.reference_start for r in self))
-
-    @property
-    def tid(self):
-        """Cache current reference id."""
-        return self[0].tid
 
     @property
     def max(self):

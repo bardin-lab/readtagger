@@ -32,9 +32,7 @@ def get_feature(cluster, sample, i):
     qualifiers = OrderedDict(ID="%s_%d" % (sample, i))
     for attr in cluster.exportable:
         qualifiers[attr] = getattr(cluster, attr.lower())
-    if cluster.reference_name:
-        qualifiers['insert_reference'] = cluster.reference_name
-    feature = SeqFeature(FeatureLocation(cluster.start, cluster.end), type=cluster.reference_name or "TE", strand=1, qualifiers=qualifiers)
+    feature = SeqFeature(FeatureLocation(cluster.start, cluster.end), type=cluster.type, strand=1, qualifiers=qualifiers)
     if cluster.feature_args:
         seqfeature_args = cluster.feature_args
         base_args = {'location': FeatureLocation(cluster.start, cluster.end), 'strand': 1}
