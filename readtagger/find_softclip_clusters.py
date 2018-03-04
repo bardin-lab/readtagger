@@ -13,11 +13,17 @@ from .tag_softclip import get_softclipped_portion
 class SoftClipCluster(BaseCluster):
     """A cluster that groups reads with the same soft clipping position."""
 
+    exportable = ['source', 'consensus', 'score', 'max_mapq']
+    source = 'find_softclip'
+
     def __init__(self, clip_position, clip_type):
         """Collect all reads with same `clip_position` and `clip_type`."""
         super(SoftClipCluster, self).__init__()
         self.clip_position = clip_position
+        self.start = self.clip_position
+        self.end = self.clip_position
         self.clip_type = clip_type
+        self.type = clip_type
         self.clipped_sequences = []
 
     def append(self, read, seq=None):
@@ -31,9 +37,9 @@ class SoftClipCluster(BaseCluster):
         return clip_position == self.clip_position and clip_type == self.clip_type
 
     @property
-    def dumb_consensus(self):
+    def consensus(self):
         """Return a consensus sequence for the clipped sequences im this cluster."""
-        return dumb_consensus(string_list=self.clipped_sequences, left_align=self.clip_type == 'right')
+        return dumb_consensus(string_list=self.clipped_sequences, left_align=self.clip_type == '3p_clip')
 
     def reachable(self, all_clusters):
         """Find all cluster that are at the same position and have the same clip_type."""
@@ -51,15 +57,18 @@ class SoftClipCluster(BaseCluster):
 class SoftClipClusterFinder(SampleNameMixin, ToGffMixin):
     """Find clusters of softclipped reads."""
 
-    def __init__(self, input_path, region=None, min_mapq=4, sample_name=None):
+    def __init__(self, input_path, region=None, min_mapq=4, sample_name=None, output_gff=None, threads=1):
         """Find and report clusters of softclipped reads."""
         self._sample_name = sample_name
+        self.threads = threads
         self.input_path = input_path
+        self.output_gff = output_gff
         self.region = region
         self.min_mapq = min_mapq
+        self.header = None
         self.clusters = self.find_clusters()
         self.merge_clusters()
-        self.header = None
+        self.to_gff()
 
     def find_clusters(self):
         """Find clusters by iterating over input_path and creating clusters if reads are softclipped."""
@@ -74,10 +83,10 @@ class SoftClipClusterFinder(SampleNameMixin, ToGffMixin):
                     for read, start, end in softclipped_portions:
                         if start == 0:
                             clip_position = read.reference_start
-                            clip_type = 'left'
+                            clip_type = '5p_clip'
                         elif end == read.query_length:
                             clip_position = read.reference_end
-                            clip_type = 'right'
+                            clip_type = '3p_clip'
                         # That should cover all relevant possibilities
                         seq = read.query_sequence[start:end]
                         if cluster is None:
