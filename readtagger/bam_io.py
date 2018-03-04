@@ -233,7 +233,7 @@ def find_end(f, chrom, end, self_tag, other_tag, padding=5000):
 class BamAlignmentWriter(object):
     """Wrap pysam.AlignmentFile with samtools for multithreaded compressed writing."""
 
-    def __init__(self, path, template=None, header=None, threads=4, external_bin='choose_best', sort_order='coordinate'):
+    def __init__(self, path, template=None, header=None, threads=1, sort_order='coordinate'):
         """
         Write Bam files.
 
@@ -248,21 +248,8 @@ class BamAlignmentWriter(object):
         self.template = template
         self.header = header
         self.path = path
-        self.external_bin = None  # external_bin -- check if failing writes can be prevented by using pysam
         self.threads = threads
         self.sort_order = sort_order
-
-    @property
-    def args(self):
-        """Return samtools arguments for writing bam files."""
-        if self.external_bin:
-            if self.threads > 4:
-                threads = 4  # More threads won't speed up writing, will be limited by pysam write speed
-            else:
-                threads = self.threads
-            samtools_args = ['samtools', 'view', '-h', '-@', "%s" % threads, '-b', '/dev/stdin', '-o', self.path]
-            return samtools_args
-        return None
 
     def close(self):
         """
@@ -271,28 +258,19 @@ class BamAlignmentWriter(object):
         If necessary will sort the the file.
         """
         self.af.close()
-        if self.args:
-            self.proc.stdin.close()
-            self.proc.wait()
         try:
-            if is_file_coordinate_sorted(self.path):
-                sort_order = 'coordinate'
-            else:
-                sort_order = 'queryname'
+            sort_order = 'coordinate' if is_file_coordinate_sorted(self.path) else 'queryname'
             if sort_order != self.sort_order:
                 sort_bam(inpath=self.path, output=self.path, sort_order=self.sort_order, threads=self.threads)
         except Exception:
+            # TODO: Exception too broad, should avoid getting an exception in the first place.
             # If no reads had been written to self.path
             # an exception will be raised by is_file_coordinate_sorted.
             pass
 
     def __enter__(self):
         """Provide context handler entry."""
-        if self.args:
-            self.proc = subprocess.Popen(self.args, stdin=subprocess.PIPE, env=os.environ.copy(), close_fds=True)
-            self.af = pysam.AlignmentFile(self.proc.stdin, mode="wbu", template=self.template, header=self.header)
-        else:
-            self.af = pysam.AlignmentFile(self.path, mode="wb", template=self.template, header=self.header)
+        self.af = pysam.AlignmentFile(self.path, mode="wb", template=self.template, header=self.header)
         return self.af
 
     def __exit__(self, type, value, traceback):
