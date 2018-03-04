@@ -100,16 +100,12 @@ class TagCluster(object):
         five_p_reads = [r.reference_end for r in self.cluster if not r.is_reverse and r.has_tag('BD')]
         if five_p_reads:
             return max(five_p_reads)
-        else:
-            return None
 
     def infer_three_p_from_mates(self):
         """Return leftmost reference start for antisense reads with BD tag."""
         three_p_reads = [r.pos for r in self.cluster if r.is_reverse and r.has_tag('BD')]
         if three_p_reads:
             return min(three_p_reads)
-        else:
-            return None
 
     @property
     def left_breakpoint_sequence(self):

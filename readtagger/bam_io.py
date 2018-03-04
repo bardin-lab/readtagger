@@ -95,7 +95,7 @@ def get_reads(fn, start, last_qname):
                     reads.append(r)
                     r = next(f)
             except StopIteration:
-                pass
+                break
             return reads
         else:
             reads.append(r)
@@ -324,10 +324,7 @@ class BamAlignmentReader(object):
     def setup(self):
         """Index and sort alignment file if necessary."""
         if self.sort_order:
-            if is_file_coordinate_sorted(self.path):
-                sort_order = 'coordinate'
-            else:
-                sort_order = 'queryname'
+            sort_order = 'coordinate' if is_file_coordinate_sorted(self.path) else 'queryname'
             if sort_order != self.sort_order:
                 self.path = sort_bam(inpath=self.path, output=self.path, sort_order=self.sort_order, threads=self.threads)
         if self.region or self.index:
@@ -335,17 +332,14 @@ class BamAlignmentReader(object):
 
     @property
     def args(self):
-        """Figure out in sambamba or samtools are available and return correct arguments."""
+        """Figure out if samtools is available and return correct arguments."""
         if self.external_bin:
-            if self.threads > 3:
-                threads = 3  # More threads won't speed up samtools reading
-            else:
-                threads = self.threads
+            # More threads won't speed up samtools reading
+            threads = 3 if self.threads > 3 else self.threads
             samtools_args = ['samtools', 'view', "-@%s" % threads, '-h', self.path]
             if self.region:
                 samtools_args.append(self.region)
             return samtools_args
-        return None
 
     @property
     def is_bam(self):

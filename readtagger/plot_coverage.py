@@ -53,16 +53,10 @@ def get_coverage(file, label, regions=None, nth=1, readcount=-1):
     with pysam.AlignmentFile(file) as f:
         if isinstance(regions, str):
             regions = [regions]
-        if isinstance(regions, list) or isinstance(regions, tuple):
-            for region in regions:
-                for pileup_pos in f.pileup(region=region, max_depth=20000):
-                    if pileup_pos.pos % nth == 0:
-                        reference_name = f.get_reference_name(pileup_pos.tid)  # Seems to have broken in pysam 0.1.14
-                        contigs_coverage[reference_name][label][pileup_pos.reference_pos] = pileup_pos.nsegments / (readcount / 10**6)
-        else:
-            for pileup_pos in f.pileup(max_depth=20000):
-                reference_name = f.get_reference_name(pileup_pos.tid)
+        for region in regions:
+            for pileup_pos in f.pileup(region=region, max_depth=20000):
                 if pileup_pos.pos % nth == 0:
+                    reference_name = f.get_reference_name(pileup_pos.tid)  # Seems to have broken in pysam 0.1.14
                     contigs_coverage[reference_name][label][pileup_pos.reference_pos] = pileup_pos.nsegments / (readcount / 10**6)
     return contigs_coverage
 

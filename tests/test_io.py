@@ -44,7 +44,7 @@ def test_bamwriter_internal(datadir_copy, tmpdir):  # noqa: D103
 
 
 def test_bamwriter_queryname_sort(datadir_copy, tmpdir):  # noqa: D103
-    _test_bamwriter(datadir_copy, tmpdir, sort_order='query_name')
+    _test_bamwriter(datadir_copy, tmpdir, sort_order='queryname')
 
 
 def _test_bamreader(datadir_copy, external_bin='samtools', sort_order='coordinate'):  # noqa: D103
@@ -52,10 +52,13 @@ def _test_bamreader(datadir_copy, external_bin='samtools', sort_order='coordinat
         assert len([r for r in reader]) == 2
 
 
-def _test_bamwriter(datadir_copy, tmpdir, i=0, external_bin='samtools', sort_order='coordinate'):  # noqa: D103
+def _test_bamwriter(datadir_copy, tmpdir, i=0, external_bin='samtools', sort_order='coordinate', threads=1):  # noqa: D103
     outfile = tmpdir.join("%s_%s" % (i, 'out.bam'))
     with readtagger.bam_io.BamAlignmentReader(str(datadir_copy[TEST_SAM]), external_bin, sort_order=sort_order) as reader, \
-            readtagger.bam_io.BamAlignmentWriter(outfile.strpath, template=reader, external_bin=external_bin, sort_order=sort_order) as out:
+            readtagger.bam_io.BamAlignmentWriter(outfile.strpath,
+                                                 template=reader,
+                                                 sort_order=sort_order,
+                                                 threads=threads) as out:
         for r in reader:
             out.write(r)
     with readtagger.bam_io.BamAlignmentReader(outfile.strpath, None) as reader:
@@ -65,18 +68,18 @@ def _test_bamwriter(datadir_copy, tmpdir, i=0, external_bin='samtools', sort_ord
 def test_bamwriter_empty(datadir_copy, tmpdir):  # noqa: D103
     outfile = tmpdir.join('out.bam')
     with readtagger.bam_io.BamAlignmentReader(str(datadir_copy[TEST_SAM]), external_bin='samtools', sort_order='coordinate') as reader, \
-            readtagger.bam_io.BamAlignmentWriter(outfile.strpath, template=reader, external_bin='samtools', sort_order='queryname') as _:  # noqa: F841
+            readtagger.bam_io.BamAlignmentWriter(outfile.strpath, template=reader, sort_order='queryname') as _:  # noqa: F841
         pass
 
 
 def test_bamwriter_switch_output_sorting(datadir_copy, tmpdir):  # noqa: D103
     outfile = tmpdir.join('out.bam')
     with readtagger.bam_io.BamAlignmentReader(str(datadir_copy[EXTENDED]), external_bin='samtools', sort_order='coordinate', threads=1) as reader, \
-            readtagger.bam_io.BamAlignmentWriter(outfile.strpath, template=reader, external_bin='samtools', sort_order='queryname', threads=1) as writer:
+            readtagger.bam_io.BamAlignmentWriter(outfile.strpath, template=reader, sort_order='queryname', threads=1) as writer:
         for r in reader:
             writer.write(r)
     with readtagger.bam_io.BamAlignmentReader(str(datadir_copy[EXTENDED]), external_bin='samtools', sort_order='queryname', threads=5) as reader, \
-            readtagger.bam_io.BamAlignmentWriter(outfile.strpath, template=reader, external_bin='samtools', sort_order='coordinate', threads=5) as writer:
+            readtagger.bam_io.BamAlignmentWriter(outfile.strpath, template=reader, sort_order='coordinate', threads=5) as writer:
         for r in reader:
             writer.write(r)
 
@@ -94,6 +97,13 @@ def test_get_queryname_positions(datadir_copy, tmpdir):  # noqa: D103
     assert start_positions_for_last_qnames == start_positions
     readtagger.bam_io.get_reads(qname_sorted, start=start_positions[0], last_qname=last_qnames[0])
     readtagger.bam_io.get_reads(qname_sorted, start=start_positions[1], last_qname=last_qnames[1])
+
+
+def test_split_locations_between_clusters(datadir_copy, tmpdir):  # noqa: D103
+    bam = str(datadir_copy[EXTENDED])
+    region = '3R:13372696-13373943'
+    r = readtagger.bam_io.split_locations_between_clusters(bam, self_tag='AD', other_tag='BD', distance=100, region=region)
+    assert len(r) == 9
 
 
 def return_samtools(arg):  # noqa: D103

@@ -1,6 +1,7 @@
 import copy
 import os
 import tempfile
+from collections import defaultdict
 
 import pysam
 from six import string_types
@@ -83,14 +84,10 @@ class TagSoftClip(object):
 
     def process_aligned_clipped_reads(self):
         """Read newly aligned clipped reads into memory."""
-        annotated_clipped = {}
+        annotated_clipped = defaultdict(list)
         for read in self.bwa.bwa_run:
             if not read.is_unmapped:
-                query_name = read.query_name
-                if query_name not in annotated_clipped:
-                    annotated_clipped[read.query_name] = [read]
-                else:
-                    annotated_clipped[read.query_name].append(read)
+                annotated_clipped[read.query_name].append(read)
         return annotated_clipped
 
     def annotate_clipped_reads(self):

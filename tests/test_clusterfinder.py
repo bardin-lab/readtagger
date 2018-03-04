@@ -1,3 +1,4 @@
+import pytest
 from collections import namedtuple
 from readtagger.findcluster import (
     ClusterFinder,
@@ -35,6 +36,7 @@ DONT_MERGE_7 = 'dont_merge_back7.bam'
 DECOY = 'decoy.bam'
 DONT_SPLIT = 'dont_split.bam'
 REFINE_TSD = 'wrong_tsd.bam'
+ARTEFACT_ACCUMULATION = 'artefact_accumulation.bam'
 
 DEFAULT_MAX_PROPER_PAIR_SIZE = 700
 
@@ -45,6 +47,7 @@ def test_clusterfinder_single_cluster(datadir_copy):  # noqa: D103
                        max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
     assert len(cf.clusters) == 1
     assert cf.clusters[0].nalt == 19
+    assert cf.clusters[0].reference_name == '3R'
 
 
 def test_clusterfinder_include_duplicates(datadir_copy):  # noqa: D103
@@ -90,6 +93,7 @@ def test_clusterfinder_split_cluster(datadir_copy, tmpdir):  # noqa: D103
     assert len(cf.clusters) == 3
     assert len(cf.clusters[1]) == 39
     assert len(cf.clusters[2]) == 27
+    assert cf.clusters[1] != cf.clusters[2]
 
 
 def test_clusterfinder_refine_split(datadir_copy, tmpdir):  # noqa: D103
@@ -160,7 +164,8 @@ def test_clustermanager_single_core(datadir_copy, tmpdir):  # noqa: D103
                    output_bam=output_bam,
                    output_gff=output_gff,
                    threads=1,
-                   max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
+                   max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE,
+                   sample_name='single_core_sample')
 
 
 def test_clustermanager_multiprocessing(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
@@ -177,6 +182,46 @@ def test_clustermanager_multiprocessing(datadir_copy, tmpdir, reference_fasta): 
                    output_gff=output_gff,
                    threads=2,
                    max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
+
+
+def test_clustermanager_multiprocessing_exception(datadir_copy, tmpdir, reference_fasta, mocker):  # noqa: D103, F811
+    input_path = str(datadir_copy[MULTIPROCESSING])
+    output_gff = tmpdir.join('output.gff').strpath
+    output_bam = tmpdir.join('output.bam').strpath
+    output_fasta = tmpdir.join('output.fasta').strpath
+    exception_message = 'Oops'
+
+    def raise_exception(cls):
+        raise Exception(exception_message)
+
+    def raise_runtime_error(cls):
+        raise RuntimeError(exception_message)
+
+    mocker.patch('readtagger.findcluster.ClusterFinder.find_cluster', raise_exception)
+    with pytest.raises(Exception) as excinfo:
+        ClusterManager(input_path=input_path,
+                       genome_reference_fasta=None,
+                       transposon_reference_fasta=reference_fasta,
+                       transposon_bwa_index=None,
+                       output_bam=output_bam,
+                       output_fasta=output_fasta,
+                       output_gff=output_gff,
+                       threads=2,
+                       max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
+        assert str(excinfo.value) == exception_message
+
+    mocker.patch('readtagger.findcluster.ClusterFinder.find_cluster', raise_runtime_error)
+    # This will still fail at the merging bam files stage, since we fail before we wrote a single bam file
+    with pytest.raises(IndexError):
+        ClusterManager(input_path=input_path,
+                       genome_reference_fasta=None,
+                       transposon_reference_fasta=reference_fasta,
+                       transposon_bwa_index=None,
+                       output_bam=output_bam,
+                       output_fasta=output_fasta,
+                       output_gff=output_gff,
+                       threads=2,
+                       max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
 
 
 def test_clusterfinder_multiple_cluster_gff_cli(datadir_copy, tmpdir, mocker):  # noqa: D103
@@ -416,6 +461,19 @@ def test_clusterfinder_decoy_chromosome(datadir_copy, tmpdir, reference_fasta): 
                              transposon_reference_fasta=reference_fasta,
                              max_proper_pair_size=649)
     assert len(clusters.clusters) == 85
+
+
+def test_clusterfinder_skip_abnormal(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
+    input_path = str(datadir_copy[ARTEFACT_ACCUMULATION])
+    output_gff = tmpdir.join('output.gff').strpath
+    clusters = ClusterFinder(input_path=input_path,
+                             output_bam=None,
+                             output_gff=output_gff,
+                             transposon_reference_fasta=reference_fasta,
+                             max_proper_pair_size=649,
+                             skip_decoy=False)
+    assert len(clusters.clusters) == 36
+    assert clusters.clusters[2].abnormal
 
 
 def test_clusterfinder_refine_tsd(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811

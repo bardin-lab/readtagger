@@ -27,7 +27,6 @@ class BaseAssembly(ABC):
     @abc.abstractmethod
     def assemble(self):
         """Must return contigs."""
-        pass
 
     def write_sequences(self):
         """Take sequences and write them out to a temporary file for cap3."""
@@ -52,6 +51,9 @@ class Cap3Assembly(BaseAssembly):
         >>> sequences = {'read1': read1, 'read2': read2, 'read3': read3, 'read4': read4}
         >>> len(Cap3Assembly(sequences).contigs)
         1
+        >>> too_many_reads = {i: read1 for i in range(802)}
+        >>> len(Cap3Assembly(too_many_reads).contigs)
+        0
         """
         super(Cap3Assembly, self).__init__(sequences=sequences, shm_dir=shm_dir)
 
@@ -60,7 +62,7 @@ class Cap3Assembly(BaseAssembly):
         if len(self.sequences) < self.seq_limit:
             with open(os.devnull, 'w') as DEVNULL:
                 args = ['cap3', self.input_path, '-p', '75', '-s', '500', '-z', '2']
-                subprocess.check_call(args, stdout=DEVNULL, env=os.environ.copy(), close_fds=True)  # Use check call to ignore stdout of cap3
+                subprocess.check_call(args, stdout=DEVNULL, close_fds=True)  # Use check call to ignore stdout of cap3
             return Ace.read(open(os.path.join(self.input_dir, 'multialign.fa.cap.ace'))).contigs
         else:
             # We return an empty record if there are too many sequences to assemble

@@ -48,15 +48,13 @@ class BaseCluster(list):
 
     def __ne__(self, other):
         """Define not equal as not equal."""
-        return self != other
+        return not self == other
 
     @property
     def reference_name(self):
         """Return current reference name."""
         if self:
             return next(iter(self)).reference_name
-        else:
-            return None
 
     @property
     def tid(self):

@@ -1,5 +1,5 @@
 """Genotype module."""
-import logging
+import sys
 import scipy.stats
 
 
@@ -12,6 +12,9 @@ class Genotype(list):
 
         nref is the amount of evidence supporting the reference allele,
         nalt is the evidence supporting an alternative allele.
+
+        >>> Genotype(13750, 5257).genotype
+        'homozygous'
         """
         self.nref = nref
         self.nalt = nalt
@@ -55,6 +58,9 @@ class Genotype(list):
             pbin = scipy.stats.binom_test(nalt, nref + nalt, g, alternative='two-sided')
             pdg[g] = pbin * prior
         regularization = sum([pbinp for pbinp in pdg.values()])
+        if regularization == 0:
+            # This can happen if regularization is rounded to 0
+            regularization += sys.float_info.min
         posterior = {g: p / regularization for g, p in pdg.items()}
         self.append(posterior[reference])
         self.append(posterior[heterozygous])
@@ -66,7 +72,4 @@ class Genotype(list):
             genotype = 'heterozygous'
         elif genotype_p == self.reference:
             genotype = 'reference'
-        else:
-            logging.info("Could not determine genotype, nref: %s, nalt: %s", self.nref, self.nalt)
-            genotype = 'NA'
         self.genotype = genotype

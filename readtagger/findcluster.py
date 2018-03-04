@@ -180,7 +180,8 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
                  max_proper_pair_size=0,
                  remove_supplementary_without_primary=False,
                  region=None,
-                 shm_dir=None):
+                 shm_dir=None,
+                 skip_decoy=True):
         """
         Find readclusters in input_path file.
 
@@ -205,6 +206,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
         self.min_mapq = min_mapq
         self.max_clustersupport = max_clustersupport
         self.max_proper_pair_size = max_proper_pair_size
+        self.skip_decoy = skip_decoy
         with TemporaryDirectory(prefix='ClusterFinder_') as self._tempdir:
             self.transposon_bwa_index, self.genome_bwa_index = self.setup_bwa_indexes()
             self.remove_supplementary_without_primary = remove_supplementary_without_primary
@@ -218,7 +220,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
                 self.assembly_realigner = None
             self.is_decoy = False
             self.clusters = self.find_cluster()
-            if not self.is_decoy:
+            if not self.is_decoy or not self.skip_decoy:
                 self.clean_clusters()
                 self.join_clusters()
                 self.to_fasta()
@@ -269,7 +271,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
                 elif len(clusters) >= 2 and r.reference_start == clusters[-1][-1].reference_start == clusters[-2][-1].reference_start:
                         clusters[-1].abnormal = True
                         clusters[-2].abnormal = True
-                        # Could be X:23,024,713-23,045,272, a huge accumulation of fragments with rover homology.
+                        # Could be X:22,432,984-22,433,240, a huge accumulation of fragments with rover homology.
                 else:
                     cluster = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_pair_size)
                     cluster.append(r)

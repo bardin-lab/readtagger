@@ -10,7 +10,8 @@ AMBIGUOUS_IUPAC = {'AG': 'R',
                    'CGT': 'B',
                    'AGT': 'D',
                    'ACT': 'H',
-                   'ACG': 'V'}
+                   'ACG': 'V',
+                   'ACGT': 'N'}
 
 IUAPC_AMBIGUOUS = {v: k for k, v in AMBIGUOUS_IUPAC.items()}
 
@@ -23,12 +24,20 @@ def dumb_consensus(string_list, left_align=True):
     :param left_align:   if True get consensus from left to right, otherwise from right to left
     :return:
 
+    >>> dumb_consensus(['ATGC'])
+    'ATGC'
+    >>> dumb_consensus(['ATGC', 'ATGC', 'ATGG'])
+    'ATGC'
     >>> dumb_consensus(['ATGC', 'ATGC', 'AGTT'])
     'ATGC'
     >>> dumb_consensus(['ATGC', 'ATGT'])
     'ATGY'
+    >>> dumb_consensus(['ATNC', 'ATNT'])
+    'ATNY'
     >>> dumb_consensus(['ATGC', 'ATGA', 'ATGT', 'ATGG'])
     'ATGN'
+    >>> dumb_consensus(['ATGC', 'ATGA', 'ATGT', 'ATGN'])
+    'ATGH'
     >>> dumb_consensus(['ATGCA', 'ATGC'])
     'ATGCA'
     >>> dumb_consensus(['AAAATGC', 'ATTGC', 'TATGC', 'AATGC'], left_align=False)
@@ -48,19 +57,11 @@ def dumb_consensus(string_list, left_align=True):
                 continue
         most_common = max(p_nt_occurrence, key=lambda key: p_nt_occurrence[key])
         ties = {key for key, value in p_nt_occurrence.items() if value == p_nt_occurrence[most_common]}
-        if not ties:
-            new_consensus.append(most_common)
-            continue
-        if len(ties) > 3:
-            new_consensus.append('N')
-        elif len(ties) > 1:
+        if len(ties) > 1:
             # Lookup IUPAC code for ambiguous bases
             if 'N' in ties:
-                ties = ties - {'N'}
-            if len(ties) > 1:
-                new_consensus.append(AMBIGUOUS_IUPAC["".join(sorted(ties))])
-            else:
-                new_consensus.append(next(iter(ties)))
+                ties -= {'N'}
+            new_consensus.append(AMBIGUOUS_IUPAC["".join(sorted(ties))])
         else:
             new_consensus.append(next(iter(ties)))
     if left_align:
