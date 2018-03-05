@@ -13,3 +13,4 @@ dist
 htmlcov
 prof
 .ipynb_checkpoints/
+tests/*.bam
