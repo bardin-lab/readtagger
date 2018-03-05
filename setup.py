@@ -24,7 +24,6 @@ requirements = ['bcbio-gff',
                 'cached_property',
                 'click',
                 'contextlib2',
-                'futures',
                 'matplotlib',  # for plotting coverage, refactor into separate package
                 'multiprocessing_logging',
                 'pandas',
@@ -33,6 +32,7 @@ requirements = ['bcbio-gff',
                 'six']
 
 if sys.version_info[0] == 2:
+    requirements.append('futures')
     requirements.append('shutilwhich')
 
 readme = open('README.rst').read()
