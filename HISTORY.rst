@@ -6,7 +6,12 @@ History
 .. to_doc
 
 ---------------------
-0.4.7 (2018-01-23)
+0.4.9 (2018-01-23)
+---------------------
+* Fix deployment to PyPI
+
+---------------------
+0.4.8 (2018-01-23)
 ---------------------
 * Update test data output and allow `:`
 * Add edlib to requirements in setup.py
