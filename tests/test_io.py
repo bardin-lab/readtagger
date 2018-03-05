@@ -97,6 +97,15 @@ def test_get_queryname_positions(datadir_copy, tmpdir):  # noqa: D103
     assert start_positions_for_last_qnames == start_positions
     readtagger.bam_io.get_reads(qname_sorted, start=start_positions[0], last_qname=last_qnames[0])
     readtagger.bam_io.get_reads(qname_sorted, start=start_positions[1], last_qname=last_qnames[1])
+    start_positions_for_last_qnames = readtagger.bam_io.start_positions_for_last_qnames(qname_sorted, last_qnames[:1])
+    assert len(start_positions_for_last_qnames) == 2
+
+
+def test_find_end(datadir_copy):  # noqa: D103
+    bam = str(datadir_copy[EXTENDED])
+    with readtagger.bam_io.BamAlignmentReader(bam, external_bin=False, index=True) as f:
+        end = readtagger.bam_io.find_end(f=f, chrom='3R', self_tag='AD', other_tag='BD', end=13373438, padding=100)
+        assert end == 13373366
 
 
 def test_split_locations_between_clusters(datadir_copy, tmpdir):  # noqa: D103
@@ -104,6 +113,11 @@ def test_split_locations_between_clusters(datadir_copy, tmpdir):  # noqa: D103
     region = '3R:13372696-13373943'
     r = readtagger.bam_io.split_locations_between_clusters(bam, self_tag='AD', other_tag='BD', distance=100, region=region)
     assert len(r) == 9
+
+
+def test_get_mean_read_length(datadir_copy):  # noqa: D103
+    mean_rl = readtagger.bam_io.get_mean_read_length(str(datadir_copy[EXTENDED]), reads_to_check=10)
+    assert mean_rl == 125
 
 
 def return_samtools(arg):  # noqa: D103

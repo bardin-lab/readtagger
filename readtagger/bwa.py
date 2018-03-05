@@ -44,7 +44,7 @@ class Bwa(object):
             if not self.bwa_index:
                 self.bwa_index, _ = make_bwa_index(self.reference_fasta, dir=temp_dir)
             proc = subprocess.Popen(['bwa', 'mem', '-B9', '-O16', '-L5', '-Y', '-t', str(self.threads), self.bwa_index, self.input_path],
-                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=os.environ.copy(), close_fds=True)
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
             f = pysam.AlignmentFile(proc.stdout)
             self.header = f.header
             reads = [r for r in f]

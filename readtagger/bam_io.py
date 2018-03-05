@@ -121,9 +121,9 @@ def start_positions_for_last_qnames(fn, last_qnames):
                 seek_positions.append(last_file_pos)
             except StopIteration:
                 return seek_positions
-            try:
+            if last_qnames:
                 current_last_qname = last_qnames.pop(0)
-            except IndexError:
+            else:
                 # We've reached the end of last_qnames
                 return seek_positions
     return seek_positions
@@ -258,14 +258,10 @@ class BamAlignmentWriter(object):
         If necessary will sort the the file.
         """
         self.af.close()
-        try:
+        if os.path.exists(self.path):
             sort_order = 'coordinate' if is_file_coordinate_sorted(self.path) else 'queryname'
             if sort_order != self.sort_order:
                 sort_bam(inpath=self.path, output=self.path, sort_order=self.sort_order, threads=self.threads)
-        except Exception:
-            # TODO: Exception too broad, should avoid getting an exception in the first place.
-            # If no reads had been written to self.path
-            # an exception will be raised by is_file_coordinate_sorted.
             pass
 
     def __enter__(self):
