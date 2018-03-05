@@ -2,7 +2,10 @@ import logging
 import os
 import subprocess
 import pysam
-import temporary
+try:
+    from tempfile import TemporaryDirectory
+except ImportError:
+    from backports.tempfile import TemporaryDirectory
 
 from .fasta_io import write_sequences
 
@@ -17,7 +20,7 @@ class Bwa(object):
         Align sequences in fastq/fasta file `input_path` to bwa_index or construct a new index using reference_fasta
 
         >>> from tests.helpers import roo_seq
-        >>> with temporary.temp_dir() as tempdir:
+        >>> with TemporaryDirectory(prefix='bwa_doctest') as tempdir:
         ...     reference_fasta = os.path.join(str(tempdir), 'reference.fasta')
         ...     reference_fasta = write_sequences({'cluster_1_left_sequences_0': roo_seq}, output_path=reference_fasta)
         ...     b = Bwa(input_path=reference_fasta, reference_fasta=reference_fasta)
@@ -39,7 +42,7 @@ class Bwa(object):
 
     def run(self):
         """Run bwa command."""
-        with temporary.temp_dir() as temp_dir:
+        with TemporaryDirectory(prefix='BWA') as temp_dir:
             temp_dir = str(temp_dir)
             if not self.bwa_index:
                 self.bwa_index, _ = make_bwa_index(self.reference_fasta, dir=temp_dir)

@@ -12,10 +12,12 @@ build:
 requirements:
   build:
     - python
+    - pip
     - setuptools
 
   run:
     - backports.functools_lru_cache  # [not py3k]
+    - backports.tempfile  # [not py3k]
     - bcbiogff
     - biopython
     - bwa
@@ -23,7 +25,7 @@ requirements:
     - cap3
     - click
     - contextlib2
-    - futures
+    - futures  # [not py3k]
     - matplotlib
     - multiprocessing-logging
     - pandas
@@ -32,7 +34,6 @@ requirements:
     - scipy
     - shutilwhich  # [not py3k]
     - six
-    - temporary
 
 test:
   # Python imports

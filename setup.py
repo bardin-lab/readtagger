@@ -30,8 +30,7 @@ requirements = ['bcbio-gff',
                 'pandas',
                 'pysam',
                 'scipy',
-                'six',
-                'temporary']
+                'six']
 
 if sys.version_info[0] == 2:
     requirements.append('shutilwhich')
