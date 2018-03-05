@@ -8,6 +8,77 @@ History
 ---------------------
 0.4.7 (2018-01-23)
 ---------------------
+* Update test data output and allow `:`
+* Add edlib to requirements in setup.py
+* Add softclip finder test
+* Build on python-3.6
+* Make futures library conditional for python2
+* Drop temporary from requirements
+* Extend testcoverage
+* Drop `external_bin` from BamAlignmentWriter
+* Many small simplifications, bugfixes and enhaced tests
+* Improve reporting of 5p and 3p clips
+* Add some wigglespace for finding the most likely TSD position
+* Keep insertions associated with deletion intact
+* Add testcase for a cluster that should not be split
+* Fix if/else logic for genotypes
+* Skip "genomic sinks" with lots of TE evidence
+* Continue on RuntimeError
+* Improve splitting of input file
+* Need to `fetch` reads in the specified region if using `external_bin=False`
+* Don't use external samtools when finding clusters
+* Identify decoy regions based on cluster density
+* Drop reraise_with_stack, doesn't work on py3
+* Fix outdated min/max coordinates leading to dropped chunks
+* Re-raise any exceptions when processing chunks
+* Fix OrderedDict syntax for py2 compatibility
+* Improve logging when splitting input into chunks
+* Don't remove read that isn't present anymore
+* Fix return value when assembling too many reads
+* Fix limiting of region when using multiple threads
+* Report maximum MAPQ of read evidence for a cluster
+* Bump minimum MAPQ to 4 by default and make it configurable
+* Refactor cap3 assembly (so it can be exchanged more easily) and add limit to how many reads it will assemble
+* Fix and apply read_is_compatible to all read with BD tag
+* Generalize marking clusters as compatible or incompatible and apply at every cluster split or join
+* Estimate nref/nalt using overlap of start and end if start and end are more than 50nt apart
+* Skip clusters of reads that are inconsistent
+* Remove redundant parenthesis, fix typo
+* Allow non-proper pairs when counting evidence
+* Account for max. mate distance when joining cluster
+* Add new dependencies to conda recipe
+* Prevent joining clusters that we previously split explicitly
+* Don't thread/cache joining of cluster
+* Use lru_cache for some cigar operations
+* Use cigar_to_max function consistently
+* Make use of new AlignmentHeader object (old method now very slow)
+* Use edlib align instead of Cap3Assembly
+* Fix evidence_against functionality
+* Output reads that count as non-support
+* Allow picking up location of reference_fasta via env var for quicker test execution
+* Fix 3p evidence bam, fix nref with 1 breakpoint
+* Update test-data
+* Assign left/right based on AD if AD and BD are set
+* Make counting more accurate, cleanup various Cluster counts and write out split reads found via `evidence_for_five/three_p`
+* Collect evidence for insertions
+* Fix a typo in `get_breakpoint_sequence`
+* Fix resolving consensus ties if tie contains `N`
+* Upgrade to pysam 0.14
+* Make split_ads a property since the splits can update
+* Fix typo in dumb_consensus help
+* Add IUPAC to nucleotides dict
+* Restructure non_evidence so that evidence for and against can be counted
+* Use `reference_start` instead of deprecated `pos`
+* Implement `get_breakpoint_sequence` as a method of TargetSiteDuplication
+* Add `evidence_for` function
+* Update planemo from 0.46.1 to 0.48.0
+* Refine the cluster merging logic
+* Fix the overlap calculation, in case the re-aligned contig ends up at a different position
+* Update test data output, genotype outputs with higher precision (sigh)
+
+---------------------
+0.4.7 (2018-01-23)
+---------------------
 * Fix Exception that occurs when cluster doesn't have an associated contig
 * Fix TE alignment logic when using pre-indexed transposon references
 * Control which reads extend a cluster during cluster refinement
@@ -304,3 +375,4 @@ History
 0.1.0 (2017-02-05)
 ---------------------
 * Initial version
+
