@@ -1,6 +1,6 @@
 {% set name = "multiprocessing-logging" %}
 {% set version = "0.2.6" %}
-{% set sha256 = "414aad0ce739a3a1d1d026709233bc96846c0f1a9c3994a69c7751b93f6fde43" %}
+{% set sha256 = "695aa489a1f3914e78a54488444ba9567118b35ba25c1af478b768f9b5ad833f" %}
 
 package:
   name: {{ name|lower }}
@@ -8,7 +8,7 @@ package:
 
 source:
   fn: {{ name }}-{{ version }}.tar.gz
-  url: https://github.com/mvdbeek/multiprocessing-logging/archive/v0.2.4.tar.gz
+  url: https://github.com/mvdbeek/{{ name }}/archive/v{{ version }}.tar.gz
   sha256: {{ sha256 }}
 
 build:
