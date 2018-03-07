@@ -20,8 +20,9 @@ class TagCluster(object):
         self.cluster = cluster
         self.shm_dir = shm_dir
         self.tsd = TargetSiteDuplication(self.cluster)
+        self._left_breakpoint_sequence = None
+        self._right_breakpoint_sequence = None
         self.five_p_breakpoint, self.three_p_breakpoint = self.find_breakpoint()
-        # TODO: Implement looking up what TE the insert(s) best match to
 
     @cached_property
     def left_insert(self):
@@ -110,12 +111,16 @@ class TagCluster(object):
     @property
     def left_breakpoint_sequence(self):
         """Return left breakpoint sequence."""
-        return self.get_breakpoint_sequence(which='left')
+        if self._left_breakpoint_sequence is None:
+            self._left_breakpoint_sequence = self.get_breakpoint_sequence(which='left')
+        return self._left_breakpoint_sequence
 
     @property
     def right_breakpoint_sequence(self):
         """Return right breakpoint sequence."""
-        return self.get_breakpoint_sequence(which='right')
+        if self._right_breakpoint_sequence is None:
+            self._right_breakpoint_sequence = self.get_breakpoint_sequence(which='right')
+        return self._right_breakpoint_sequence
 
     def get_breakpoint_sequence(self, which):
         """
