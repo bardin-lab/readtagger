@@ -6,10 +6,7 @@ import shutil
 import subprocess
 import tempfile
 import pysam
-import six
 
-if six.PY2:
-    import shutilwhich  # noqa: F401
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s - %(message)s', level=logging.DEBUG)

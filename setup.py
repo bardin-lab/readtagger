@@ -34,7 +34,6 @@ requirements = ['bcbio-gff',
 
 if sys.version_info[0] == 2:
     requirements.append('futures')
-    requirements.append('shutilwhich')
 
 readme = open('README.rst').read()
 history = open('HISTORY.rst').read().replace('.. :changelog:', '')

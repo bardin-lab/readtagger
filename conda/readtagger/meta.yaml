@@ -32,7 +32,6 @@ requirements:
     - pysam >=0.14
     - python-edlib
     - scipy
-    - shutilwhich  # [not py3k]
     - six
 
 test:
