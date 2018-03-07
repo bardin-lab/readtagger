@@ -259,7 +259,6 @@ class BamAlignmentWriter(object):
             sort_order = 'coordinate' if is_file_coordinate_sorted(self.path) else 'queryname'
             if sort_order != self.sort_order:
                 sort_bam(inpath=self.path, output=self.path, sort_order=self.sort_order, threads=self.threads)
-            pass
 
     def __enter__(self):
         """Provide context handler entry."""

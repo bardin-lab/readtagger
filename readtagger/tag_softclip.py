@@ -12,15 +12,23 @@ from .cigar import (
 )
 from .tags import Tag
 
-SOFT_CLIP = 4  # This is the cigar operation for softclipped reads
+# cigar operations
+DELETION = 2
+SOFT_CLIP = 4
 
 
 def get_softclipped_portion(read, min_clip_length):
     """Find the softclipped portion of a read."""
     softclipped_portions = []
     cigar_lengths = cigar_tuple_to_cigar_length(read.cigar)
+    shift = 0
     if len(cigar_lengths) > 1:
-        for (start, end), operation in (cigar_lengths[0], cigar_lengths[-1]):
+        for (start, end), operation in cigar_lengths:
+            if operation == DELETION:
+                shift -= (end - start)
+                continue
+            start += shift
+            end += shift
             if operation == SOFT_CLIP and end - start >= min_clip_length:
                 softclipped_portions.append((read, start, end))
     return softclipped_portions
