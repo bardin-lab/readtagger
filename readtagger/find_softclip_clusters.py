@@ -2,11 +2,11 @@ import logging
 
 from .bam_io import BamAlignmentReader as Reader
 from .cluster import BaseCluster
-from .dumb_consensus import dumb_consensus
-from .findcluster import (
+from .cluster_base import (
     SampleNameMixin,
     ToGffMixin
 )
+from .dumb_consensus import dumb_consensus
 from .tag_softclip import get_softclipped_portion
 
 
@@ -53,11 +53,16 @@ class SoftClipCluster(BaseCluster):
             else:
                 break
 
+    def to_feature_args(self):
+        """Return this clusters attributes as a GFF subfeature."""
+        return {'qualifiers': {k: getattr(self, k) for k in self.exportable},
+                'type': self.clip_type}
+
 
 class SoftClipClusterFinder(SampleNameMixin, ToGffMixin):
     """Find clusters of softclipped reads."""
 
-    def __init__(self, input_path, region=None, min_mapq=4, sample_name=None, output_gff=None, threads=1):
+    def __init__(self, input_path=None, region=None, min_mapq=4, sample_name=None, output_gff=None, threads=1):
         """Find and report clusters of softclipped reads."""
         self._sample_name = sample_name
         self.threads = threads
@@ -66,39 +71,45 @@ class SoftClipClusterFinder(SampleNameMixin, ToGffMixin):
         self.region = region
         self.min_mapq = min_mapq
         self.header = None
-        self.clusters = self.find_clusters()
-        self.merge_clusters()
-        self.to_gff()
+        self.clusters = []
+        if input_path:
+            self.find_clusters()
+            self.merge_clusters()
+            self.to_gff()
 
     def find_clusters(self):
         """Find clusters by iterating over input_path and creating clusters if reads are softclipped."""
-        clusters = []
-        cluster = None
         logging.info("Finding clusters of softclipped reads (%s)" % self.region or 0)
         with Reader(self.input_path, index=True, sort_order='coordinate') as reader:
             self.header = reader.header
             for r in reader.fetch(region=self.region):
-                if r.is_duplicate or r.mapping_quality >= self.min_mapq:
-                    softclipped_portions = get_softclipped_portion(read=r, min_clip_length=2)
-                    for read, start, end in softclipped_portions:
-                        if start == 0:
-                            clip_position = read.reference_start
-                            clip_type = '5p_clip'
-                        elif end == read.query_length:
-                            clip_position = read.reference_end
-                            clip_type = '3p_clip'
-                        # That should cover all relevant possibilities
-                        seq = read.query_sequence[start:end]
-                        if cluster is None:
-                            cluster = SoftClipCluster(clip_position=clip_position, clip_type=clip_type)
-                        if not cluster.read_is_compatible(clip_position, clip_type=clip_type):
-                            clusters.append(cluster)
-                            cluster = SoftClipCluster(clip_position=clip_position, clip_type=clip_type)
-                        cluster.append(read=read, seq=seq)
-        clusters.append(cluster)
-        clusters.sort(key=lambda x: x.clip_position)
-        logging.info("Found %d clusters (%s)", len(clusters), self.region or 0)
-        return clusters
+                if not r.is_duplicate and r.mapping_quality >= self.min_mapq:
+                    self.add_read(r=r)
+        self.clusters.sort(key=lambda x: x.clip_position)
+        logging.info("Found %d clusters (%s)", len(self.clusters), self.region or 0)
+
+    def add_read(self, r):
+        """Add a clipped read."""
+        softclipped_portions = get_softclipped_portion(read=r, min_clip_length=2)
+        for read, start, end in softclipped_portions:
+            if start == 0:
+                clip_position = r.reference_start
+                clip_type = '5p_clip'
+            elif end == r.query_length:
+                clip_position = r.reference_end
+                clip_type = '3p_clip'
+            # That should cover all relevant possibilities
+            seq = r.query_sequence[start:end]
+            if not self.clusters:
+                # This is the first cluster we found
+                cluster = SoftClipCluster(clip_position=clip_position, clip_type=clip_type)
+                self.clusters.append(cluster)
+            else:
+                cluster = self.clusters[-1]
+            if not cluster.read_is_compatible(clip_position, clip_type=clip_type):
+                cluster = SoftClipCluster(clip_position=clip_position, clip_type=clip_type)
+                self.clusters.append(cluster)
+            cluster.append(read=r, seq=seq)
 
     def merge_clusters(self):
         """Merge clusters with same cluster_type and same `clip_type`."""

@@ -2,7 +2,6 @@ import logging
 import os
 import shutil
 
-from cached_property import cached_property
 from concurrent.futures import (
     as_completed,
     wait,
@@ -26,10 +25,12 @@ from .bwa import (
 )
 from .cluster import Cluster
 from .cluster import non_evidence
-from .gff_io import (
-    sort_gff,
-    write_cluster
+from .cluster_base import (
+    SampleNameMixin,
+    ToGffMixin
 )
+from .find_softclip_clusters import SoftClipClusterFinder
+from .gff_io import sort_gff
 from .readtagger import get_max_proper_pair_size
 from .verify import discard_supplementary
 try:
@@ -129,37 +130,6 @@ def wrapper(kwds):
     ClusterFinder(**kwds)
 
 
-class SampleNameMixin(object):
-    """Provide a sample name property."""
-
-    @cached_property
-    def sample_name(self):
-        """Return sample name if passed in manually, else guess sample name from input file."""
-        if not self._sample_name:
-            basename = os.path.basename(self.input_path)
-            if '.' in basename:
-                basename = basename.rsplit('.', 1)[0]
-            return basename
-        else:
-            return self._sample_name
-
-
-class ToGffMixin(object):
-    """Provide a `to_gff` function."""
-
-    def to_gff(self):
-        """Write clusters as GFF file."""
-        logging.info("Writing clusters of GFF (%s)", self.region or 0)
-        if self.output_gff:
-            write_cluster(clusters=self.clusters,
-                          header=self.header,
-                          output_path=self.output_gff,
-                          sample=self.sample_name,
-                          threads=self.threads)
-            if self.threads < 2:
-                sort_gff(self.output_gff, output_path=self.output_gff)
-
-
 class ClusterFinder(SampleNameMixin, ToGffMixin):
     """Find clusters of reads."""
 
@@ -207,6 +177,9 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
         self.max_clustersupport = max_clustersupport
         self.max_proper_pair_size = max_proper_pair_size
         self.skip_decoy = skip_decoy
+        self.softclip_finder = SoftClipClusterFinder(region=self.region,
+                                                     min_mapq=self.min_mapq,
+                                                     sample_name=self.sample_name)
         with TemporaryDirectory(prefix='ClusterFinder_') as self._tempdir:
             self.transposon_bwa_index, self.genome_bwa_index = self.setup_bwa_indexes()
             self.remove_supplementary_without_primary = remove_supplementary_without_primary
@@ -259,6 +232,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
                         continue
                 if not r.mapping_quality >= self.min_mapq:
                     continue
+                self.softclip_finder.add_read(r=r)
                 if not (r.has_tag('BD') or r.has_tag('AD')):
                     continue
                 if not clusters:
