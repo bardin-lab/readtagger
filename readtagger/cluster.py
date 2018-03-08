@@ -36,7 +36,7 @@ class BaseCluster(list):
         self.evidence_against = set()
         self.evidence_for_five_p = set()
         self.evidence_for_three_p = set()
-        self.feature_args = None
+        self.feature_args = []
 
     def __hash__(self):
         """Delegate to self.hash for hash specific to this cluster."""

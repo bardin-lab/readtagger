@@ -196,6 +196,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
             if not self.is_decoy or not self.skip_decoy:
                 self.clean_clusters()
                 self.join_clusters()
+                self.annotate_softclip()
                 self.to_fasta()
                 self.align_bwa()
                 self.collect_non_evidence()
@@ -250,6 +251,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
                     cluster = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_pair_size)
                     cluster.append(r)
                     clusters.append(cluster)
+        self.softclip_finder.merge_clusters()
         logging.info('Found %d cluster on first pass (%s)', len(clusters), self.region or 0)
         if clusters:
             minimum_start = clusters[0].min
@@ -301,6 +303,38 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
         # We are done, we can give the clusters a numeric index, so that we can distribute the processing and recover the results
         logging.info("Found %d cluster overall (%s)", len(self.clusters), self.region or 0)
         [c.set_id(idx) for idx, c in enumerate(self.clusters)]
+
+    def annotate_softclip(self):
+        """Walk along all found clusters and annotate them with softclip clusters."""
+        SEARCH_WINDOW = 50
+        clip_idx = 0  # Keep track of index in self.softclip_finder.clusters
+        for cluster in self.clusters:
+            if cluster.clustertag.tsd.five_p_reads:
+                position = cluster.clustertag.tsd.five_p
+                if position:
+                    idx = clip_idx - SEARCH_WINDOW
+                    if idx < 0:
+                        idx = 0
+                    for i, c in enumerate(self.softclip_finder.clusters[idx:]):
+                        if position - SEARCH_WINDOW < c.clip_position > position + SEARCH_WINDOW:
+                            clip_idx += i
+                            if set(cluster) & set(c):
+                                cluster.feature_args.append(c.to_feature_args())
+                        elif c.clip_position > position > SEARCH_WINDOW:
+                            break
+            if cluster.clustertag.tsd.three_p_reads:
+                position = cluster.clustertag.tsd.three_p
+                if position:
+                    idx = clip_idx - SEARCH_WINDOW
+                    if idx < 0:
+                        idx = 0
+                    for i, c in enumerate(self.softclip_finder.clusters[idx:]):
+                        if position - SEARCH_WINDOW < c.clip_position > position + SEARCH_WINDOW:
+                            clip_idx += i
+                            if set(cluster) & set(c):
+                                cluster.feature_args.append(c.to_feature_args())
+                        elif c.clip_position > position > SEARCH_WINDOW:
+                            break
 
     def _add_new_clusters(self, new_clusters, index):
         current_index = index

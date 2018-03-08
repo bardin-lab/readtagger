@@ -1,5 +1,6 @@
 import logging
 import os
+from itertools import chain
 from cached_property import cached_property
 
 from .gff_io import (
@@ -30,7 +31,11 @@ class ToGffMixin(object):
         """Write clusters as GFF file."""
         logging.info("Writing clusters of GFF (%s)", self.region or 0)
         if self.output_gff:
-            write_cluster(clusters=self.clusters,
+            if hasattr(self, 'softclip_finder'):
+                clusters = chain(self.clusters, self.softclip_finder.clusters)
+            else:
+                clusters = self.clusters
+            write_cluster(clusters=clusters,
                           header=self.header,
                           output_path=self.output_gff,
                           sample=self.sample_name,
