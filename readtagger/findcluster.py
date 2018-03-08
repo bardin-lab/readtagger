@@ -225,13 +225,14 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
         if self.remove_supplementary_without_primary:
             self._remove_supplementary_without_primary()
         clusters = []
+        skip = None
         with Reader(self.input_path, external_bin=False, region=self.region, index=True) as reader:
             self.header = reader.header
             for r in reader.fetch(region=self.region):
                 if not self.include_duplicates:
                     if r.is_duplicate:
                         continue
-                if not r.mapping_quality >= self.min_mapq:
+                if not r.mapping_quality >= self.min_mapq or r.reference_start == skip:
                     continue
                 self.softclip_finder.add_read(r=r)
                 if not (r.has_tag('BD') or r.has_tag('AD')):
@@ -244,6 +245,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
                 if clusters[-1].read_is_compatible(r):
                     clusters[-1].append(r)
                 elif len(clusters) >= 2 and r.reference_start == clusters[-1][-1].reference_start == clusters[-2][-1].reference_start:
+                        skip = r.reference_start
                         clusters[-1].abnormal = True
                         clusters[-2].abnormal = True
                         # Could be X:22,432,984-22,433,240, a huge accumulation of fragments with rover homology.
