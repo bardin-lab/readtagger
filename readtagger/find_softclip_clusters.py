@@ -118,3 +118,7 @@ class SoftClipClusterFinder(SampleNameMixin, ToGffMixin):
                 cluster.extend(reachable)
                 self.clusters.remove(reachable)
         logging.info("Found %s clusters after merging clusters", len(self.clusters))
+
+    def exclude(self):
+        """Exclude clusters that are annotated elsewhere."""
+        self.clusters = [c for c in self.clusters if not c.exclude]

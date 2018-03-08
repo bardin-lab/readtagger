@@ -124,8 +124,10 @@ def test_clusterfinder_refine_split2(datadir_copy, tmpdir):  # noqa: D103
     assert len(clusters.clusters) == 3
     cluster_one, cluster_two, cluster_three = clusters.clusters
     assert cluster_one.nalt == 1
-    assert cluster_two.nalt == 134
-    assert cluster_three.nalt == 1
+    assert cluster_two.nalt == 1
+    assert cluster_three.nalt == 134
+    assert len(clusters.softclip_finder.clusters) == 7
+    assert len(cluster_three.feature_args) == 9
 
 
 def test_cornercase(datadir_copy, tmpdir):  # noqa: D103
@@ -410,12 +412,12 @@ def test_clusterfinder_do_not_merge7(datadir_copy, tmpdir, reference_fasta):  # 
                              max_proper_pair_size=900)
     assert len(clusters.clusters) == 2
     cluster_one, cluster_two = clusters.clusters
-    assert cluster_one.genotype == 'heterozygous'
-    assert cluster_one.nref == 45
-    assert cluster_one.nalt == 71
-    assert cluster_two.genotype == 'reference'
-    assert cluster_two.nref == 31
-    assert cluster_two.nalt == 2
+    assert cluster_one.genotype == 'reference'
+    assert cluster_one.nref == 31
+    assert cluster_one.nalt == 2
+    assert cluster_two.genotype == 'heterozygous'
+    assert cluster_two.nref == 45
+    assert cluster_two.nalt == 71
 
 
 def test_clusterfinder_estimate_coverage(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
@@ -460,7 +462,7 @@ def test_clusterfinder_decoy_chromosome(datadir_copy, tmpdir, reference_fasta): 
                              output_gff=output_gff,
                              transposon_reference_fasta=reference_fasta,
                              max_proper_pair_size=649)
-    assert len(clusters.clusters) == 85
+    assert len(clusters.clusters) == 84
 
 
 def test_clusterfinder_skip_abnormal(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
@@ -472,8 +474,8 @@ def test_clusterfinder_skip_abnormal(datadir_copy, tmpdir, reference_fasta):  # 
                              transposon_reference_fasta=reference_fasta,
                              max_proper_pair_size=649,
                              skip_decoy=False)
-    assert len(clusters.clusters) == 36
-    assert clusters.clusters[2].abnormal
+    assert len(clusters.clusters) == 35
+    assert clusters.clusters[0].abnormal
 
 
 def test_clusterfinder_refine_tsd(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
