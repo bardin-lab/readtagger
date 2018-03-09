@@ -6,7 +6,8 @@ from readtagger import VERSION
 @click.command()
 @click.option('--input_path',
               help='Find cluster in this BAM file.',
-              type=click.Path(exists=True))
+              type=click.Path(exists=True),
+              required=True)
 @click.option('--region',
               help='Find clusters in this Region (Format is chrX:2000-1000).',
               default=None,)
