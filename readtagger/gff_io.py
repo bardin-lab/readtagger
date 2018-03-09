@@ -1,4 +1,3 @@
-import json
 import os
 import subprocess
 import tempfile
@@ -40,10 +39,7 @@ def get_feature(cluster, sample, i):
         base_args = {'location': FeatureLocation(cluster.start, cluster.end), 'strand': 1}
         subfeatures = []
         for feature_args in seqfeature_args:
-            if hasattr(feature_args, 'to_feature_args'):
-                feature_args = feature_args.to_feature_args()
-            else:
-                feature_args = json.loads(feature_args)
+            feature_args = feature_args.to_feature_args()
             args = base_args.copy()
             args.update(feature_args)
             subfeatures.append(SeqFeature(**args))

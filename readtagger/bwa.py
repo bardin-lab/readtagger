@@ -10,8 +10,34 @@ except ImportError:
 from .fasta_io import write_sequences
 
 
+class Description(object):
+    """Hold details for alignment."""
+
+    def __init__(self,
+                 sbjct,
+                 sbjct_start,
+                 sbjct_end,
+                 type=None,
+                 fraction_full_length=None,
+                 contig_support=None,
+                 read_support=None):
+        """Hold and serialize description of an insertion."""
+        self.sbjct = sbjct
+        self.sbjct_start = sbjct_start
+        self.sbjct_end = sbjct_end
+        self.type = type
+        self.fraction_full_length = fraction_full_length
+        self.contig_support = contig_support
+        self.read_support = read_support
+
+    def to_feature_args(self):
+        """Return this descriptions attributes as a GFF subfeature."""
+        return {'qualifiers': {attr: value for attr, value in self.__dict__.items() if value},
+                'type': self.type}
+
+
 class Bwa(object):
-    """Hold Blast-related data and methods."""
+    """Hold alignment data and methods."""
 
     def __init__(self, input_path, bwa_index=None, reference_fasta=None, threads=1, describe_alignment=True):
         """
@@ -100,75 +126,56 @@ class Bwa(object):
                         end = max_left
                     full_length_fraction = (end - start) / float(length)
                     support = len(set(r.query_name for r in all_reads['left'][common_tid])) + len(set(r.query_name for r in all_reads['right'][common_tid]))
-                    best_candidates.append({'sbjct': self.header['SQ'][common_tid]['SN'],
-                                            'sbjct_start': start,
-                                            'sbjct_end': end,
-                                            'fraction_full_length': full_length_fraction,
-                                            'contig_support': support})
+                    best_candidates.append(Description(sbjct=self.header.references[common_tid],
+                                                       sbjct_start=start,
+                                                       sbjct_end=end,
+                                                       type='predicted_insertion',
+                                                       fraction_full_length=full_length_fraction,
+                                                       contig_support=support))
             else:
                 for orientation, tid_reads in all_reads.items():
                     for tid, reads in tid_reads.items():
-                        length = self.header['SQ'][tid]['LN']
+                        length = self.header.lengths[tid]
                         start = min([r.reference_start for r in reads])
                         end = max([(r.reference_start + r.reference_length) for r in reads])
                         full_length_fraction = (end - start) / float(length)
                         support = len(set(r.query_name for r in reads))
                         if orientation == 'left':
-                            left_candidates.append({'sbjct': self.header['SQ'][tid]['SN'],
-                                                    'sbjct_start': start,
-                                                    'sbjct_end': end,
-                                                    'fraction_full_length': full_length_fraction,
-                                                    'read_support': support})
+                            left_candidates.append(Description(sbjct=self.header.references[tid],
+                                                               sbjct_start=start,
+                                                               sbjct_end=end,
+                                                               type='left_insert',
+                                                               fraction_full_length=full_length_fraction,
+                                                               read_support=support))
                         else:
-                            right_candidates.append({'sbjct': self.header['SQ'][tid]['SN'],
-                                                     'sbjct_start': start,
-                                                     'sbjct_end': end,
-                                                     'fraction_full_length': full_length_fraction,
-                                                     'read_support': support})
+                            right_candidates.append(Description(sbjct=self.header.references[tid],
+                                                                sbjct_start=start,
+                                                                sbjct_end=end,
+                                                                type='right_insert',
+                                                                fraction_full_length=full_length_fraction,
+                                                                read_support=support))
             # Sort by distance between end and start. That's probably not the best idea ...
-            candidates = [sorted(c, key=lambda x: x['sbjct_end'] - x['sbjct_start']) for c in (best_candidates, left_candidates, right_candidates)]
+            candidates = [sorted(c, key=lambda x: -(x.sbjct_end - x.sbjct_start)) for c in (best_candidates, left_candidates, right_candidates)]
             best_candidates, left_candidates, right_candidates = candidates
             reference_name = None
             if best_candidates:
                 most_likely_insertion = best_candidates[0]
-                reference_name = most_likely_insertion['sbjct']
+                reference_name = most_likely_insertion.sbjct
                 reference_name = "_".join(reference_name.split('_')[1:-1])
             else:
                 if left_candidates and right_candidates:
-                    left_reference_names = ["_".join(c['sbjct'].split('_')[1:-1]) for c in left_candidates]
-                    right_reference_names = ["_".join(c['sbjct'].split('_')[1:-1]) for c in right_candidates]
+                    left_reference_names = ["_".join(c.sbjct.split('_')[1:-1]) for c in left_candidates]
+                    right_reference_names = ["_".join(c.sbjct.split('_')[1:-1]) for c in right_candidates]
                     overlapping_reference_names = set(left_reference_names) & set(right_reference_names)
                     if overlapping_reference_names:
                         reference_name = overlapping_reference_names.pop()  # A random overlapping name ...
                 if not reference_name:
                     if left_candidates:
-                        reference_name = "_".join(left_candidates[0]['sbjct'].split('_')[1:-1])
+                        reference_name = "_".join(left_candidates[0].sbjct.split('_')[1:-1])
                     elif right_candidates:
-                        reference_name = "_".join(right_candidates[0]['sbjct'].split('_')[1:-1])
-            cluster_description[cluster_number] = self.to_feature_args(candidates[0],
-                                                                       candidates[1],
-                                                                       candidates[2],
-                                                                       reference_name)
-
+                        reference_name = "_".join(right_candidates[0].sbjct.split('_')[1:-1])
+            cluster_description[cluster_number] = [best_candidates, left_candidates, right_candidates, reference_name]
         return cluster_description
-
-    @staticmethod
-    def to_feature_args(best_candidates, left_candidates, right_candidates, reference_name):
-        """
-        Format object for output as GFF.
-
-        We output the reconstructed insert as well as the left and right sequences (if there are any).
-        """
-        feature_args = []
-        type_candidates = {'predicted_insertion': best_candidates, 'left_insertion': left_candidates, 'right_insertion': right_candidates}
-        for type, candidates in type_candidates.items():
-            for reference in candidates:
-                reference['source'] = type
-                type_qual = {'type': type,
-                             'qualifiers': reference}
-                feature_args.append(type_qual)
-        feature_args.append(reference_name)
-        return feature_args
 
     def split_reads_into_tid_clusters(self, read_d):
         """Split reads in read_d into clusters based on the read tid."""

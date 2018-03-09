@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import shutil
@@ -397,7 +396,9 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
                 description = bwa.desciption.get(i)
                 if description:
                     cluster.insert_reference_name = description.pop(-1)
-                    cluster.feature_args.add(json.dumps(description))
+                    for cluster_description in description:
+                        if cluster_description:
+                            cluster.feature_args.add(cluster_description[0])
 
     def to_bam(self):
         """Write clusters of reads and include cluster number in CD tag."""
