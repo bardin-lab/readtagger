@@ -145,13 +145,15 @@ class Bwa(object):
                         reference_name = "_".join(left_candidates[0]['sbjct'].split('_')[1:-1])
                     elif right_candidates:
                         reference_name = "_".join(right_candidates[0]['sbjct'].split('_')[1:-1])
-            cluster_description[cluster_number] = self.to_feature_args(*candidates)
-            cluster_description[cluster_number].append(reference_name)
+            cluster_description[cluster_number] = self.to_feature_args(candidates[0],
+                                                                       candidates[1],
+                                                                       candidates[2],
+                                                                       reference_name)
 
         return cluster_description
 
     @staticmethod
-    def to_feature_args(best_candidates, left_candidates, right_candidates):
+    def to_feature_args(best_candidates, left_candidates, right_candidates, reference_name):
         """
         Format object for output as GFF.
 
@@ -165,6 +167,7 @@ class Bwa(object):
                 type_qual = {'type': type,
                              'qualifiers': reference}
                 feature_args.append(type_qual)
+        feature_args.append(reference_name)
         return feature_args
 
     def split_reads_into_tid_clusters(self, read_d):

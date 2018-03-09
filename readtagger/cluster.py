@@ -36,7 +36,7 @@ class BaseCluster(list):
         self.evidence_against = set()
         self.evidence_for_five_p = set()
         self.evidence_for_three_p = set()
-        self.feature_args = []
+        self.feature_args = set()
         self.exclude = False
 
     def __hash__(self):

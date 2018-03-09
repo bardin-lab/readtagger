@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import shutil
@@ -322,7 +323,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
                         if (position - SEARCH_WINDOW) < c.clip_position < (position + SEARCH_WINDOW):
                             if set(cluster) & set(c):
                                 clip_idx += i
-                                cluster.feature_args.append(c.to_feature_args())
+                                cluster.feature_args.add(c)
                                 c.exclude = True
                         elif c.clip_position > position > SEARCH_WINDOW:
                             break
@@ -336,7 +337,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
                         if position - SEARCH_WINDOW < c.clip_position < position + SEARCH_WINDOW:
                             if set(cluster) & set(c):
                                 clip_idx += i
-                                cluster.feature_args.append(c.to_feature_args())
+                                cluster.feature_args.add(c)
                                 c.exclude = True
                         elif c.clip_position > position > SEARCH_WINDOW:
                             break
@@ -396,7 +397,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
                 description = bwa.desciption.get(i)
                 if description:
                     cluster.insert_reference_name = description.pop(-1)
-                cluster.feature_args = description
+                    cluster.feature_args.add(json.dumps(description))
 
     def to_bam(self):
         """Write clusters of reads and include cluster number in CD tag."""
