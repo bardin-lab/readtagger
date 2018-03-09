@@ -1,7 +1,12 @@
 from collections import defaultdict
 
 
-AMBIGUOUS_IUPAC = {'AG': 'R',
+AMBIGUOUS_IUPAC = {'A': 'A',
+                   'C': 'C',
+                   'G': 'G',
+                   'T': 'T',
+                   'N': 'N',
+                   'AG': 'R',
                    'CT': 'Y',
                    'CG': 'S',
                    'AT': 'W',
@@ -57,13 +62,10 @@ def dumb_consensus(string_list, left_align=True):
                 continue
         most_common = max(p_nt_occurrence, key=lambda key: p_nt_occurrence[key])
         ties = {key for key, value in p_nt_occurrence.items() if value == p_nt_occurrence[most_common]}
-        if len(ties) > 1:
-            # Lookup IUPAC code for ambiguous bases
-            if 'N' in ties:
-                ties -= {'N'}
-            new_consensus.append(AMBIGUOUS_IUPAC["".join(sorted(ties))])
-        else:
-            new_consensus.append(next(iter(ties)))
+        if len(ties) > 1 and 'N' in ties:
+            ties -= {'N'}
+        # Lookup IUPAC code for ambiguous bases
+        new_consensus.append(AMBIGUOUS_IUPAC["".join(sorted(ties))])
     if left_align:
         return "".join(new_consensus)
     else:
