@@ -40,13 +40,6 @@ class TagCluster(object):
                 self._right_seq_cap3 = Cap3Assembly(self.right_sequences, shm_dir=self.shm_dir)
             return self._right_seq_cap3
 
-    @cached_property
-    def joint_insert(self):
-        """Return joint insert sequence."""
-        if self.right_sequences and self.left_sequences:
-            return Cap3Assembly.join_assemblies([self.left_insert, self.right_insert], shm_dir=self.shm_dir)
-        return self.right_insert or self.left_insert
-
     def find_breakpoint(self):
         """
         Find the breakpoint of a potential insertion.

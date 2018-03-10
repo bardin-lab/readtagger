@@ -1,7 +1,6 @@
 from cached_property import cached_property
 from .cigar import (
     cigartuples_to_cigarstring,
-    cigar_tuple_to_cigar_length,
     cigar_to_tuple,
     cigartuples_to_named_cigartuples
 )
@@ -74,19 +73,9 @@ class Tag(object):
             return self._reference_name
         else:
             try:
-                return self.header['SQ'][self.tid]['SN']
+                return self.header.references[self.tid]
             except Exception:
                 return None
-
-    @cached_property
-    def cigar_regions(self):
-        """
-        Return cigar regions as list of tuples in foim [(start, end), operation].
-
-        >>> Tag(reference_start=0, cigar='20M30S', is_reverse='True', mapq=60, query_alignment_start=0, query_alignment_end=20, tid=5).cigar_regions
-        [((0, 20), 0), ((20, 50), 4)]
-        """
-        return cigar_tuple_to_cigar_length(self.cigar)
 
     @cached_property
     def cigar(self):
@@ -110,7 +99,7 @@ class Tag(object):
         >>> t = Tag.from_read(AlignedSegment(cigar='20M30S'))
         >>> isinstance(t, Tag)
         True
-        >>> t.reference_name == None
+        >>> t.reference_name is None
         True
         """
         return Tag(tid=r.tid,
