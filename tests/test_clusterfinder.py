@@ -38,7 +38,7 @@ DONT_SPLIT = 'dont_split.bam'
 REFINE_TSD = 'wrong_tsd.bam'
 ARTEFACT_ACCUMULATION = 'artefact_accumulation.bam'
 MULTI_H6 = 'multisample_h6.bam'
-PREDICTED_INSERTION = 'predicted_insertion_rover.bam'
+PREDICTED_INSERTION = 'predicted_insertion_roo.bam'
 
 DEFAULT_MAX_PROPER_PAIR_SIZE = 700
 
@@ -201,7 +201,23 @@ def test_clustermanager_multiprocessing_exception(datadir_copy, tmpdir, referenc
     def raise_runtime_error(cls):
         raise RuntimeError(exception_message)
 
+    def cancel(cls):
+        return True
+
     mocker.patch('readtagger.findcluster.ClusterFinder.find_cluster', raise_exception)
+    with pytest.raises(Exception) as excinfo:
+        ClusterManager(input_path=input_path,
+                       genome_reference_fasta=None,
+                       transposon_reference_fasta=reference_fasta,
+                       transposon_bwa_index=None,
+                       output_bam=output_bam,
+                       output_fasta=output_fasta,
+                       output_gff=output_gff,
+                       threads=2,
+                       max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
+        assert str(excinfo.value) == exception_message
+
+    mocker.patch('concurrent.futures.Future.cancel', cancel)
     with pytest.raises(Exception) as excinfo:
         ClusterManager(input_path=input_path,
                        genome_reference_fasta=None,
@@ -218,7 +234,8 @@ def test_clustermanager_multiprocessing_exception(datadir_copy, tmpdir, referenc
     # This will still fail at the merging bam files stage, since we fail before we wrote a single bam file
     with pytest.raises(IndexError):
         ClusterManager(input_path=input_path,
-                       genome_reference_fasta=None,
+                       genome_reference_fasta=reference_fasta,
+                       genome_bwa_index=None,
                        transposon_reference_fasta=reference_fasta,
                        transposon_bwa_index=None,
                        output_bam=output_bam,
