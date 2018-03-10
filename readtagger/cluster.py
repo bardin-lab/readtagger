@@ -621,7 +621,7 @@ class Cluster(BaseCluster):
 
     def serialize(self):
         """Return id, start, end and read_index for multiprocessing."""
-        bp_sequences = {}
+        bp_sequences = defaultdict(set)
         five_p_breakpoint = self.clustertag.five_p_breakpoint
         left_sequence = self.clustertag.left_breakpoint_sequence
         if five_p_breakpoint and left_sequence:
@@ -629,18 +629,14 @@ class Cluster(BaseCluster):
         three_p_breakpoint = self.clustertag.three_p_breakpoint
         right_sequence = self.clustertag.right_breakpoint_sequence
         if three_p_breakpoint and right_sequence:
-            if three_p_breakpoint not in bp_sequences:
-                bp_sequences[three_p_breakpoint] = {right_sequence}
-            else:
-                bp_sequences[three_p_breakpoint].add(right_sequence)
+            bp_sequences[three_p_breakpoint].add(right_sequence)
+        single_breakpoint = None
         if five_p_breakpoint and three_p_breakpoint:
             single_breakpoint = False
         elif five_p_breakpoint:
             single_breakpoint = five_p_breakpoint
         elif three_p_breakpoint:
             single_breakpoint = three_p_breakpoint
-        else:
-            single_breakpoint = None  # Shouldn't happen IRL I think
         return (self.id, self.start, self.end, self.read_index.copy(), bp_sequences, single_breakpoint)
 
 
