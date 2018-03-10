@@ -206,9 +206,7 @@ class TargetSiteDuplication(object):
         """
         # TODO: This doesn't work for hardclipped reads. Should use left or right clip
         clip_length_at_three_p = [r.query_alignment_start for r in self.split_ads if r.pos == self.three_p]
-        if not clip_length_at_three_p:
-            return 0
-        return max(clip_length_at_three_p)
+        return max_or_zero(clip_length_at_three_p)
 
     @cached_property
     def five_p_clip_length(self):
@@ -225,9 +223,7 @@ class TargetSiteDuplication(object):
         """
         # TODO: This doesn't work for hardclipped reads. Should use left or right clip
         clip_length_at_five_p = [r.query_length - r.query_alignment_end for r in self.split_ads if r.reference_end == self.five_p]
-        if not clip_length_at_five_p:
-            return 0
-        return max(clip_length_at_five_p)
+        return max_or_zero(clip_length_at_five_p)
 
     @cached_property
     def three_p_support(self):
@@ -253,3 +249,17 @@ class TargetSiteDuplication(object):
     def unassigned_support(self):
         """Return list of Reads that were not starting or ending at the three prime or five prime of this TSD."""
         return [r.query_name for r in self.split_ads if r.query_name not in self.five_p_support + self.three_p_support]
+
+
+def max_or_zero(iterable):
+    """
+    Return max of an iterable or zero if not iterable.
+
+    >>> max_or_zero([])
+    0
+    >>> max_or_zero([1,2,3])
+    3
+    """
+    if iterable:
+        return max(iterable)
+    return 0
