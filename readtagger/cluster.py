@@ -127,7 +127,6 @@ class Cluster(BaseCluster):
         self.max_proper_size = max_proper_size
         self.shm_dir = shm_dir
         self.evidence_against = set()
-        self._can_join_d = {}
         self._cannot_join_d = {}
         self.abnormal = False
 
@@ -254,12 +253,6 @@ class Cluster(BaseCluster):
     def _make_new_clusters(self, count=2):
         """Return a set of new clusters."""
         return [Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_size) for _ in range(count)]
-
-    @staticmethod
-    def _mark_clusters_compatible(*clusters):
-        # We know these clusters have been split on purpose, don't try to merge them back together!
-        for (cluster_a, cluster_b) in permutations(clusters, r=2):
-            cluster_a._can_join_d[cluster_b.hash] = cluster_a.hash
 
     @staticmethod
     def _mark_clusters_incompatible(*clusters):
@@ -408,8 +401,6 @@ class Cluster(BaseCluster):
             # (self.hash is key in self._cannot_join and other_cluster.hash is value in self._cannot_join)
             # we know this didn't work and save ourselves the expensive assembly check
             return False
-        elif self._can_join_d.get(other_hash, None) == self_hash:
-            return True
         return self._can_join(other_cluster, max_distance)
 
     def _can_join(self, other_cluster, max_distance):
@@ -421,7 +412,6 @@ class Cluster(BaseCluster):
                 extended_three_p = other_clustertag.tsd.three_p - other_clustertag.tsd.three_p_clip_length
                 extended_five_p = self.clustertag.tsd.five_p_clip_length + self.clustertag.tsd.five_p
                 if extended_three_p <= extended_five_p:
-                    self._mark_clusters_compatible(self, other_cluster)
                     return True
         # Next check ... can informative parts of mates be assembled into the proper insert sequence
         if self.clustertag.left_sequences and other_clustertag.left_sequences:
@@ -430,7 +420,6 @@ class Cluster(BaseCluster):
             if (other_clustertag.five_p_breakpoint - self.clustertag.five_p_breakpoint) < max_distance:
                 # We don't want clusters to be spaced too far away. Not sure if this is really a problem in practice.
                 if multiple_sequences_overlap(self.clustertag.left_sequences.values(), other_clustertag.left_sequences.values()):
-                    self._mark_clusters_compatible(self, other_cluster)
                     return True
         # TODO: Refactor this to a common function for left-left and right-right assembly
         if self.clustertag.right_sequences and other_clustertag.right_sequences:
@@ -439,7 +428,6 @@ class Cluster(BaseCluster):
             if (other_clustertag.three_p_breakpoint - self.clustertag.three_p_breakpoint) < max_distance:
                 # We don't want clusters to be spaced too far away. Not sure if this is really a problem in practice.
                 if multiple_sequences_overlap(self.clustertag.right_sequences.values(), other_clustertag.right_sequences.values()):
-                    self._mark_clusters_compatible(self, other_cluster)
                     return True
         self_switches = self.orientation_switches
         other_switches = other_cluster.orientation_switches
@@ -457,7 +445,6 @@ class Cluster(BaseCluster):
                 if abs(other_cluster.min - self.max) < (max_distance - min_read_read_length - max_read_read_length):
                     # Merge a cluster that is split by an insertion and not connected via split reads
                     if self_switches[0][0] == 'F' and other_switches[0][0] == 'R':
-                        self._mark_clusters_compatible(self, other_cluster)
                         return True
         # We know this cluster (self) cannot be joined with other_cluster, so we cache this result,
         # Since we may ask this question multiple times when joining the clusters.

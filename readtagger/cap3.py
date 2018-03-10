@@ -67,10 +67,3 @@ class Cap3Assembly(BaseAssembly):
         else:
             # We return an empty record if there are too many sequences to assemble
             return Ace.ACEFileRecord().contigs
-
-    @staticmethod
-    def join_assemblies(assemblies, shm_dir=None):
-        """Get contigs for each assembly and attempt to generate a longer contig."""
-        contigs = [contig for cap3obj in assemblies for contig in cap3obj.contigs]
-        sequences = {"Contig_%s" % i: contig.sequence for i, contig in enumerate(contigs)}
-        return Cap3Assembly(sequences, shm_dir=shm_dir)
