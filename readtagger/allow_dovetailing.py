@@ -1,4 +1,3 @@
-import argparse
 import logging
 
 import pysam
@@ -56,35 +55,13 @@ def allow_dovetailing(read, max_proper_size=351, default_max_proper_size=351):
     return read
 
 
-def main(args=None):
+def process(input_path, output_path):
     """
     Run script.
 
     :param args:
     :return:
     """
-    if not args:
-        args = parse_args()
-    max_isize = get_max_proper_pair_size(args.input_path)
-    with pysam.AlignmentFile(args.input_path) as input, Writer(args.output_path, template=input) as output:
+    max_isize = get_max_proper_pair_size(input_path)
+    with pysam.AlignmentFile(input_path) as input, Writer(output_path, template=input) as output:
         [output.write(allow_dovetailing(read, max_proper_size=max_isize)) for read in input]
-
-
-def parse_args():
-    """
-    Parse commandline arguments.
-
-    :return: args
-    :rtype argparse.ArgumentParser
-    """
-    from . import VERSION
-    parser = argparse.ArgumentParser(description="Allow dovetailing.")
-    parser.add_argument('-i', '--input_path', help="Input alignment file to manipulate", required=True)
-    parser.add_argument('-o', '--output_path', help="Output alignment file", required=True)
-    parser.add_argument('--version', action='version', version=VERSION)
-    args = parser.parse_args()
-    return args
-
-
-if __name__ == '__main__':
-    main()

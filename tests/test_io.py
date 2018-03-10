@@ -1,3 +1,4 @@
+import pysam
 import readtagger.bam_io
 
 
@@ -72,6 +73,20 @@ def test_bamwriter_empty(datadir_copy, tmpdir):  # noqa: D103
         pass
 
 
+def test_sort_cram(datadir_copy, tmpdir):  # noqa: D103
+    outfile = tmpdir.join('out.cram').strpath
+    in_path = str(datadir_copy[EXTENDED])
+    readtagger.bam_io.sort_bam(inpath=in_path, output=outfile, sort_order='queryname', cram=True)
+    assert len([r for r in pysam.AlignmentFile(in_path)]) == len([r for r in pysam.AlignmentFile(outfile)])
+
+
+def test_merge_bam(datadir_copy, tmpdir):  # noqa: D103
+    in_path = str(datadir_copy[EXTENDED])
+    outfile = tmpdir.join('out.cram').strpath
+    bam_collection = [in_path, in_path]
+    readtagger.bam_io.merge_bam(bam_collection, output_path=outfile)
+
+
 def test_bamwriter_switch_output_sorting(datadir_copy, tmpdir):  # noqa: D103
     outfile = tmpdir.join('out.bam')
     with readtagger.bam_io.BamAlignmentReader(str(datadir_copy[EXTENDED]), external_bin='samtools', sort_order='coordinate', threads=1) as reader, \
@@ -99,6 +114,12 @@ def test_get_queryname_positions(datadir_copy, tmpdir):  # noqa: D103
     readtagger.bam_io.get_reads(qname_sorted, start=start_positions[1], last_qname=last_qnames[1])
     start_positions_for_last_qnames = readtagger.bam_io.start_positions_for_last_qnames(qname_sorted, last_qnames[:1])
     assert len(start_positions_for_last_qnames) == 2
+
+
+def test_start_positions_for_last_qnames(datadir_copy):  # noqa: D103
+    bam = str(datadir_copy[EXTENDED])
+    r = readtagger.bam_io.start_positions_for_last_qnames(bam, ['i_dont_exist'])
+    assert len(r) == 1  # that's the start position
 
 
 def test_find_end(datadir_copy):  # noqa: D103

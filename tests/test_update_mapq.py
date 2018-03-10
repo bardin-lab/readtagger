@@ -1,6 +1,6 @@
 from collections import namedtuple
 from readtagger.bam_io import BamAlignmentReader as Reader
-from readtagger.cli.update_mapq import cli
+from readtagger.cli.update_mapq import update_mapq
 from .helpers import namedtuple_to_argv
 
 SOURCE_BAM = 'supplementary.bam'
@@ -14,6 +14,6 @@ def test_update_mapq(datadir_copy, tmpdir, mocker):  # noqa: D103
     argv = namedtuple_to_argv(args, 'update_mapq.py')
     mocker.patch('sys.argv', argv)
     mocker.patch('sys.exit')
-    cli()
+    update_mapq()
     with Reader(out) as reader:
         assert len([r for r in reader if r.mapq == 0]) == 0

@@ -24,6 +24,6 @@ from readtagger.tag_softclip import TagSoftClip
               help='Minimum length for a clipped region to be extracted',
               default=20)
 @click.version_option(version=VERSION)
-def tag(**kwargs):
+def annotate_softclipped_reads(**kwargs):
     """Dispatch CLI arguments to TagSoftClip."""
     TagSoftClip(**kwargs)

@@ -1,5 +1,5 @@
 import click
-from readtagger import findcluster
+from readtagger.findcluster import ClusterManager
 from readtagger import VERSION
 
 
@@ -57,6 +57,6 @@ from readtagger import VERSION
 @click.option('--threads', help='Threads to use for cap3 assembly step', default=1, type=click.IntRange(1, 100))
 @click.option('--shm_dir', envvar="SHM_DIR", help='Path to shared memory folder', default=None, type=click.Path(exists=True))
 @click.version_option(version=VERSION)
-def cli(**kwds):
+def findcluster(**kwds):
     """Find clusters of reads that support a TE insertion."""
-    return findcluster.ClusterManager(**kwds)
+    return ClusterManager(**kwds)

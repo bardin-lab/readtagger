@@ -1,5 +1,5 @@
 from collections import namedtuple
-from readtagger.cli.write_supplementary_fastq import cli
+from readtagger.cli.write_supplementary_fastq import write_supplementary_fastq
 from .helpers import namedtuple_to_argv
 
 TEST_BAM = 'supplementary.bam'
@@ -12,5 +12,5 @@ def test_write_supplementary(datadir_copy, tmpdir, mocker):  # noqa: D103
     argv = namedtuple_to_argv(args, 'write_supplementary_fastq.py')
     mocker.patch('sys.argv', argv)
     mocker.patch('sys.exit')
-    cli()
+    write_supplementary_fastq()
     assert len(open(out).readlines()) == 36

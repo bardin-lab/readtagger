@@ -21,8 +21,6 @@ def parse_file_tags(filetags):
     annotate_with = []
     tag_prefix = []
     tag_prefix_mate = []
-    if not isinstance(filetags, tuple):
-        filetags = (filetags,)
     for filetag in filetags:
         if ':' in filetag:
             filepath, tag, tag_mate = filetag.split(':')
@@ -57,7 +55,7 @@ def parse_file_tags(filetags):
 @click.option('--verified_path', help="Write reads with verified tags to this path", type=click.Path(exists=False), required=False)
 @click.option('--cores', default=1, help='Number of cores to use for tagging reads.')
 @click.version_option(version=VERSION)
-def main(**kwargs):
+def readtagger(**kwargs):
     """Tag reads in alignment file `target_path` with reads in `source_path`."""
     source_path, tag_prefix_self, tag_prefix_mate = list(zip(*parse_file_tags(kwargs.pop('source_path'))))[0]
     kwargs['source_path'] = source_path

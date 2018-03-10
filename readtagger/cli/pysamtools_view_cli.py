@@ -16,6 +16,6 @@ from readtagger import VERSION
               help='Extract reads from this region. Format is chr:start-end',
               required=True)
 @click.version_option(version=VERSION)
-def cli(**kwargs):
+def pysamtools_view(**kwargs):
     """Extract reads from regin and write to new BAM alignment file."""
     return view(**kwargs)

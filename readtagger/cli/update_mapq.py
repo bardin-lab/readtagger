@@ -1,5 +1,5 @@
 import click
-from readtagger.update_mapq import update_mapq
+from readtagger.update_mapq import update_mapq as _update_mapq
 from readtagger import VERSION
 
 
@@ -18,6 +18,6 @@ from readtagger import VERSION
               required=True,
               type=click.Path(exists=False))
 @click.version_option(version=VERSION)
-def cli(**kwargs):
+def update_mapq(**kwargs):
     """Update supplementary read MAPQ score after remapping."""
-    return update_mapq(**kwargs)
+    return _update_mapq(**kwargs)

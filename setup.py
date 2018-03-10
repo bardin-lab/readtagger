@@ -8,15 +8,15 @@ __VERSION__ = '0.4.9'
 
 ENTRY_POINTS = '''
         [console_scripts]
-        add_matesequence=readtagger.cli.add_matesequence:main
-        allow_dovetailing=readtagger.allow_dovetailing:main
-        annotate_softclipped_reads=readtagger.cli.annotate_softclipped_reads:tag
-        findcluster=readtagger.cli.findcluster:cli
-        plot_coverage=readtagger.cli.plot_coverage:script_entry
-        pysamtools_view=readtagger.cli.pysamtools_view_cli:cli
-        readtagger=readtagger.cli.readtagger_cli:main
-        update_mapq=readtagger.cli.update_mapq:cli
-        write_supplementary_fastq=readtagger.cli.write_supplementary_fastq:cli
+        add_matesequence=readtagger.cli.add_matesequence:annotate_mate
+        allow_dovetailing=readtagger.cli.allow_dovetailing:process
+        annotate_softclipped_reads=readtagger.cli.annotate_softclipped_reads:annotate_softclipped_reads
+        findcluster=readtagger.cli.findcluster:find_cluster
+        plot_coverage=readtagger.cli.plot_coverage:plot_coverage
+        pysamtools_view=readtagger.cli.pysamtools_view_cli:pysamtools_view
+        readtagger=readtagger.cli.readtagger_cli:readtagger
+        update_mapq=readtagger.cli.update_mapq:update_mapq
+        write_supplementary_fastq=readtagger.cli.write_supplementary_fastq:write_supplementary_fastq
 '''
 
 requirements = ['bcbio-gff',

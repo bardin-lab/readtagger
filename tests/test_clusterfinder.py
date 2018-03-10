@@ -237,7 +237,7 @@ def test_clusterfinder_multiple_cluster_gff_cli(datadir_copy, tmpdir, mocker):  
     argv = namedtuple_to_argv(args)
     mocker.patch('sys.argv', argv)
     mocker.patch('sys.exit')
-    findcluster.cli()
+    findcluster.findcluster()
 
 
 def test_clusterfinder_blast(datadir_copy, tmpdir, mocker, reference_fasta):  # noqa: D103, F811
@@ -249,7 +249,7 @@ def test_clusterfinder_blast(datadir_copy, tmpdir, mocker, reference_fasta):  # 
     argv = namedtuple_to_argv(args)
     mocker.patch('sys.argv', argv)
     mocker.patch('sys.exit')
-    findcluster.cli()
+    findcluster.findcluster()
 
 
 def test_clusterfinder_homozygous_copia(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811

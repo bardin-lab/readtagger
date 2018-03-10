@@ -3,7 +3,7 @@ from readtagger.readtagger import (
     SamAnnotator,
     TagManager,
 )
-from readtagger.cli.readtagger_cli import main
+from readtagger.cli.readtagger_cli import readtagger
 from readtagger.bam_io import (
     BamAlignmentReader as Reader,
     BamAlignmentWriter as Writer,
@@ -118,7 +118,7 @@ def test_main_with_argparse(datadir_copy, tmpdir, mocker):  # noqa: D103
     argv = namedtuple_to_argv(args, 'readtagger.py')
     mocker.patch('sys.argv', argv)
     try:
-        main()
+        readtagger()
     except SystemExit:
         pass
 
@@ -133,7 +133,7 @@ def test_main_rover(datadir_copy, tmpdir, mocker, reference_fasta):  # noqa: D10
     argv = namedtuple_to_argv(args, 'readtagger.py')
     mocker.patch('sys.argv', argv)
     try:
-        main()
+        readtagger()
     except SystemExit:
         pass
     assert len([r for r in pysam.AlignmentFile(verified.strpath)]) == 0  # 1 if discard_suboptimal_alternate_tags is really False, but difficult to test ...
@@ -145,7 +145,7 @@ def test_main_rover(datadir_copy, tmpdir, mocker, reference_fasta):  # noqa: D10
     argv = namedtuple_to_argv(args, 'readtagger.py')
     mocker.patch('sys.argv', argv)
     try:
-        main()
+        readtagger()
     except SystemExit:
         pass
     assert len([r for r in pysam.AlignmentFile(verified.strpath)]) == 0  # 1 if discard_suboptimal_alternate_tags is really False, but difficult to test ...
