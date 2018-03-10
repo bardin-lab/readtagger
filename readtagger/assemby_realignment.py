@@ -24,34 +24,32 @@ class AssemblyRealigner(object):
 
     def collect_reads(self, cluster):
         """Collect reads that could be useful for determining a clusters breakpoint via assembly."""
+        informative_reads = []
         if len(cluster.orientation_switches) > 1:
             # For now only use this strategy to refine potential TSDs,
             # may be interesting for improving insertions with single-sided evidence as well.
             start = cluster.min
             end = cluster.max
-        else:
-            return []
-        index_bam(self.input_alignment_file)  # Should not be necessary, but tests fail without this :(
-        additional_read_gen = pysam.AlignmentFile(self.input_alignment_file).fetch(tid=cluster.tid, start=start, end=end)
-        additional_reads = (r for r in additional_read_gen if r.query_name not in cluster.read_index)
-        reads = {}
-        for r in additional_reads:
-            if r.has_tag('MS') and not r.is_duplicate:
-                qname = r.query_name
-                if r.is_read1:
-                    current_qname = "%s.1" % qname
-                    other_qname = "%s.2" % qname
-                else:
-                    current_qname = "%s.2" % qname
-                    other_qname = "%s.1" % qname
-                reads[current_qname] = r.query_sequence
-                reads[other_qname] = r.get_tag('MS')
-        return self.assemble_reads(reads)
+            reads = {}
+            index_bam(self.input_alignment_file)  # Should not be necessary, but tests fail without this :(
+            with pysam.AlignmentFile(self.input_alignment_file) as reader:
+                for r in reader.fetch(tid=cluster.tid, start=start, end=end):
+                    if r.query_name not in cluster.read_index and r.has_tag('MS') and not r.is_duplicate:
+                        qname = r.query_name
+                        if r.is_read1:
+                            current_qname = "%s.1" % qname
+                            other_qname = "%s.2" % qname
+                        else:
+                            current_qname = "%s.2" % qname
+                            other_qname = "%s.1" % qname
+                        reads[current_qname] = r.query_sequence
+                        reads[other_qname] = r.get_tag('MS')
+            if len(reads) < 500:
+                informative_reads = self.assemble_reads(reads)
+        return informative_reads
 
     def assemble_reads(self, reads):
         """Assemble potentially informative reads, align and set tags for contigs."""
-        if len(reads) > 500:
-            return []
         assembly = Cap3Assembly(reads)
         contig_sequences = {i: contig.sequence for i, contig in enumerate(assembly.contigs)}
         genome_aligned_contigs, genome_header = self.genome_aligner.align_contigs(contig_sequences)
