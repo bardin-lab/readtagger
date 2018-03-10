@@ -156,7 +156,7 @@ def sort_bam(inpath, output, sort_order, threads=1, cram=False, reference_fasta=
     if sort_order == 'queryname':
         args.append('-n')
     if cram:
-        args.extend(['-O', 'CRAM'])
+        args.extend(['--output-fmt=cram,no_ref'])
     args.extend(['-o', temp_out, inpath])
     pysam.sort(*args)
     if temp_out != output:
