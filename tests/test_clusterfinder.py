@@ -126,8 +126,8 @@ def test_clusterfinder_refine_split2(datadir_copy, tmpdir):  # noqa: D103
     assert cluster_one.nalt == 1
     assert cluster_two.nalt == 1
     assert cluster_three.nalt == 134
-    assert len(clusters.softclip_finder.clusters) == 7
-    assert len(cluster_three.feature_args) == 9
+    assert len(clusters.softclip_finder.clusters) == 6
+    assert len(cluster_three.feature_args) == 4
 
 
 def test_cornercase(datadir_copy, tmpdir):  # noqa: D103

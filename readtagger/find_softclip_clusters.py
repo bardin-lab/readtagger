@@ -85,7 +85,6 @@ class SoftClipClusterFinder(SampleNameMixin, ToGffMixin):
             for r in reader.fetch(region=self.region):
                 if not r.is_duplicate and r.mapping_quality >= self.min_mapq:
                     self.add_read(r=r)
-        self.clusters.sort(key=lambda x: x.clip_position)
         logging.info("Found %d clusters (%s)", len(self.clusters), self.region or 0)
 
     def add_read(self, r):
@@ -113,6 +112,7 @@ class SoftClipClusterFinder(SampleNameMixin, ToGffMixin):
 
     def merge_clusters(self):
         """Merge clusters with same cluster_type and same `clip_type`."""
+        self.clusters.sort(key=lambda x: x.clip_position)
         for cluster in self.clusters:
             for reachable in cluster.reachable(all_clusters=self.clusters):
                 cluster.extend(reachable)
