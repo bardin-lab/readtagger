@@ -140,20 +140,13 @@ class Bwa(object):
                         end = max([(r.reference_start + r.reference_length) for r in reads])
                         full_length_fraction = (end - start) / float(length)
                         support = len(set(r.query_name for r in reads))
-                        if orientation == 'left':
-                            left_candidates.append(Description(sbjct=self.header.references[tid],
-                                                               sbjct_start=start,
-                                                               sbjct_end=end,
-                                                               type='left_insert',
-                                                               fraction_full_length=full_length_fraction,
-                                                               read_support=support))
-                        else:
-                            right_candidates.append(Description(sbjct=self.header.references[tid],
-                                                                sbjct_start=start,
-                                                                sbjct_end=end,
-                                                                type='right_insert',
-                                                                fraction_full_length=full_length_fraction,
-                                                                read_support=support))
+                        candidates = left_candidates if orientation == 'left' else right_candidates
+                        candidates.append(Description(sbjct=self.header.references[tid],
+                                                      sbjct_start=start,
+                                                      sbjct_end=end,
+                                                      type="%s_insert" % orientation,
+                                                      fraction_full_length=full_length_fraction,
+                                                      read_support=support))
             # Sort by distance between end and start. That's probably not the best idea ...
             candidates = [sorted(c, key=lambda x: -(x.sbjct_end - x.sbjct_start)) for c in (best_candidates, left_candidates, right_candidates)]
             best_candidates, left_candidates, right_candidates = candidates
@@ -170,10 +163,9 @@ class Bwa(object):
                     if overlapping_reference_names:
                         reference_name = overlapping_reference_names.pop()  # A random overlapping name ...
                 if not reference_name:
-                    if left_candidates:
-                        reference_name = "_".join(left_candidates[0].sbjct.split('_')[1:-1])
-                    elif right_candidates:
-                        reference_name = "_".join(right_candidates[0].sbjct.split('_')[1:-1])
+                    candidates = left_candidates or right_candidates
+                    if candidates:
+                        reference_name = "_".join(candidates[0].sbjct.split('_')[1:-1])
             cluster_description[cluster_number] = [best_candidates, left_candidates, right_candidates, reference_name]
         return cluster_description
 
