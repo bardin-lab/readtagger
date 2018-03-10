@@ -1,5 +1,4 @@
 import pysam
-from cached_property import cached_property
 from six import string_types
 
 
@@ -31,11 +30,6 @@ class AnnotateMateInformation(object):
             self.target = pysam.AlignmentFile(self.target)
         if isinstance(self.output_path, string_types):
             self.writer = pysam.AlignmentFile(self.output_path, mode='wb', header=self.target.header)
-
-    @cached_property
-    def header(self):
-        """Return header of file to annotate."""
-        return self.target.header
 
     def get_reads_to_annotate(self):
         """Generate a list of mates to annotate."""
