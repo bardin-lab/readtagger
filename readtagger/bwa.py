@@ -78,9 +78,7 @@ class Bwa(object):
             self.header = f.header
             reads = [r for r in f]
             proc.stdout.close()
-            proc.wait()
-            if proc.returncode != 0:
-                logging.error(proc.stderr.read())
+            wait_and_get_return_code(proc)
             proc.stderr.close()
             return reads
 
@@ -238,8 +236,21 @@ def make_bwa_index(reference_fasta, dir='.'):
     if not os.path.exists(target_fasta):
         os.symlink(os.path.abspath(reference_fasta), target_fasta)
     args = ['bwa', 'index', target_fasta]
-    p = subprocess.Popen(args, env=os.environ.copy(), close_fds=True, stderr=subprocess.PIPE)
-    p.wait()
-    if p.returncode != 0:
+    return_code = wait_and_get_return_code(subprocess.Popen(args,
+                                                            env=os.environ.copy(),
+                                                            close_fds=True,
+                                                            stderr=subprocess.PIPE))
+    return target_fasta, return_code
+
+
+def wait_and_get_return_code(p):
+    """
+    Wait for subprocess p, log warning on non-zero rexit code and return exit code.
+
+    >>> p = subprocess.Popen('echo bla 1>&2 && exit 1', stderr=subprocess.PIPE, shell=True)
+    >>> assert wait_and_get_return_code(p) == 1
+    """
+    rc = p.wait()
+    if rc:
         logging.warning(p.stderr.read())
-    return target_fasta, p.returncode
+    return rc
