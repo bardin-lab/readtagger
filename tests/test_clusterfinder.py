@@ -37,6 +37,8 @@ DECOY = 'decoy.bam'
 DONT_SPLIT = 'dont_split.bam'
 REFINE_TSD = 'wrong_tsd.bam'
 ARTEFACT_ACCUMULATION = 'artefact_accumulation.bam'
+MULTI_H6 = 'multisample_h6.bam'
+PREDICTED_INSERTION = 'predicted_insertion_rover.bam'
 
 DEFAULT_MAX_PROPER_PAIR_SIZE = 700
 
@@ -506,3 +508,28 @@ def test_clusterfinder_dont_split(datadir_copy, tmpdir, reference_fasta):  # noq
     cluster = clusters.clusters[0]
     assert cluster.nref == 18
     assert cluster.nalt == 37
+
+
+def test_clusterfinder_multisample(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
+    input_path = str(datadir_copy[MULTI_H6])
+    output_gff = tmpdir.join('output.gff').strpath
+    clusters = ClusterFinder(input_path=input_path,
+                             output_bam=None,
+                             output_gff=output_gff,
+                             transposon_reference_fasta=reference_fasta,
+                             max_proper_pair_size=649)
+    assert len(clusters.softclip_finder.clusters) == 6
+
+
+def test_clusterfinder_predicted_insertion_rover(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
+    input_path = str(datadir_copy[PREDICTED_INSERTION])
+    output_gff = tmpdir.join('output.gff').strpath
+    output_fasta = tmpdir.join('output.fa').strpath
+    clusters = ClusterFinder(input_path=input_path,
+                             output_bam=None,
+                             output_fasta=output_fasta,
+                             output_gff=output_gff,
+                             transposon_reference_fasta=reference_fasta,
+                             max_proper_pair_size=649)
+    assert len(clusters.softclip_finder.clusters) == 0
+    assert len(clusters.clusters[0].feature_args) == 3
