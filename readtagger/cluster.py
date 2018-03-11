@@ -181,7 +181,7 @@ class Cluster(BaseCluster):
         return self.overlaps(r, strict=strict) and self.same_chromosome(r) and self.read_consistent_with_clusters(r)
 
     def read_consistent_with_clusters(self, read):
-        """Check that mater orientation within cluster is consistent."""
+        """Check that mate orientation within cluster is consistent."""
         if read.has_tag('BD'):
             # We got a mate, this means it cannot extend either 3' or 5' of the breakpoint
             if read.is_reverse:
@@ -190,6 +190,9 @@ class Cluster(BaseCluster):
             else:
                 if read.reference_end > self.end:
                     return False
+        if self.clustertag.tsd.is_valid and read.has_tag('AD'):
+            if read.reference_start > self.end_corrected + 10:
+                return False
         return True
 
     @property
@@ -209,6 +212,11 @@ class Cluster(BaseCluster):
         """Join clusters that can be joined."""
         for other_cluster in self.reachable(all_clusters=all_clusters):
             if not self.abnormal and self.can_join(other_cluster, max_distance=self.max_proper_size):
+                if self.clustertag.tsd.is_valid or other_cluster.clustertag.tsd.is_valid:
+                    check = Cluster(shm_dir=self.shm_dir)
+                    check.extend(self + other_cluster)
+                    if not check.clustertag.tsd.is_valid:
+                        continue
                 self.extend(other_cluster)
                 all_clusters.remove(other_cluster)
 

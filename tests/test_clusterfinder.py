@@ -40,6 +40,7 @@ ARTEFACT_ACCUMULATION = 'artefact_accumulation.bam'
 MULTI_H6 = 'multisample_h6.bam'
 PREDICTED_INSERTION = 'predicted_insertion_roo.bam'
 START_END_PROBLEM = 'start_end_problem.bam'
+JOCKEY_NOT_FOUND = 'h4_jockey_not_found.bam'
 
 DEFAULT_MAX_PROPER_PAIR_SIZE = 700
 
@@ -122,15 +123,17 @@ def test_clusterfinder_refine_split2(datadir_copy, tmpdir):  # noqa: D103
                              output_gff=tmpdir.join('output.gff').strpath,
                              transposon_reference_fasta=None,
                              max_proper_pair_size=1500)
-    # Should be 3 clusters -- one mate pointing away from the cluster (1),
-    # one read with BD and AD tag (2), which doesn't join with the large cluster to the right (3)
-    assert len(clusters.clusters) == 3
-    cluster_one, cluster_two, cluster_three = clusters.clusters
+    # Should be 3 or 4 clusters -- one mate pointing away from the cluster (1),
+    # one read with BD and AD tag (2), which doesn't join with the large cluster(s) to the right.
+    # This could be 1 or 2 clusters ... it deos have evidence for 2 distinct events via 3 different clipping patterns
+    assert len(clusters.clusters) == 4
+    cluster_one, cluster_two, cluster_three, cluster_four = clusters.clusters
     assert cluster_one.nalt == 1
     assert cluster_two.nalt == 1
-    assert cluster_three.nalt == 130
+    assert cluster_three.nalt == 46
+    assert cluster_four.nalt == 84
     assert len(clusters.softclip_finder.clusters) == 6
-    assert len(cluster_three.feature_args) == 4
+    assert len(cluster_three.feature_args) == 2
 
 
 def test_cornercase(datadir_copy, tmpdir):  # noqa: D103
@@ -494,7 +497,7 @@ def test_clusterfinder_skip_abnormal(datadir_copy, tmpdir, reference_fasta):  # 
                              transposon_reference_fasta=reference_fasta,
                              max_proper_pair_size=649,
                              skip_decoy=False)
-    assert len(clusters.clusters) == 26
+    assert len(clusters.clusters) == 25
     assert clusters.clusters[3].abnormal
 
 
@@ -551,6 +554,22 @@ def test_clusterfinder_multisample(datadir_copy, tmpdir, reference_fasta):  # no
     assert len(clusters.softclip_finder.clusters) == 6
     assert clusters.clusters[0].nalt == 1
     assert clusters.clusters[0].valid_tsd is False
+
+
+def test_clusterfinder_jockey_not_found(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
+    input_path = str(datadir_copy[JOCKEY_NOT_FOUND])
+    output_gff = tmpdir.join('output.gff').strpath
+    output_fasta = tmpdir.join('output.fa').strpath
+    output_bam = tmpdir.join('output.bam').strpath
+    clusters = ClusterFinder(input_path=input_path,
+                             output_bam=output_bam,
+                             output_fasta=output_fasta,
+                             output_gff=output_gff,
+                             transposon_reference_fasta=reference_fasta,
+                             max_proper_pair_size=649)
+    rover, jockey = clusters.clusters
+    assert rover.insert_reference_name == 'rover'
+    assert jockey.insert_reference_name == 'transposable_element_Ivk'
 
 
 def test_clusterfinder_predicted_insertion_rover(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
