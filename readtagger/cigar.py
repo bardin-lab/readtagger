@@ -2,10 +2,10 @@ from collections import namedtuple
 from itertools import groupby
 from .instance_lru import lru_cache
 
-
 CODE2CIGAR = "MIDNSHP=XB"
 CIGAR2CODE = dict([y, x] for x, y in enumerate(CODE2CIGAR))
 CIGAR = namedtuple('CIGAR', 'operation length')
+MATCH = 0
 
 
 #  Op BAM Description
@@ -95,6 +95,37 @@ def cigar_tuple_to_cigar_length(cigar):
         cigar_length_tuples.append(((start, end), m))
         start = end
     return cigar_length_tuples
+
+
+def position_corresponds_to_transposable_element(tag, position, orientation):
+    """
+    Check if a tag confirms a TE insertion at a specific position.
+
+    >>> tag = 'R:FBti0060645_baggins_LOA,POS:158,QSTART:0,QEND:31,CIGAR:94S31M,S:S,MQ:60'
+    >>> position = 53
+    >>> orientation = 'S'
+    >>> position_corresponds_to_transposable_element(tag, position, orientation)
+    False
+    >>> position = 94
+    >>> position_corresponds_to_transposable_element(tag, position, orientation)
+    True
+    >>> orientation = 'AS'
+    >>> position_corresponds_to_transposable_element(tag, position, orientation)
+    False
+    """
+    tag_dict = dict(v.split(':') for v in tag.split(','))
+    transposon_cigar = cigar_to_tuple(tag_dict['CIGAR'])
+    if orientation != tag_dict['S']:
+        transposon_cigar = transposon_cigar[::-1]
+    transposon_cigar_length = cigar_tuple_to_cigar_length(transposon_cigar)
+    corresponds_to_te = False
+    for (start, end), operation in transposon_cigar_length:
+        if start > position:
+            break
+        if start <= position <= end and operation == MATCH:
+            corresponds_to_te = True
+            break
+    return corresponds_to_te
 
 
 def alternative_alignment_cigar_is_better(current_cigar, alternative_cigar, same_orientation):

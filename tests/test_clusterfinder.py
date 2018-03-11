@@ -465,12 +465,12 @@ def test_clusterfinder_check_consistency(datadir_copy, tmpdir, reference_fasta):
                              max_proper_pair_size=649)
     cluster_one = clusters.clusters[0]
     assert cluster_one.genotype == 'reference'
-    assert cluster_one.nref == 69
-    assert cluster_one.nalt == 3
+    assert cluster_one.nref == 71
+    assert cluster_one.nalt == 1
     cluster_two = clusters.clusters[1]
     assert cluster_two.genotype == 'reference'
-    assert cluster_two.nref == 64
-    assert cluster_two.nalt == 1
+    assert cluster_two.nref == 69
+    assert cluster_two.nalt == 2
 
 
 def test_clusterfinder_decoy_chromosome(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
@@ -493,7 +493,7 @@ def test_clusterfinder_skip_abnormal(datadir_copy, tmpdir, reference_fasta):  # 
                              transposon_reference_fasta=reference_fasta,
                              max_proper_pair_size=649,
                              skip_decoy=False)
-    assert len(clusters.clusters) == 35
+    assert len(clusters.clusters) == 32
     assert clusters.clusters[0].abnormal
 
 
@@ -536,6 +536,8 @@ def test_clusterfinder_multisample(datadir_copy, tmpdir, reference_fasta):  # no
                              transposon_reference_fasta=reference_fasta,
                              max_proper_pair_size=649)
     assert len(clusters.softclip_finder.clusters) == 6
+    assert clusters.clusters[0].nalt == 1
+    assert clusters.clusters[0].valid_tsd is False
 
 
 def test_clusterfinder_predicted_insertion_rover(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811

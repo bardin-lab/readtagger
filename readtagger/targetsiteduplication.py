@@ -1,5 +1,6 @@
 from collections import Counter
 from cached_property import cached_property
+from .cigar import position_corresponds_to_transposable_element
 from .tags import Tag
 
 MAX_TSD_SIZE = 50
@@ -184,12 +185,30 @@ class TargetSiteDuplication(object):
     @cached_property
     def sorted_split_start_positions(self):
         """Return sorted start positions of split reads."""
-        return sorted([r.pos for r in self.split_ads if r.query_alignment_start != 0 or self._hard_clip_left(r)])  # To only get relevant split start positions
+        split_starts = []
+        for r in self.split_ads:
+            if r.query_alignment_start != 0 or self._hard_clip_left(r):
+                orientation = 'AS' if r.is_reverse else 'S'
+                ad_tag = r.get_tag('AD')
+                if position_corresponds_to_transposable_element(tag=ad_tag,
+                                                                position=r.query_alignment_start,
+                                                                orientation=orientation):
+                    split_starts.append(r.reference_start)
+        return sorted(split_starts)
 
     @cached_property
     def sorted_split_end_positions(self):
         """Return sorted end positions of split reads."""
-        return sorted([r.reference_end for r in self.split_ads if r.query_alignment_end != r.query_length or self._hard_clip_right(r)])
+        split_ends = []
+        for r in self.split_ads:
+            if r.query_alignment_end != r.query_length or self._hard_clip_right(r):
+                orientation = 'AS' if r.is_reverse else 'S'
+                ad_tag = r.get_tag('AD')
+                if position_corresponds_to_transposable_element(tag=ad_tag,
+                                                                position=r.query_alignment_end,
+                                                                orientation=orientation):
+                    split_ends.append(r.reference_end)
+        return sorted(split_ends)
 
     @cached_property
     def three_p_clip_length(self):

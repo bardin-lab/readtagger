@@ -63,6 +63,10 @@ class MockAlignedSegment(MockAlignedSegmentTemplate):
                                                       is_reverse,
                                                       mapping_quality)
 
+    def get_tag(self, tag):
+        """Mock get_tag function."""
+        return "S:%s,CIGAR:125M" % ('AS' if self.is_reverse else 'S')
+
 
 roo_seq = '''TATGTAAATGAATCGAGAGCGATAAATTATATTTAGGATTTTGTTATCTAAGGCGACATG\
 GGTGCATTGCTCAAAAACATGTAATTTAAGTGCACACTACATGAGTCAGTCACTTGAGAT\
