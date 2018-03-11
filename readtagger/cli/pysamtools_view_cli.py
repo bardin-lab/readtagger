@@ -4,15 +4,18 @@ from readtagger import VERSION
 
 
 @click.command()
-@click.option('--input_bam',
+@click.option('-i',
+              '--input_bam',
               help='Alignment file from which to extract reads',
               required=True,
               type=click.Path(exists=True))
-@click.option('--output_bam',
+@click.option('-o',
+              '--output_bam',
               help='Write extracted reads to this Alignment File',
               required=True,
               type=click.Path())
-@click.option('--region',
+@click.option('-r',
+              '--region',
               help='Extract reads from this region. Format is chr:start-end',
               required=True)
 @click.version_option(version=VERSION)

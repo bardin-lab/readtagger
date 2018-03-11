@@ -4,11 +4,13 @@ from readtagger import VERSION
 
 
 @click.command()
-@click.option('--input_path',
+@click.option('-i',
+              '--input_path',
               help='Find cluster in this BAM file.',
               type=click.Path(exists=True),
               required=True)
-@click.option('--region',
+@click.option('-r',
+              '--region',
               help='Find clusters in this Region (Format is chrX:2000-1000).',
               default=None,)
 @click.option('--max_proper_pair_size',
@@ -54,8 +56,12 @@ from readtagger import VERSION
               help="Only consider reads with MAPQ equal to or higher than this setting.",
               default=4,
               type=click.IntRange(0, 60))
-@click.option('--threads', help='Threads to use for cap3 assembly step', default=1, type=click.IntRange(1, 100))
-@click.option('--shm_dir', envvar="SHM_DIR", help='Path to shared memory folder', default=None, type=click.Path(exists=True))
+@click.option('-t',
+              '--threads',
+              help='Threads to use for cap3 assembly step', default=1, type=click.IntRange(1, 100))
+@click.option('--shm_dir',
+              envvar="SHM_DIR",
+              help='Path to shared memory folder', default=None, type=click.Path(exists=True))
 @click.version_option(version=VERSION)
 def findcluster(**kwds):
     """Find clusters of reads that support a TE insertion."""
