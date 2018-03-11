@@ -9,9 +9,9 @@ __VERSION__ = '0.4.9'
 ENTRY_POINTS = '''
         [console_scripts]
         add_matesequence=readtagger.cli.add_matesequence:annotate_mate
-        allow_dovetailing=readtagger.cli.allow_dovetailing:process
+        allow_dovetailing=readtagger.cli.allow_dovetailing:allow_dovetailing
         annotate_softclipped_reads=readtagger.cli.annotate_softclipped_reads:annotate_softclipped_reads
-        findcluster=readtagger.cli.findcluster:find_cluster
+        findcluster=readtagger.cli.findcluster:findcluster
         plot_coverage=readtagger.cli.plot_coverage:plot_coverage
         pysamtools_view=readtagger.cli.pysamtools_view_cli:pysamtools_view
         readtagger=readtagger.cli.readtagger_cli:readtagger
