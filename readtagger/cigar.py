@@ -6,6 +6,7 @@ CODE2CIGAR = "MIDNSHP=XB"
 CIGAR2CODE = dict([y, x] for x, y in enumerate(CODE2CIGAR))
 CIGAR = namedtuple('CIGAR', 'operation length')
 MATCH = 0
+HARD_CLIP = 5
 
 
 #  Op BAM Description
@@ -95,6 +96,28 @@ def cigar_tuple_to_cigar_length(cigar):
         cigar_length_tuples.append(((start, end), m))
         start = end
     return cigar_length_tuples
+
+
+def aligned_segment_corresponds_to_transposable_element(r):
+    """Verify that aligned segment corresponds to a putative insertion."""
+    LEFT_HARD_CLIP = r.cigar[0][0] == HARD_CLIP
+    RIGHT_HARD_CLIP = r.cigar[-1][0] == HARD_CLIP
+    if r.query_alignment_start == 0 and r.query_alignment_end == r.query_length and not (LEFT_HARD_CLIP or RIGHT_HARD_CLIP):
+        return False
+    tag = r.get_tag('AD')
+    orientation = 'AS' if r.is_reverse else 'S'
+    postions = []
+    if r.query_alignment_start != 0 or LEFT_HARD_CLIP:
+        postions.append(r.query_alignment_start)
+    if r.query_alignment_end != r.query_length or RIGHT_HARD_CLIP:
+        postions.append(r.query_alignment_end)
+    if not postions:
+        pass
+    for position in postions:
+        if position_corresponds_to_transposable_element(tag=tag,
+                                                        position=position,
+                                                        orientation=orientation):
+            return True
 
 
 def position_corresponds_to_transposable_element(tag, position, orientation):

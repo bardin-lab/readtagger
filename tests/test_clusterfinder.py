@@ -39,6 +39,7 @@ REFINE_TSD = 'wrong_tsd.bam'
 ARTEFACT_ACCUMULATION = 'artefact_accumulation.bam'
 MULTI_H6 = 'multisample_h6.bam'
 PREDICTED_INSERTION = 'predicted_insertion_roo.bam'
+START_END_PROBLEM = 'start_end_problem.bam'
 
 DEFAULT_MAX_PROPER_PAIR_SIZE = 700
 
@@ -58,7 +59,7 @@ def test_clusterfinder_include_duplicates(datadir_copy):  # noqa: D103
                        include_duplicates=True,
                        max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
     assert len(cf.clusters) == 1
-    assert cf.clusters[0].nalt == 26
+    assert cf.clusters[0].nalt == 25
 
 
 def test_clusterfinder_remove_supplementary(datadir_copy):  # noqa: D103
@@ -68,7 +69,7 @@ def test_clusterfinder_remove_supplementary(datadir_copy):  # noqa: D103
                        remove_supplementary_without_primary=True,
                        max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
     assert len(cf.clusters) == 1
-    assert cf.clusters[0].nalt == 24
+    assert cf.clusters[0].nalt == 23
 
 
 def test_clusterfinder_reassemble(datadir_copy, tmpdir, reference_fasta):   # noqa: D103, F811
@@ -109,7 +110,7 @@ def test_clusterfinder_refine_split(datadir_copy, tmpdir):  # noqa: D103
     cluster = clusters.clusters[0]
     genotype = cluster.genotype_likelihoods
     assert genotype.nref == 73
-    assert genotype.nalt == 117
+    assert genotype.nalt == 112
     assert genotype.genotype == 'heterozygous'
 
 
@@ -127,7 +128,7 @@ def test_clusterfinder_refine_split2(datadir_copy, tmpdir):  # noqa: D103
     cluster_one, cluster_two, cluster_three = clusters.clusters
     assert cluster_one.nalt == 1
     assert cluster_two.nalt == 1
-    assert cluster_three.nalt == 134
+    assert cluster_three.nalt == 130
     assert len(clusters.softclip_finder.clusters) == 6
     assert len(cluster_three.feature_args) == 4
 
@@ -465,12 +466,12 @@ def test_clusterfinder_check_consistency(datadir_copy, tmpdir, reference_fasta):
                              max_proper_pair_size=649)
     cluster_one = clusters.clusters[0]
     assert cluster_one.genotype == 'reference'
-    assert cluster_one.nref == 71
-    assert cluster_one.nalt == 1
+    assert cluster_one.nref == 69
+    assert cluster_one.nalt == 2
     cluster_two = clusters.clusters[1]
     assert cluster_two.genotype == 'reference'
-    assert cluster_two.nref == 69
-    assert cluster_two.nalt == 2
+    assert cluster_two.nref == 64
+    assert cluster_two.nalt == 1
 
 
 def test_clusterfinder_decoy_chromosome(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
@@ -493,8 +494,20 @@ def test_clusterfinder_skip_abnormal(datadir_copy, tmpdir, reference_fasta):  # 
                              transposon_reference_fasta=reference_fasta,
                              max_proper_pair_size=649,
                              skip_decoy=False)
-    assert len(clusters.clusters) == 32
-    assert clusters.clusters[0].abnormal
+    assert len(clusters.clusters) == 26
+    assert clusters.clusters[3].abnormal
+
+
+def test_clusterfinder_start_end_problem(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
+    input_path = str(datadir_copy[START_END_PROBLEM])
+    output_gff = tmpdir.join('output.gff').strpath
+    clusters = ClusterFinder(input_path=input_path,
+                             output_bam=None,
+                             output_gff=output_gff,
+                             transposon_reference_fasta=reference_fasta,
+                             max_proper_pair_size=649,
+                             skip_decoy=False)
+    assert len(clusters.clusters) == 0
 
 
 def test_clusterfinder_refine_tsd(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811

@@ -29,6 +29,7 @@ from .cluster_base import (
     SampleNameMixin,
     ToGffMixin
 )
+from .cigar import aligned_segment_corresponds_to_transposable_element
 from .find_softclip_clusters import SoftClipClusterFinder
 from .gff_io import sort_gff
 from .readtagger import get_max_proper_pair_size
@@ -236,6 +237,8 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
                     continue
                 self.softclip_finder.add_read(r=r)
                 if not (r.has_tag('BD') or r.has_tag('AD')):
+                    continue
+                if r.has_tag('AD') and not aligned_segment_corresponds_to_transposable_element(r):
                     continue
                 if not clusters:
                     cluster = Cluster(shm_dir=self.shm_dir, max_proper_size=self.max_proper_pair_size)
