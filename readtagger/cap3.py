@@ -1,3 +1,4 @@
+import logging
 import os
 import subprocess
 import abc
@@ -62,7 +63,13 @@ class Cap3Assembly(BaseAssembly):
         if len(self.sequences) < self.seq_limit:
             with open(os.devnull, 'w') as DEVNULL:
                 args = ['cap3', self.input_path, '-p', '75', '-s', '500', '-z', '2']
-                subprocess.check_call(args, stdout=DEVNULL, close_fds=True)  # Use check call to ignore stdout of cap3
+                try:
+                    # Use check call to ignore stdout of cap3
+                    subprocess.check_call(args, stdout=DEVNULL, close_fds=True)
+                except subprocess.CalledProcessError as e:
+                    logging.error("An error occured while attempting to assemble reads: "
+                                  "%s\n The problematic sequences are: %s", e, self.sequences)
+                    return Ace.ACEFileRecord().contigs
             return Ace.read(open(os.path.join(self.input_dir, 'multialign.fa.cap.ace'))).contigs
         else:
             # We return an empty record if there are too many sequences to assemble
