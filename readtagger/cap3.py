@@ -1,6 +1,7 @@
 import os
 import subprocess
 import abc
+from collections import namedtuple
 
 from Bio.Sequencing import Ace
 from .fasta_io import write_sequences
@@ -16,7 +17,9 @@ except ImportError:
 class BaseAssembly(ABC):
     """Provide Base Class for Assembly modules."""
 
-    def __init__(self, sequences, shm_dir):
+    seq_limit = 800
+
+    def __init__(self, sequences, shm_dir=None):
         """Run assembly."""
         self.sequences = sequences
         with TemporaryDirectory(prefix="%s" % type(self).__name__, dir=shm_dir) as self.input_dir:
@@ -33,10 +36,28 @@ class BaseAssembly(ABC):
         write_sequences(sequences=self.sequences, output_path=self.input_path)
 
 
+class IdbaAssembly(BaseAssembly):
+    """A class that holds reads of a cluster and assembles them using Idba."""
+
+    seq = namedtuple('Contig', 'sequence')
+
+    def assemble(self):
+        """Assemble sequences."""
+        if len(self.sequences) < self.seq_limit:
+            with open(os.devnull, 'w') as DEVNULL:
+                args = ['idba', '-r', self.input_path, '-o', self.input_dir]
+                try:
+                    subprocess.check_call(args, stdout=DEVNULL, close_fds=True)
+                except subprocess.CalledProcessError:
+                    return []
+            return [self.seq(r) for r in open(os.path.join(self.input_dir, 'contig.fa')) if not r.startswith('>')]
+        else:
+            # We return an empty record if there are too many sequences to assemble
+            return []
+
+
 class Cap3Assembly(BaseAssembly):
     """A class that holds reads of a cluster and assembles them using cap3."""
-
-    seq_limit = 800
 
     def __init__(self, sequences, shm_dir=None):
         """Asssemble sequences into contigs.

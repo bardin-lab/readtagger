@@ -2,7 +2,7 @@ import pysam
 
 from .bam_io import index_bam
 from .bwa import SimpleAligner
-from .cap3 import Cap3Assembly
+from .cap3 import IdbaAssembly
 from .cigar import alternative_alignment_cigar_is_better
 from .readtagger import SamTagProcessor
 
@@ -50,7 +50,7 @@ class AssemblyRealigner(object):
 
     def assemble_reads(self, reads):
         """Assemble potentially informative reads, align and set tags for contigs."""
-        assembly = Cap3Assembly(reads)
+        assembly = IdbaAssembly(reads)
         contig_sequences = {i: contig.sequence for i, contig in enumerate(assembly.contigs)}
         genome_aligned_contigs, genome_header = self.genome_aligner.align_contigs(contig_sequences)
         transposon_aligned_contigs, transposon_header = self.transposon_aligner.align_contigs(contig_sequences)

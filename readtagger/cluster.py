@@ -10,7 +10,7 @@ from .edlib_align import (
     multiple_sequences_overlap,
     sequences_overlap
 )
-from .cap3 import Cap3Assembly
+from .cap3 import IdbaAssembly
 from .genotype import Genotype
 from .instance_lru import instance_method_lru_cache
 from .tagcluster import TagCluster
@@ -316,7 +316,7 @@ class Cluster(BaseCluster):
         all_reads = {}
         all_reads.update(self.clustertag.left_sequences)
         all_reads.update(self.clustertag.right_sequences)
-        assembly = Cap3Assembly(all_reads)
+        assembly = IdbaAssembly(all_reads)
         contigs = assembly.contigs
         contig_reads = []
         cluster_a_contigs = set()
