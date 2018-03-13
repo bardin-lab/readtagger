@@ -2,7 +2,7 @@
 import logging
 from cached_property import cached_property
 from .dumb_consensus import dumb_consensus
-from .cap3 import IdbaAssembly
+from .cap3 import Cap3Assembly
 from .targetsiteduplication import TargetSiteDuplication
 
 
@@ -29,7 +29,7 @@ class TagCluster(object):
         """Return insert sequence as assembled from the left side."""
         if self.left_sequences:
             if not hasattr(self, '_left_seq_cap3'):
-                self._left_seq_cap3 = IdbaAssembly(self.left_sequences, shm_dir=self.shm_dir)
+                self._left_seq_cap3 = Cap3Assembly(self.left_sequences, shm_dir=self.shm_dir)
             return self._left_seq_cap3
 
     @cached_property
@@ -37,7 +37,7 @@ class TagCluster(object):
         """Return insert sequence as assembled from the right side."""
         if self.right_sequences:
             if not hasattr(self, '_right_seq_cap3'):
-                self._right_seq_cap3 = IdbaAssembly(self.right_sequences, shm_dir=self.shm_dir)
+                self._right_seq_cap3 = Cap3Assembly(self.right_sequences, shm_dir=self.shm_dir)
             return self._right_seq_cap3
 
     def find_breakpoint(self):
