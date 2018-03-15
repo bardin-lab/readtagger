@@ -1,6 +1,7 @@
 from readtagger.cli.allow_dovetailing import allow_dovetailing
 from readtagger.cli.add_matesequence import annotate_mate
 from readtagger.cli.annotate_softclipped_reads import annotate_softclipped_reads
+from readtagger.cli.classify_somatic_insertions import confirm_insertions
 from readtagger.cli.findcluster import findcluster
 from readtagger.cli.plot_coverage import plot_coverage
 from readtagger.cli.pysamtools_view_cli import pysamtools_view
@@ -14,6 +15,7 @@ from .helpers import reference_fasta  # noqa: F401
 command_line_functions = [allow_dovetailing,
                           annotate_mate,
                           annotate_softclipped_reads,
+                          confirm_insertions,
                           findcluster,
                           plot_coverage,
                           pysamtools_view,
@@ -21,6 +23,9 @@ command_line_functions = [allow_dovetailing,
                           write_supplementary_fastq]
 ids = [f.name for f in command_line_functions]
 EXTENDED = 'extended_annotated_updated_all_reads.bam'
+PUTATIVE = 'putative_insertions.gff'
+ALL_TREATMENT = 'all_treatment_insertions.gff'
+ALL_CONTROL = 'all_control_insertions.gff'
 
 
 @pytest.mark.parametrize('f', command_line_functions, ids=ids)
@@ -66,6 +71,33 @@ def test_annotate_softclipped_reads_cli(datadir_copy, tmpdir, reference_fasta): 
                                                         '--output_path',
                                                         out_path])
     assert result.exit_code == 0
+
+
+@pytest.mark.parametrize('output_discarded_records', (True, False))
+def test_confirm_insertions_cli(datadir_copy, tmpdir, output_discarded_records):  # noqa: D103
+    putative = str(datadir_copy[PUTATIVE])
+    control = str(datadir_copy[ALL_CONTROL])
+    treatment = str(datadir_copy[ALL_TREATMENT])
+    out_path = tmpdir.join('filtered.gff').strpath
+    runner = CliRunner()
+    flag = '--output_discarded_records' if output_discarded_records else '--no_output_discarded_records'
+    result = runner.invoke(confirm_insertions, ['-p',
+                                                putative,
+                                                '-t',
+                                                treatment,
+                                                '-c',
+                                                control,
+                                                '-o',
+                                                out_path,
+                                                flag
+                                                ])
+    assert result.exit_code == 0
+    with open(out_path) as filtered:
+        lines = filtered.readlines()
+    expected_lines = 3 if output_discarded_records else 2
+    assert len(lines) == expected_lines
+    if output_discarded_records:
+        assert 'FAIL=clip_seq_in_control' in lines[2]
 
 
 def test_pysamtools_view_cli(datadir_copy, tmpdir):  # noqa: D103

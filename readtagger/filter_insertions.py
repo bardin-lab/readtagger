@@ -1,0 +1,111 @@
+import os
+from collections import (
+    namedtuple,
+    OrderedDict
+)
+import pysam
+
+gff_record = namedtuple('GFF_record', 'seqid source type start end score strand phase attributes')
+comparison = namedtuple('Comparison', 'putative_event treatment_events control_events')
+
+
+def get_tabix_file(path, preset='gff'):
+    """Return a TabixFile instance for a file at `path`."""
+    if not os.path.exists("%s.gz.tbi" % path):
+        pysam.tabix_index(path, preset=preset)
+    tabix_file = pysam.TabixFile("%s.gz" % path)
+    return tabix_file
+
+
+def to_gff_attributes(s):
+    """Convert a GFF attribute string to an OrderedDict."""
+    attributes = s.split(';')
+    return OrderedDict((i.split('=')) for i in attributes)
+
+
+def to_gff_record(r):
+    """Convert a string representation of a GFF record to a named tuple."""
+    fields = r.split('\t')
+    fields[3], fields[4] = int(fields[3]), int(fields[4])
+    fields[8] = to_gff_attributes(fields[8])
+    return gff_record(*fields)
+
+
+def gff_record_to_string(gff_record):
+    """Convert a `GFF_record` namedtuple to a string representation."""
+    fields = list(gff_record)
+    fields[3], fields[4] = str(fields[3]), str(fields[4])
+    fields[8] = ";".join(["%s=%s" % (k, v) for k, v in gff_record.attributes.items()])
+    return "%s\n" % "\t".join(fields)
+
+
+def write_gff_records(records, path):
+    """Write GFF_record in records iterable to `path`."""
+    with open(path, 'w') as out:
+        for r in records:
+            out.write(gff_record_to_string(r))
+
+
+def fetch_records(tabixfile, region):
+    """Wrap TabixFile.fetch in try/except clause to ignore region errors."""
+    try:
+        return tabixfile.fetch(reference=region.seqid,
+                               start=int(region.start) - 1,
+                               end=int(region.end) + 1)
+
+    except ValueError:
+        # Happens if region is not present in tabix file, that's fine and expected
+        return[]
+
+
+def fill_comparison(putative, control, treatment):
+    """Convert tabix record to a Comparison named tuple."""
+    for putative_event in putative.fetch():
+        putative_record = to_gff_record(putative_event)
+        putative_record_complements = [to_gff_record(r) for r in fetch_records(treatment, putative_record)]
+        control_records = [to_gff_record(r) for r in fetch_records(control, putative_record)]
+        yield (comparison(putative_record, putative_record_complements, control_records))
+
+
+def filter_putative_insertions(putative, treatment, control, output_discarded_records=True):
+    """Remove insertions that are based on clipped sequences whicha re also present in the control."""
+    for (putative_record, putative_complements, control_records) in fill_comparison(putative, control, treatment):
+        valid_record = True
+        clips = []
+        control_clips = []
+        for putative_complement in putative_complements:
+            if putative_complement.type in ('3p_clip', '5p_clip') and putative_complement.attributes.get(
+                    'Parent', object()) == putative_record.attributes.get('ID', object()):
+                # We only verify clipped sequences that are part of the insertion to verify
+                clips.append(putative_complement)
+        for control_record in control_records:
+            if control_record.type in ('3p_clip', '5p_clip'):
+                control_clips.append(control_record)
+        for c in control_clips:
+            for t in clips:
+                if c.type == t.type:
+                    if abs(c.start - t.start) < 2 or abs(c.end - t.end) < 2:
+                        c_seq = c.attributes.get('consensus')
+                        t_seq = t.attributes.get('consensus')
+                        if len(c_seq) > 2 and len(t_seq) > 2:
+                            if c_seq.startswith(t_seq) or t_seq.startswith(c_seq):
+                                valid_record = False
+                                break
+        if not valid_record:
+            if output_discarded_records:
+                putative_record.attributes['FAIL'] = 'clip_seq_in_control'
+            else:
+                continue
+        yield putative_record
+
+
+def confirm_insertions(putative_insertions_path, all_treatments_path, all_controls_path, output_path, output_discarded_records=True):
+    """Confirm putative insertions by absence of softclipping patterns in a somatic control file."""
+    putative = get_tabix_file(putative_insertions_path)
+    treatment = get_tabix_file(all_treatments_path)
+    control = get_tabix_file(all_controls_path)
+    gff_record_iterator = filter_putative_insertions(putative=putative,
+                                                     treatment=treatment,
+                                                     control=control,
+                                                     output_discarded_records=output_discarded_records)
+    write_gff_records(gff_record_iterator, path=output_path)

@@ -1,0 +1,59 @@
+<tool id="confirm_insertions" name="Confirm or discard insertions" version="0.4.9">
+    <description>based on softclips in control files</description>
+    <requirements>
+        <requirement type="package" version="0.4.9">readtagger</requirement>
+    </requirements>
+    <version_command>confirm_insertions --version</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+        ln -fs $putative_insertions putative_insertions.gff &&
+        ln -fs $all_insertions all_insertions.gff &&
+        ln -fs $all_controls all_controls_path.gff &&
+        confirm_insertions
+        --putative_insertions_path putative_insertions.gff
+        --all_treatments_path all_insertions.gff
+        --all_controls_path all_controls_path.gff
+        --output_path '$output'
+        $output_discard
+    ]]></command>
+    <inputs>
+        <param name="putative_insertions" label="Path to filtered putative insertinos" argument="--putative_insertions_path" type="data" format="gff3"/>
+        <param name="all_insertions" label="Path to all unfiltered insertions" argument="--all_treatments_path" type="data" format="gff3"/>
+        <param name="all_controls" label="Path to all unfiltered insertions from control sample" argument="--all_controls_path" type="data" format="gff3"/>
+        <param name="output_discard" label="Output discarded records? Discarded records will be marked as failed." truevalue="--output_discarded_records" falsevalue="--no_output_discarded_records" checked="True" type="boolean"/>
+    </inputs>
+    <outputs>
+        <data name="output" format="gff3"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="putative_insertions" value="putative_insertions.gff" ftype="gff3"/>
+            <param name="all_insertions" value="all_treatment_insertions.gff" ftype="gff3"/>
+            <param name="all_controls" value="all_control_insertions.gff" ftype="gff3"/>
+            <output name="output" file="confirmed_insertions.gff" ftype="gff3"/>
+        </test>
+    </tests>
+    <help><![CDATA[
+.. code-block::
+
+
+    Usage: confirm_insertions [OPTIONS]
+
+      Confirm insertions by checking that control file does not contain the same
+      clipping pattern.
+
+    Options:
+      -p, --putative_insertions_path PATH
+                                      Path to file containing putative somatic
+                                      insertions  [required]
+      -t, --all_treatments_path PATH  Path to file containing all treatment
+                                      insertions  [required]
+      -c, --all_controls_path PATH    Path to file containing all control
+                                      insertions  [required]
+      -o, --output_path TEXT          Write annotated output to this Path.
+      --output_discarded_records / --no_output_discarded_records
+                                      Discard an alternative flag if the current
+                                      read is in a proper pair.
+      --version                       Show the version and exit.
+      --help                          Show this message and exit.
+    ]]></help>
+</tool>

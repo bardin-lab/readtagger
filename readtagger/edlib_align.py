@@ -2,9 +2,7 @@ import re
 from edlib import align
 
 from .instance_lru import lru_cache
-
-
-COMPLEMENTARY_SEQUENCES = {'A': 'T', 'T': 'A', 'G': 'C', 'C': 'G', 'N': 'N'}
+from .utils import revcom
 
 
 def multiple_sequences_overlap(queries, targets, min_match=30):
@@ -32,9 +30,3 @@ def sequences_overlap(query, targets, min_match=30):
 def cigar_to_max_operation(cigar):
     """Get the longest cigar operation from this cigar string."""
     return max([int(i) for i in re.split(r"[=IDX]+", cigar) if i])
-
-
-@lru_cache(maxsize=10000)
-def revcom(string):
-    """Build reverse complement of string."""
-    return "".join([COMPLEMENTARY_SEQUENCES[s] for s in string[::-1]])
