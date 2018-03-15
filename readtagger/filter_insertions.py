@@ -8,6 +8,8 @@ import pysam
 gff_record = namedtuple('GFF_record', 'seqid source type start end score strand phase attributes')
 comparison = namedtuple('Comparison', 'putative_event treatment_events control_events')
 
+SCAN_SOFT_CLIP_REGION = 15
+
 
 def get_tabix_file(path, preset='gff'):
     """Return a TabixFile instance for a file at `path`."""
@@ -50,8 +52,8 @@ def fetch_records(tabixfile, region):
     """Wrap TabixFile.fetch in try/except clause to ignore region errors."""
     try:
         return tabixfile.fetch(reference=region.seqid,
-                               start=int(region.start) - 1,
-                               end=int(region.end) + 1)
+                               start=int(region.start) - SCAN_SOFT_CLIP_REGION,
+                               end=int(region.end) + SCAN_SOFT_CLIP_REGION)
 
     except ValueError:
         # Happens if region is not present in tabix file, that's fine and expected
@@ -84,13 +86,19 @@ def filter_putative_insertions(putative, treatment, control, output_discarded_re
         for c in control_clips:
             for t in clips:
                 if c.type == t.type:
-                    if abs(c.start - t.start) < 2 or abs(c.end - t.end) < 2:
+                    if abs(c.start - t.start) < SCAN_SOFT_CLIP_REGION or abs(c.end - t.end) < SCAN_SOFT_CLIP_REGION:
                         c_seq = c.attributes.get('consensus')
                         t_seq = t.attributes.get('consensus')
                         if len(c_seq) > 2 and len(t_seq) > 2:
-                            if c_seq.startswith(t_seq) or t_seq.startswith(c_seq):
-                                valid_record = False
-                                break
+                            if c.type == '3p_clip':
+                                if c_seq.startswith(t_seq) or t_seq.startswith(c_seq):
+                                    valid_record = False
+                                    break
+                            else:
+                                # If there's a 5p clip the consensus start is at the right side
+                                if c_seq.endswith(t_seq) or t_seq.endswith(c_seq):
+                                    valid_record = False
+                                    break
         if not valid_record:
             if output_discarded_records:
                 putative_record.attributes['FAIL'] = 'clip_seq_in_control'
