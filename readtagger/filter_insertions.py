@@ -14,15 +14,21 @@ SCAN_SOFT_CLIP_REGION = 15
 def get_tabix_file(path, preset='gff'):
     """Return a TabixFile instance for a file at `path`."""
     if not os.path.exists("%s.gz.tbi" % path):
-        pysam.tabix_index(path, preset=preset)
+        pysam.tabix_index(path, preset=preset, keep_original=True)
     tabix_file = pysam.TabixFile("%s.gz" % path)
     return tabix_file
 
 
 def to_gff_attributes(s):
     """Convert a GFF attribute string to an OrderedDict."""
+    attr_d = OrderedDict()
     attributes = s.split(';')
-    return OrderedDict((i.split('=')) for i in attributes)
+    for attribute in attributes:
+        k, v = attribute.split('=')
+        if ',' in v:
+            v = v.split(',')
+        attr_d[k] = v
+    return attr_d
 
 
 def to_gff_record(r):
@@ -37,7 +43,12 @@ def gff_record_to_string(gff_record):
     """Convert a `GFF_record` namedtuple to a string representation."""
     fields = list(gff_record)
     fields[3], fields[4] = str(fields[3]), str(fields[4])
-    fields[8] = ";".join(["%s=%s" % (k, v) for k, v in gff_record.attributes.items()])
+    attributes = []
+    for k, v in fields[8].items():
+        if isinstance(v, list):
+            v = ",".join(v)
+        attributes.append("%s=%s" % (k, v))
+    fields[8] = ";".join(attributes)
     return "%s\n" % "\t".join(fields)
 
 
@@ -75,9 +86,12 @@ def filter_putative_insertions(putative, treatment, control, output_discarded_re
         valid_record = True
         clips = []
         control_clips = []
+        softclip_clusters = putative_record.attributes.get('softclip_clusters')
+        if not softclip_clusters:
+            yield putative_record
+            continue
         for putative_complement in putative_complements:
-            if putative_complement.type in ('3p_clip', '5p_clip') and putative_complement.attributes.get(
-                    'Parent', object()) == putative_record.attributes.get('ID', object()):
+            if putative_complement.type in ('3p_clip', '5p_clip') and putative_complement.attributes['ID'] in softclip_clusters:
                 # We only verify clipped sequences that are part of the insertion to verify
                 clips.append(putative_complement)
         for control_record in control_records:

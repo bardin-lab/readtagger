@@ -13,7 +13,7 @@ from .tag_softclip import get_softclipped_portion
 class SoftClipCluster(BaseCluster):
     """A cluster that groups reads with the same soft clipping position."""
 
-    exportable = ['source', 'consensus', 'score', 'max_mapq']
+    exportable = ['source', 'consensus', 'score', 'max_mapq', 'ID']
     source = 'find_softclip'
 
     def __init__(self, clip_position, clip_type):
@@ -55,7 +55,7 @@ class SoftClipCluster(BaseCluster):
 
     def to_feature_args(self):
         """Return this clusters attributes as a GFF subfeature."""
-        return {'qualifiers': {k: getattr(self, k) for k in self.exportable},
+        return {'qualifiers': {k: getattr(self, k.lower()) for k in self.exportable},
                 'type': self.clip_type}
 
 
@@ -117,8 +117,6 @@ class SoftClipClusterFinder(SampleNameMixin, ToGffMixin):
             for reachable in cluster.reachable(all_clusters=self.clusters):
                 cluster.extend(reachable)
                 self.clusters.remove(reachable)
+        for i, cluster in enumerate(self.clusters):
+            cluster.set_id("softclip_%d" % i)
         logging.info("Found %s clusters after merging clusters", len(self.clusters))
-
-    def exclude(self):
-        """Exclude clusters that are annotated elsewhere."""
-        self.clusters = [c for c in self.clusters if not c.exclude]

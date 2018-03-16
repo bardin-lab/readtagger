@@ -115,7 +115,7 @@ class Cluster(BaseCluster):
     exportable = ['source', 'score', 'total_left_count', 'left_mate_count',
                   'total_right_count', 'right_mate_count', 'nref',
                   'max_mapq', 'genotype', 'genotype_likelihoods', 'valid_TSD',
-                  'left_inserts', 'right_inserts', 'insert_reference_name']
+                  'left_inserts', 'right_inserts', 'insert_reference_name', 'softclip_clusters']
     source = "findcluster"
     left_blast_result = None
     right_blast_result = None
@@ -129,6 +129,7 @@ class Cluster(BaseCluster):
         self.evidence_against = set()
         self._cannot_join_d = {}
         self.abnormal = False
+        self.softclip_clusters = []
 
     @property
     def type(self):

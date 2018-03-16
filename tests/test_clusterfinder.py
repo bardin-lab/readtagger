@@ -41,6 +41,7 @@ MULTI_H6 = 'multisample_h6.bam'
 PREDICTED_INSERTION = 'predicted_insertion_roo.bam'
 START_END_PROBLEM = 'start_end_problem.bam'
 JOCKEY_NOT_FOUND = 'h4_jockey_not_found.bam'
+CLIP_TO_INSERTION = 'clip_to_insertion.bam'
 
 DEFAULT_MAX_PROPER_PAIR_SIZE = 700
 
@@ -132,8 +133,8 @@ def test_clusterfinder_refine_split2(datadir_copy, tmpdir):  # noqa: D103
     assert cluster_two.nalt == 1
     assert cluster_three.nalt == 46
     assert cluster_four.nalt == 84
-    assert len(clusters.softclip_finder.clusters) == 6
-    assert len(cluster_three.feature_args) == 2
+    assert len(clusters.softclip_finder.clusters) == 12
+    assert len(cluster_three.feature_args) == 0
 
 
 def test_cornercase(datadir_copy, tmpdir):  # noqa: D103
@@ -551,9 +552,24 @@ def test_clusterfinder_multisample(datadir_copy, tmpdir, reference_fasta):  # no
                              output_gff=output_gff,
                              transposon_reference_fasta=reference_fasta,
                              max_proper_pair_size=649)
-    assert len(clusters.softclip_finder.clusters) == 6
+    assert len(clusters.softclip_finder.clusters) == 8
     assert clusters.clusters[0].nalt == 1
     assert clusters.clusters[0].valid_tsd is False
+
+
+def test_clusterfinder_clip_assigned_to_insertion(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
+    input_path = str(datadir_copy[CLIP_TO_INSERTION])
+    output_gff = tmpdir.join('output.gff').strpath
+    clusters = ClusterFinder(input_path=input_path,
+                             output_bam=None,
+                             output_gff=output_gff,
+                             transposon_reference_fasta=reference_fasta,
+                             max_proper_pair_size=649)
+    assert len(clusters.softclip_finder.clusters) == 16
+    assert len(clusters.clusters) == 3
+    assert clusters.clusters[1].nalt == 66
+    assert clusters.clusters[1].valid_tsd
+    assert len(clusters.clusters[1].feature_args) == 0
 
 
 def test_clusterfinder_jockey_not_found(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
@@ -582,5 +598,5 @@ def test_clusterfinder_predicted_insertion_rover(datadir_copy, tmpdir, reference
                              output_gff=output_gff,
                              transposon_reference_fasta=reference_fasta,
                              max_proper_pair_size=649)
-    assert len(clusters.softclip_finder.clusters) == 0
-    assert len(clusters.clusters[0].feature_args) == 3
+    assert len(clusters.softclip_finder.clusters) == 2
+    assert len(clusters.clusters[0].feature_args) == 1
