@@ -4,6 +4,7 @@ from collections import (
     OrderedDict
 )
 import pysam
+from edlib import align
 
 gff_record = namedtuple('GFF_record', 'seqid source type start end score strand phase attributes')
 comparison = namedtuple('Comparison', 'putative_event treatment_events control_events')
@@ -103,22 +104,44 @@ def filter_putative_insertions(putative, treatment, control, output_discarded_re
                     if abs(c.start - t.start) < SCAN_SOFT_CLIP_REGION or abs(c.end - t.end) < SCAN_SOFT_CLIP_REGION:
                         c_seq = c.attributes.get('consensus')
                         t_seq = t.attributes.get('consensus')
-                        if len(c_seq) > 2 and len(t_seq) > 2:
-                            if c.type == '3p_clip':
-                                if c_seq.startswith(t_seq[:10]) or t_seq.startswith(c_seq[:10]):
-                                    valid_record = False
-                                    break
-                            else:
-                                # If there's a 5p clip the consensus start is at the right side
-                                if c_seq.endswith(t_seq[-10:]) or t_seq.endswith(c_seq[-10:]):
-                                    valid_record = False
-                                    break
+                        if sequences_match(seq1=c_seq, seq2=t_seq, compare=c.type):
+                            valid_record = False
+                            break
         if not valid_record:
             if output_discarded_records:
                 putative_record.attributes['FAIL'] = 'clip_seq_in_control'
             else:
                 continue
         yield putative_record
+
+
+def sequences_match(seq1, seq2, compare='5p_clip'):
+    """
+    Compare 2 sequences and determine whether they are likely the same.
+
+    >>> s1, s2 = 'AAAAAAAAAA', 'AAAAAAAAATGC'
+    >>> sequences_match(s1, s2, compare='3p_clip')
+    True
+    >>> sequences_match('TTGAAAAAAA', s2, compare='3p_clip')
+    False
+    >>> sequences_match(s1[::-1], s2[::-1], compare='5p_clip')
+    True
+    >>> sequences_match('A', 'A')
+    False
+    """
+    if compare == '3p_clip':
+        seq1 = seq1[:10]
+        seq2 = seq2[:10]
+    else:
+        seq1 = seq1[-10:]
+        seq2 = seq1[-10:]
+    if len(seq1) > 2 and len(seq2) > 2:
+        if len(seq1) == 10 and len(seq2) == 10:
+            if align(seq1, seq2)['editDistance'] < 2:
+                return True
+        else:
+            return seq1.startswith(seq2) or seq2.startswith(seq1)
+    return False
 
 
 def confirm_insertions(putative_insertions_path, all_treatments_path, all_controls_path, output_path, output_discarded_records=True):
