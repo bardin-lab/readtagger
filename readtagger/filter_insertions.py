@@ -105,12 +105,12 @@ def filter_putative_insertions(putative, treatment, control, output_discarded_re
                         t_seq = t.attributes.get('consensus')
                         if len(c_seq) > 2 and len(t_seq) > 2:
                             if c.type == '3p_clip':
-                                if c_seq.startswith(t_seq) or t_seq.startswith(c_seq):
+                                if c_seq.startswith(t_seq[:10]) or t_seq.startswith(c_seq[:10]):
                                     valid_record = False
                                     break
                             else:
                                 # If there's a 5p clip the consensus start is at the right side
-                                if c_seq.endswith(t_seq) or t_seq.endswith(c_seq):
+                                if c_seq.endswith(t_seq[-10:]) or t_seq.endswith(c_seq[-10:]):
                                     valid_record = False
                                     break
         if not valid_record:
