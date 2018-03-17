@@ -324,6 +324,8 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
                                 cluster.softclip_clusters.append(c.id)
                         elif c.clip_position > position + SEARCH_WINDOW:
                             softclip_idx = i - 100
+                            if softclip_idx < 0:
+                                softclip_idx = 0
                             break
             if cluster.clustertag.tsd.three_p_reads:
                 position = cluster.clustertag.tsd.three_p
@@ -334,6 +336,8 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
                                 cluster.softclip_clusters.append(c.id)
                         elif c.clip_position > position + SEARCH_WINDOW:
                             softclip_idx = i - 100
+                            if softclip_idx < 0:
+                                softclip_idx = 0
                             break
 
     def _add_new_clusters(self, new_clusters, index):
