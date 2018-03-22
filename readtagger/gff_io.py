@@ -11,7 +11,7 @@ from Bio.SeqRecord import SeqRecord
 from Bio.SeqFeature import SeqFeature, FeatureLocation
 
 
-def write_cluster(clusters, header, output_path, sample='sample', threads=1):
+def write_gff_cluster(clusters, header, output_path, sample_name='sample', threads=1):
     """Write clusters as GFF entries."""
     with open(output_path, "w") as out_handle:
         tp = ThreadPoolExecutor(threads)
@@ -19,13 +19,28 @@ def write_cluster(clusters, header, output_path, sample='sample', threads=1):
         records = OrderedDict((tid, SeqRecord(Seq(""), sn)) for tid, sn in enumerate(header.references))
         for i, cluster in enumerate(clusters):
             if not cluster.exclude:
-                func = partial(get_feature, cluster, sample, i)
+                func = partial(get_feature, cluster, sample_name, i)
                 futures.append(tp.submit(func))
         for future in futures:
             tid, feature = future.result()
             records[tid].features.append(feature)
         GFF.write(records.values(), out_handle)
         tp.shutdown(wait=True)
+
+
+def merge_gff_files(gff_files, output_path, sort=True):
+    """Merge multiple GFF files."""
+    wrote_header = False
+    with open(output_path, 'w') as gff_writer:
+        for output_piece in gff_files:
+            if os.path.exists(output_piece):
+                with open(output_piece) as piece:
+                    for line in piece:
+                        if line.startswith('#') and wrote_header:
+                            continue
+                        gff_writer.write(line)
+    if sort:
+        sort_gff(input_path=output_path, output_path=output_path)
 
 
 def get_feature(cluster, sample, i):

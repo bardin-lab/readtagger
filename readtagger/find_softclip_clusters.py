@@ -77,7 +77,7 @@ class SoftClipClusterFinder(SampleNameMixin, ToGffMixin):
         if input_path:
             self.find_clusters()
             self.merge_clusters()
-            self.to_gff()
+            self.to_gff(output_gff)
 
     def find_clusters(self):
         """Find clusters by iterating over input_path and creating clusters if reads are softclipped."""

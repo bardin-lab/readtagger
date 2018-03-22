@@ -124,7 +124,7 @@ def start_positions_for_last_qnames(fn, last_qnames):
     return seek_positions
 
 
-def merge_bam(bam_collection, output_path, template_bam=None):
+def merge_bam(bam_collection, output_path, template_bam=None, sort_order=None, threads=1):
     """Merge a readname sorted collection of BAM files."""
     bam_collection = [bam for bam in bam_collection if os.path.exists(bam)]
     if not template_bam:
@@ -135,6 +135,8 @@ def merge_bam(bam_collection, output_path, template_bam=None):
             os.remove(bam)
         except OSError:
             pass
+    if sort_order:
+        sort_bam(inpath=output_path, output=output_path, sort_order=sort_order, threads=threads)
     return output_path
 
 

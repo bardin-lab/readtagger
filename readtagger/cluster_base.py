@@ -4,8 +4,8 @@ from itertools import chain
 from cached_property import cached_property
 
 from .gff_io import (
-    write_cluster,
-    sort_gff
+    sort_gff,
+    write_gff_cluster
 )
 
 logger = logging.getLogger(__name__)

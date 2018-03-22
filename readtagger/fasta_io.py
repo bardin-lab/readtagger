@@ -1,4 +1,5 @@
 import os
+import shutil
 import tempfile
 
 import six
@@ -32,3 +33,11 @@ def write_sequences(sequences, output_path=None, tmp_dir=None):
     if fd:
         os.close(fd)
     return output_path
+
+
+def merge_fasta(fasta_files, output_path):
+    """Merge fasta files."""
+    with open(output_path, 'wb') as fasta_writer:
+        for fasta in fasta_files:
+            if os.path.exists(fasta):
+                shutil.copyfileobj(open(fasta, 'rb'), fasta_writer)

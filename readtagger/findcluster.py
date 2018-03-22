@@ -1,6 +1,5 @@
 import logging
 import os
-import shutil
 
 from concurrent.futures import (
     as_completed,
@@ -8,7 +7,6 @@ from concurrent.futures import (
     ThreadPoolExecutor,
     ProcessPoolExecutor
 )
-import multiprocessing_logging
 import six
 
 from .assemby_realignment import AssemblyRealigner
@@ -30,8 +28,9 @@ from .cluster_base import (
     ToGffMixin
 )
 from .cigar import aligned_segment_corresponds_to_transposable_element
+from .fasta_io import merge_fasta
 from .find_softclip_clusters import SoftClipClusterFinder
-from .gff_io import sort_gff
+from .gff_io import merge_gff_files
 from .readtagger import get_max_proper_pair_size
 from .verify import discard_supplementary
 try:
@@ -99,29 +98,13 @@ class ClusterManager(object):
         output_bam = self.kwds.get('output_bam')
         if output_bam:
             bam_files = [kwd['output_bam'] for kwd in self.process_list if kwd['output_bam']]
-            merge_bam(bam_collection=bam_files, output_path=self.kwds['output_bam'])
-            sort_bam(inpath=self.kwds['output_bam'], output=self.kwds['output_bam'], sort_order='coordinate', threads=min((8, self.threads)))
+            merge_bam(bam_collection=bam_files, output_path=self.kwds['output_bam'], sort_order='coordinate', threads=min((8, self.threads)))
         output_fasta = self.kwds.get('output_fasta')
         if output_fasta:
-            fasta_files = [kwd['output_fasta'] for kwd in self.process_list if kwd['output_fasta']]
-            with open(output_fasta, 'wb') as fasta_writer:
-                for fasta in fasta_files:
-                    if os.path.exists(fasta):
-                        shutil.copyfileobj(open(fasta, 'rb'), fasta_writer)
+            merge_fasta(fasta_files=[kwd['output_fasta'] for kwd in self.process_list], output_path=output_fasta)
         output_gff = self.kwds.get('output_gff')
         if output_gff:
-            gff_files = [kwd['output_gff'] for kwd in self.process_list if kwd['output_gff']]
-            wrote_header = False
-            with open(output_gff, 'w') as gff_writer:
-                for gff in gff_files:
-                    if os.path.exists(gff):
-                        with open(gff) as gff_file:
-                            for line in gff_file:
-                                if line.startswith('#') and wrote_header:
-                                    continue
-                                gff_writer.write(line)
-                        wrote_header = True
-            sort_gff(input_path=output_gff, output_path=output_gff)
+            merge_gff_files([kwd['output_gff'] for kwd in self.process_list], output_gff)
 
 
 def wrapper(kwds):
@@ -200,7 +183,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
                 self.align_bwa()
                 self.collect_non_evidence()
                 self.to_bam()
-                self.to_gff()
+                self.to_gff(output_path=self.output_gff)
 
     def setup_bwa_indexes(self):
         """Handle setting up BWA indexes."""
