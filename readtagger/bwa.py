@@ -9,6 +9,8 @@ except ImportError:
 
 from .fasta_io import write_sequences
 
+logger = logging.getLogger(__name__)
+
 
 class Description(object):
     """Hold details for alignment."""
@@ -252,5 +254,5 @@ def wait_and_get_return_code(p):
     """
     rc = p.wait()
     if rc:
-        logging.warning(p.stderr.read())
+        logger.warning(p.stderr.read())
     return rc

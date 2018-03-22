@@ -13,6 +13,8 @@ try:
 except ImportError:
     from backports.tempfile import TemporaryDirectory
 
+logger = logging.getLogger(__name__)
+
 
 class BaseAssembly(ABC):
     """Provide Base Class for Assembly modules."""
@@ -67,8 +69,8 @@ class Cap3Assembly(BaseAssembly):
                     # Use check call to ignore stdout of cap3
                     subprocess.check_call(args, stdout=DEVNULL, close_fds=True)
                 except subprocess.CalledProcessError as e:
-                    logging.error("An error occured while attempting to assemble reads: "
-                                  "%s\n The problematic sequences are: %s", e, self.sequences)
+                    logger.error("An error occured while attempting to assemble reads: "
+                                 "%s\n The problematic sequences are: %s", e, self.sequences)
                     return Ace.ACEFileRecord().contigs
             return Ace.read(open(os.path.join(self.input_dir, 'multialign.fa.cap.ace'))).contigs
         else:

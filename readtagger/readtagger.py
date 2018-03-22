@@ -32,7 +32,6 @@ except ImportError:
     from backports.tempfile import TemporaryDirectory
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s - %(message)s', level=logging.DEBUG)
 DEFAULT_CHUNK_SIZE = 10000
 
 

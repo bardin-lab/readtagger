@@ -5,6 +5,8 @@ from .dumb_consensus import dumb_consensus
 from .cap3 import Cap3Assembly
 from .targetsiteduplication import TargetSiteDuplication
 
+logger = logging.getLogger(__name__)
+
 
 class TagCluster(object):
     """
@@ -85,7 +87,7 @@ class TagCluster(object):
                 # the cluster reads as a BAM file and inspect them to see what should be done.
                 warn = "Found a cluster with 5p and 3p evidence for TSD, but reads are spaced too far apart.\n"
                 warn += "The cluster coordinates are tid: %s, start:%s, end: %s" % (self.cluster[0].tid, self.cluster[0].pos, self.cluster[-1].reference_end)
-                logging.warn(warn)
+                logger.debug(warn)
             return five_p, three_p
         return self.tsd.five_p, self.tsd.three_p
 

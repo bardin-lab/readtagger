@@ -8,6 +8,8 @@ from .gff_io import (
     sort_gff
 )
 
+logger = logging.getLogger(__name__)
+
 
 class SampleNameMixin(object):
     """Provide a sample name property."""

@@ -1,6 +1,8 @@
+import logging
 import click
 from readtagger.findcluster import ClusterManager
 from readtagger import VERSION
+import multiprocessing_logging
 
 
 @click.command()
@@ -62,7 +64,13 @@ from readtagger import VERSION
 @click.option('--shm_dir',
               envvar="SHM_DIR",
               help='Path to shared memory folder', default=None, type=click.Path(exists=True))
+@click.option('-v', '--verbosity', default='DEBUG', help="Set the default logging level.")
+@click.option('-l', '--log_to', default=None, help='Write logs to this file')
 @click.version_option(version=VERSION)
 def findcluster(**kwds):
     """Find clusters of reads that support a TE insertion."""
+    logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s - %(message)s',
+                        filename=kwds.pop('log_to'),
+                        level=getattr(logging, kwds.pop('verbosity')))
+    multiprocessing_logging.install_mp_handler()
     return ClusterManager(**kwds)

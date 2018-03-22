@@ -9,6 +9,8 @@ from .cluster_base import (
 from .dumb_consensus import dumb_consensus
 from .tag_softclip import get_softclipped_portion
 
+logger = logging.getLogger(__name__)
+
 
 class SoftClipCluster(BaseCluster):
     """A cluster that groups reads with the same soft clipping position."""
@@ -79,13 +81,13 @@ class SoftClipClusterFinder(SampleNameMixin, ToGffMixin):
 
     def find_clusters(self):
         """Find clusters by iterating over input_path and creating clusters if reads are softclipped."""
-        logging.info("Finding clusters of softclipped reads (%s)" % self.region or 0)
+        logger.info("Finding clusters of softclipped reads (%s)" % self.region or 0)
         with Reader(self.input_path, index=True, sort_order='coordinate') as reader:
             self.header = reader.header
             for r in reader.fetch(region=self.region):
                 if not r.is_duplicate and r.mapping_quality >= self.min_mapq:
                     self.add_read(r=r)
-        logging.info("Found %d clusters (%s)", len(self.clusters), self.region or 0)
+        logger.info("Found %d clusters (%s)", len(self.clusters), self.region or 0)
 
     def add_read(self, r):
         """Add a clipped read."""
@@ -119,4 +121,4 @@ class SoftClipClusterFinder(SampleNameMixin, ToGffMixin):
                 self.clusters.remove(reachable)
         for i, cluster in enumerate(self.clusters):
             cluster.set_id("softclip_%d" % i)
-        logging.info("Found %s clusters after merging clusters", len(self.clusters))
+        logger.info("Found %s clusters after merging clusters", len(self.clusters))

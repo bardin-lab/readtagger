@@ -4,9 +4,7 @@ import pysam
 
 from .bam_io import BamAlignmentWriter as Writer
 
-
 logger = logging.getLogger(__name__)
-logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s - %(message)s', level=logging.DEBUG)
 
 
 def get_max_proper_pair_size(path, reads_to_check=1000):

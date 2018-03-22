@@ -7,9 +7,7 @@ import subprocess
 import tempfile
 import pysam
 
-
 logger = logging.getLogger(__name__)
-logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s - %(message)s', level=logging.DEBUG)
 
 
 def is_file_coordinate_sorted(path, reads_to_check=1000):

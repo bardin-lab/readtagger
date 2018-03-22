@@ -40,8 +40,6 @@ except ImportError:
     from backports.tempfile import TemporaryDirectory
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s - %(message)s', level=logging.DEBUG)
-multiprocessing_logging.install_mp_handler()
 
 
 class ClusterManager(object):
@@ -84,9 +82,9 @@ class ClusterManager(object):
                 e = f.exception()
                 if e is not None:
                     if isinstance(e, RuntimeError):
-                        logging.error("Runtime error occured: %s", e)
+                        logger.error("Runtime error occured: %s", e)
                     else:
-                        logging.error("Shutting down futures, an Exception occured.")
+                        logger.error("Shutting down futures, an Exception occured.")
                         wait_for_running_futures = []
                         for rf in futures[::-1]:
                             if rf.cancel():
@@ -222,7 +220,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
 
     def find_cluster(self):
         """Find clusters by iterating over input_path and creating clusters if reads are disjointed."""
-        logging.info("Finding clusters in region '%s'", self.region or 0)
+        logger.info("Finding clusters in region '%s'", self.region or 0)
         if self.remove_supplementary_without_primary:
             self._remove_supplementary_without_primary()
         clusters = []
@@ -257,7 +255,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
                     cluster.append(r)
                     clusters.append(cluster)
         self.softclip_finder.merge_clusters()
-        logging.info('Found %d cluster on first pass (%s)', len(clusters), self.region or 0)
+        logger.info('Found %d cluster on first pass (%s)', len(clusters), self.region or 0)
         if clusters:
             minimum_start = clusters[0].min
             maximum_end = clusters[-1].max
@@ -265,9 +263,9 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
             if cluster_density > 0.1:
                 # every 10th nt a cluster, that should only happen on decoys.
                 self.is_decoy = True
-                logging.info('Skipping region with abnormally high cluster density (%s), probably a decoy (%s)',
-                             cluster_density,
-                             self.region or 0)
+                logger.info('Skipping region with abnormally high cluster density (%s), probably a decoy (%s)',
+                            cluster_density,
+                            self.region or 0)
         return clusters
 
     def clean_clusters(self):
@@ -282,31 +280,31 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
             i = 0
             while new_clusterlength != cluster_length:
                 i += 1
-                logging.info("Joining clusters (currently %d), round %i (%s)", cluster_length, i, self.region or 0)
+                logger.info("Joining clusters (currently %d), round %i (%s)", cluster_length, i, self.region or 0)
                 cluster_length = new_clusterlength
                 for cluster in self.clusters:
                     cluster.join_adjacent(all_clusters=self.clusters)
                 new_clusterlength = len(self.clusters)
-        logging.info("Found %d cluster after first pass of cluster joining (%s).", new_clusterlength, self.region or 0)
-        logging.info("Splitting cluster at polarity switches")
+        logger.info("Found %d cluster after first pass of cluster joining (%s).", new_clusterlength, self.region or 0)
+        logger.info("Splitting cluster at polarity switches")
         for index, cluster in enumerate(self.clusters):
             new_clusters = cluster.split_cluster_at_polarity_switch()
             self._add_new_clusters(new_clusters, index)
-        logging.info("After splitting at polarity switches we have %d cluster (was: %d) (%s)",
-                     len(self.clusters),
-                     new_clusterlength,
-                     self.region or 0)
-        logging.info("Checking cluster consistency (%s)", self.region or 0)
+        logger.info("After splitting at polarity switches we have %d cluster (was: %d) (%s)",
+                    len(self.clusters),
+                    new_clusterlength,
+                    self.region or 0)
+        logger.info("Checking cluster consistency (%s)", self.region or 0)
         for index, cluster in enumerate(self.clusters):
             new_clusters = cluster.check_cluster_consistency()
             self._add_new_clusters(new_clusters, index)
-        logging.info("After splitting inconsistent clusters we have %d cluster", len(self.clusters))
-        logging.info("Last pass of joining cluster (%s)", self.region or 0)
+        logger.info("After splitting inconsistent clusters we have %d cluster", len(self.clusters))
+        logger.info("Last pass of joining cluster (%s)", self.region or 0)
         for cluster in self.clusters:
             cluster.refine_members(self.assembly_realigner)
             cluster.join_adjacent(all_clusters=self.clusters)
         # We are done, we can give the clusters a numeric index, so that we can distribute the processing and recover the results
-        logging.info("Found %d cluster overall (%s)", len(self.clusters), self.region or 0)
+        logger.info("Found %d cluster overall (%s)", len(self.clusters), self.region or 0)
         self.clusters.sort(key=lambda x: x.start)
         [c.set_id(idx) for idx, c in enumerate(self.clusters)]
 
@@ -353,7 +351,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
     def collect_non_evidence(self):
         """Count reads that overlap cluster site but do not provide evidence for an insertion."""
         chunks = Chunks(clusters=self.clusters, header=self.header, input_path=self.input_path)
-        logging.info("Collecting evidence (%s)", self.region or 0)
+        logger.info("Collecting evidence (%s)", self.region or 0)
         for chunk in chunks.chunks:
             result = non_evidence(chunk)
             for index, evidence_against in result['against'].items():
@@ -374,7 +372,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
 
     def to_fasta(self):
         """Write supporting sequences to fasta file for detailed analysis."""
-        logging.info("Writing contig fasta (%s)", self.region or 0)
+        logger.info("Writing contig fasta (%s)", self.region or 0)
         if self.output_fasta:
             self._create_contigs()
             with open(self.output_fasta, 'w') as out:
@@ -384,23 +382,23 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
 
     def align_bwa(self):
         """Align cluster contigs or invidiual reads to a reference and write result into cluster."""
-        logging.info("Aligning reads with BWA to describe cluster (%s)", self.region or 0)
+        logger.info("Aligning reads with BWA to describe cluster (%s)", self.region or 0)
         if self.output_fasta and (self.transposon_reference_fasta or self.transposon_bwa_index):
             bwa = Bwa(input_path=self.output_fasta,
                       bwa_index=self.transposon_bwa_index,
                       reference_fasta=self.transposon_reference_fasta,
                       threads=self.threads)
             for i, cluster in enumerate(self.clusters):
-                description = bwa.desciption.get(i)
+                description = bwa.description.get(i)
                 if description:
                     cluster.insert_reference_name = description.pop(-1)
                     for cluster_description in description:
                         if cluster_description:
-                            cluster.feature_args.add(cluster_description[0])
+                            cluster.feature_args.append(cluster_description[0])
 
     def to_bam(self):
         """Write clusters of reads and include cluster number in CD tag."""
-        logging.info("Writing clusters of reads (%s)", self.region or 0)
+        logger.info("Writing clusters of reads (%s)", self.region or 0)
         if self.output_bam:
             with Writer(self.output_bam, header=self.header) as writer:
                 for i, cluster in enumerate(self.clusters):
