@@ -66,7 +66,7 @@ class Bwa(object):
         self.bwa_run = self.run()
         if self.describe_alignment:
             self.clusters = self.reads_to_clusters()
-            self.desciption = self.describe_clusters()
+            self.description = self.describe_clusters()
 
     def run(self):
         """Run bwa command."""
