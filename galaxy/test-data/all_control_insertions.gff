@@ -1,2 +1,3 @@
+TEST	find_softclip	5p_clip	16727068	16727111	6	+	.	ID=softclip_test2;consensus=TTTTTTT
 X	find_softclip	5p_clip	16727068	16727067	3	+	.	ID=softclip_0;consensus=ACTTAATA;max_mapq=25
 X	find_softclip	3p_clip	16727112	16727111	4	+	.	ID=softclip_1;consensus=TTTAATAAAATTAAAGGACAACTAAACGGAAGGAAAATATCGTGAGCAG;max_mapq=28

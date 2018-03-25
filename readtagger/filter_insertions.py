@@ -82,7 +82,7 @@ def fill_comparison(putative, control, treatment):
 
 
 def filter_putative_insertions(putative, treatment, control, output_discarded_records=True):
-    """Remove insertions that are based on clipped sequences whicha re also present in the control."""
+    """Remove insertions that are based on clipped sequences which are also present in the control."""
     for (putative_record, putative_complements, control_records) in fill_comparison(putative, control, treatment):
         valid_record = True
         clips = []
@@ -107,12 +107,11 @@ def filter_putative_insertions(putative, treatment, control, output_discarded_re
                         if sequences_match(seq1=c_seq, seq2=t_seq, compare=c.type):
                             valid_record = False
                             break
-        if not valid_record:
-            if output_discarded_records:
-                putative_record.attributes['FAIL'] = 'clip_seq_in_control'
-            else:
-                continue
-        yield putative_record
+        if valid_record:
+            yield putative_record
+        elif output_discarded_records:
+            putative_record.attributes['FAIL'] = 'clip_seq_in_control'
+            yield putative_record
 
 
 def sequences_match(seq1, seq2, compare='5p_clip'):
@@ -134,7 +133,7 @@ def sequences_match(seq1, seq2, compare='5p_clip'):
         seq2 = seq2[:10]
     else:
         seq1 = seq1[-10:]
-        seq2 = seq1[-10:]
+        seq2 = seq2[-10:]
     if len(seq1) > 2 and len(seq2) > 2:
         if len(seq1) == 10 and len(seq2) == 10:
             if align(seq1, seq2)['editDistance'] < 2:
