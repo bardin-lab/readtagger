@@ -6,6 +6,7 @@ CODE2CIGAR = "MIDNSHP=XB"
 CIGAR2CODE = dict([y, x] for x, y in enumerate(CODE2CIGAR))
 CIGAR = namedtuple('CIGAR', 'operation length')
 MATCH = 0
+SOFT_CLIP = 4
 HARD_CLIP = 5
 
 
@@ -100,24 +101,26 @@ def cigar_tuple_to_cigar_length(cigar):
 
 def aligned_segment_corresponds_to_transposable_element(r):
     """Verify that aligned segment corresponds to a putative insertion."""
-    LEFT_HARD_CLIP = r.cigar[0][0] == HARD_CLIP
-    RIGHT_HARD_CLIP = r.cigar[-1][0] == HARD_CLIP
-    if r.query_alignment_start == 0 and r.query_alignment_end == r.query_length and not (LEFT_HARD_CLIP or RIGHT_HARD_CLIP):
-        return False
-    tag = r.get_tag('AD')
-    orientation = 'AS' if r.is_reverse else 'S'
-    postions = []
-    if r.query_alignment_start != 0 or LEFT_HARD_CLIP:
-        postions.append(r.query_alignment_start)
-    if r.query_alignment_end != r.query_length or RIGHT_HARD_CLIP:
-        postions.append(r.query_alignment_end)
-    if not postions:
-        pass
-    for position in postions:
-        if position_corresponds_to_transposable_element(tag=tag,
-                                                        position=position,
-                                                        orientation=orientation):
-            return True
+    # It is possible that an aligned segment is marked as having homology with a TE,
+    # but that this applies to a different genomic alignment than what we are looking at now.
+    # We first ask whether there is any hard or soft clipping
+    left_hard_clip = r.cigar[0][0] == HARD_CLIP
+    right_hard_clip = r.cigar[-1][0] == HARD_CLIP
+    left_soft_clip = r.cigar[0][0] == SOFT_CLIP
+    right_soft_clip = r.cigar[-1][0] == SOFT_CLIP
+    if any((left_hard_clip, right_hard_clip, left_soft_clip, right_soft_clip)):
+        tag = r.get_tag('AD')
+        orientation = 'AS' if r.is_reverse else 'S'
+        postions = []
+        if r.query_alignment_start != 0 or left_hard_clip:
+            postions.append(r.query_alignment_start)
+        if r.query_alignment_end != r.query_length or right_hard_clip:
+            postions.append(r.query_alignment_end)
+        for position in postions:
+            if position_corresponds_to_transposable_element(tag=tag,
+                                                            position=position,
+                                                            orientation=orientation):
+                return True
 
 
 def position_corresponds_to_transposable_element(tag, position, orientation):
