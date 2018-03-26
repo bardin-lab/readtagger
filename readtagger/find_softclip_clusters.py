@@ -75,9 +75,8 @@ class SoftClipCluster(BaseCluster):
         """Return a consensus sequence for the clipped sequences im this cluster."""
         return dumb_consensus(string_list=self.clipped_sequences, left_align=self.clip_type == '3p_clip')
 
-    def reachable(self, all_clusters):
+    def reachable(self, all_clusters, idx):
         """Find all cluster that are at the same position and have the same clip_type."""
-        idx = all_clusters.index(self)
         clip_position = self.clip_position
         clip_type = self.clip_type
         for i, cluster in enumerate(all_clusters[idx + 1:]):
@@ -142,10 +141,17 @@ class SoftClipClusterFinder(SampleNameMixin, ToGffMixin):
     def merge_clusters(self):
         """Merge clusters with same cluster_type and same `clip_type`."""
         self.clusters.sort(key=lambda x: x.clip_position)
-        for cluster in self.clusters:
-            for reachable in cluster.reachable(all_clusters=self.clusters):
+        for i, c in enumerate(self.clusters):
+            c.set_id(i)
+        new_list = []
+        deleted_items = 0
+        for i, cluster in enumerate(self.clusters):
+            for reachable in cluster.reachable(all_clusters=self.clusters, idx=i):
                 cluster.extend(reachable)
-                self.clusters.remove(reachable)
+                del self.clusters[reachable.id - deleted_items]
+                deleted_items += 1
+            new_list.append(cluster)
+        self.clusters = new_list
         for i, cluster in enumerate(self.clusters):
             cluster.set_id("softclip_%d" % i)
         logger.info("Found %s clusters after merging clusters", len(self.clusters))
