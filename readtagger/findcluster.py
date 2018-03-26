@@ -24,13 +24,15 @@ from .cluster import Cluster
 from .cluster import non_evidence
 from .cluster_base import (
     SampleNameMixin,
-    ToGffMixin
+    ToGffMixin,
+    ToVcfMixin
 )
 from .cigar import aligned_segment_corresponds_to_transposable_element
 from .fasta_io import merge_fasta
 from .find_softclip_clusters import SoftClipClusterFinder
 from .gff_io import merge_gff_files
 from .readtagger import get_max_proper_pair_size
+from .vcf_io import merge_vcf_files
 from .verify import discard_supplementary
 try:
     from tempfile import TemporaryDirectory
@@ -71,9 +73,8 @@ class ClusterManager(object):
             for i, region in enumerate(chunks):
                 kwds = self.kwds.copy()
                 kwds['region'] = region
-                kwds['output_bam'] = os.path.join(tempdir, "%d.bam" % i)
-                kwds['output_gff'] = os.path.join(tempdir, "%d.gff" % i)
-                kwds['output_fasta'] = os.path.join(tempdir, "%d.fasta" % i)
+                for key, ext in [('output_bam', '.bam'), ('output_gff', '.gff'), ('output_vcf', ',vcf'), ('output_fasta', '.fasta')]:
+                    kwds[key] = os.path.join(tempdir, "%d%s" % (i, ext))
                 self.process_list.append(kwds)
                 futures.append(executor.submit(wrapper, kwds))
             for f in as_completed(fs=futures):
@@ -104,6 +105,9 @@ class ClusterManager(object):
         output_gff = self.kwds.get('output_gff')
         if output_gff:
             merge_gff_files([kwd['output_gff'] for kwd in self.process_list], output_gff)
+        output_vcf = self.kwds.get('output_vcf')
+        if output_vcf:
+            merge_vcf_files([kwd['output_vcf'] for kwd in self.process_list], output_vcf)
 
 
 def wrapper(kwds):
@@ -111,7 +115,7 @@ def wrapper(kwds):
     ClusterFinder(**kwds)
 
 
-class ClusterFinder(SampleNameMixin, ToGffMixin):
+class ClusterFinder(SampleNameMixin, ToGffMixin, ToVcfMixin):
     """Find clusters of reads."""
 
     def __init__(self,
@@ -119,6 +123,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
                  output_bam=None,
                  output_gff=None,
                  output_fasta=None,
+                 output_vcf=None,
                  transposon_reference_fasta=None,
                  transposon_bwa_index=None,
                  genome_reference_fasta=None,
@@ -148,6 +153,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
         self.input_path = input_path
         self.output_bam = output_bam
         self.output_gff = output_gff
+        self.output_vcf = output_vcf
         self.output_fasta = output_fasta
         self.transposon_reference_fasta = transposon_reference_fasta
         self.transposon_bwa_index = transposon_bwa_index
@@ -183,6 +189,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
                 self.collect_non_evidence()
                 self.to_bam()
                 self.to_gff(output_path=self.output_gff)
+                self.to_vcf(output_path=self.output_vcf)
 
     def setup_bwa_indexes(self):
         """Handle setting up BWA indexes."""

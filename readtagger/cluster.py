@@ -1,10 +1,12 @@
-from collections import defaultdict
+from collections import (
+    defaultdict,
+    OrderedDict
+)
 from itertools import (
     chain,
     groupby,
     permutations
 )
-
 import pysam
 from .edlib_align import (
     multiple_sequences_overlap,
@@ -36,8 +38,9 @@ class BaseCluster(list):
         self.evidence_against = set()
         self.evidence_for_five_p = set()
         self.evidence_for_three_p = set()
-        self.feature_args = set()
+        self.feature_args = []
         self.exclude = False
+        self.ref = 'N'
 
     def __hash__(self):
         """Delegate to self.hash for hash specific to this cluster."""
@@ -70,7 +73,7 @@ class BaseCluster(list):
     @property
     def hash(self):
         """Calculate a hash based on read name and read sequence for all reads in this cluster."""
-        return hash("".join(("%s" % id(r) for r in self)))
+        return hash(tuple((id(r) for r in self)))
 
     @property
     def max_mapq(self):
@@ -116,9 +119,39 @@ class Cluster(BaseCluster):
                   'total_right_count', 'right_mate_count', 'nref',
                   'max_mapq', 'genotype', 'genotype_likelihoods', 'valid_TSD',
                   'left_inserts', 'right_inserts', 'insert_reference_name', 'softclip_clusters']
+    vcf_mandatory = OrderedDict([
+        ('alts', 'alts',),
+        ('pos', 'pos',),
+        ('stop', 'stop',),
+        ('chrom', 'reference_name',),
+        ('ref', 'ref',),
+        ('id', 'vcf_id',),
+    ])
+    vcf_info = OrderedDict([
+        ('SVTYPE', 'svtype',),
+        ('SVLEN', 'insert_len',),
+        ('MQ', 'max_mapq',),
+        ('EVENT', 'vcf_id',),
+        ('MATEID', 'softclip_clusters',),
+    ])
+    vcf_sample = OrderedDict([
+        ('GT', 'vcf_genotype',),
+        ('GL', 'vcf_genotype_likelikoods',),
+        ('AD', ['nref', 'nalt'],),
+        ('DP', 'depth',),
+        ('SU', 'nalt',),
+        ('SU5', 'total_left_count',),
+        ('SU3', 'total_right_count',),
+        ('SR', 'total_split_count',),
+        ('SR5', 'left_split_count',),
+        ('SR3', 'right_split_count',),
+        ('MENAME', 'insert_reference_name',),
+        ('MESTART', 'insert_start',),
+        ('MEEND', 'insert_end',),
+        ('MEASSEMBLY5', 'left_inserts',),
+        ('MEASSEMBLY3', 'right_inserts',),
+    ])
     source = "findcluster"
-    left_blast_result = None
-    right_blast_result = None
 
     def __init__(self, shm_dir, max_proper_size=0):
         """Initialize Cluster instance."""
@@ -126,10 +159,89 @@ class Cluster(BaseCluster):
         self.insert_reference_name = None
         self.max_proper_size = max_proper_size
         self.shm_dir = shm_dir
-        self.evidence_against = set()
         self._cannot_join_d = {}
         self.abnormal = False
         self.softclip_clusters = []
+
+    @property
+    def pos(self):
+        """Return the 1-based start position of this cluster."""
+        return self.start + 1
+
+    @property
+    def vcf_genotype(self):
+        """Return the genotype in VCF format."""
+        gt = {'homozygous': (1, 1),
+              'heterozygous': (0, 1),
+              'reference': (0, 0)}
+        return gt[self.genotype]
+
+    @property
+    def vcf_genotype_likelikoods(self):
+        """Return genitype likelihood for VCF output."""
+        return tuple(self.genotype_likelihoods)
+
+    @property
+    def vcf_id(self):
+        """Return a valid VCF ID."""
+        return str(self.id)
+
+    @property
+    def alts(self):
+        """Return alts for VCF output."""
+        return ('<INS:ME>',)
+
+    @property
+    def svtype(self):
+        """Return the SVTYPE for VCF output."""
+        return 'INS:ME'
+
+    @property
+    def stop(self):
+        """Return the stop for VCF output."""
+        return self.end - self.start
+
+    @property
+    def depth(self):
+        """Return an estimate of the total depth."""
+        # TODO: this is just a first pass, the correct thing would be to include uninformative reads
+        return self.nref + self.nalt
+
+    @property
+    def total_split_count(self):
+        """Return number of split reads supporting this insertion."""
+        return self.left_split_count + self.right_split_count
+
+    @property
+    def left_split_count(self):
+        """Return a count of all evidence for the 5prime of an insertion."""
+        return self.total_left_count - self.left_mate_count
+
+    @property
+    def right_split_count(self):
+        """Return a count of all evidence for the 5prime of an insertion."""
+        return self.total_right_count - self.right_mate_count
+
+    @property
+    def insert_start(self):
+        """Return approximate start coordinate of insert."""
+        if self.feature_args:
+            return self.feature_args[0].sbjct_start
+        return None
+
+    @property
+    def insert_end(self):
+        """Return approximate end coordinate of insert."""
+        if self.feature_args:
+            return self.feature_args[0].sbjct_end - self.feature_args[0].sbjct_start
+        return None
+
+    @property
+    def insert_len(self):
+        """Return best guess of reference insert length."""
+        if self.feature_args:
+            return self.feature_args[0].sbjct_end - self.feature_args[0].sbjct_start
+        return None
 
     @property
     def type(self):
@@ -523,7 +635,7 @@ class Cluster(BaseCluster):
     @property
     def left_inserts(self):
         """Get a list of assembled inserts, prefixed with index."""
-        return [v for pair in enumerate(self.left_contigs) for v in pair]
+        return self.left_contigs
 
     @property
     def right_contigs(self):
@@ -540,7 +652,7 @@ class Cluster(BaseCluster):
     @property
     def right_inserts(self):
         """Get a list of assembled inserts, prefixed with index."""
-        return [v for pair in enumerate(self.right_contigs) for v in pair]
+        return self.right_contigs
 
     @property
     def start(self):

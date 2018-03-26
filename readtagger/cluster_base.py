@@ -7,6 +7,7 @@ from .gff_io import (
     sort_gff,
     write_gff_cluster
 )
+from .vcf_io import write_vcf
 
 logger = logging.getLogger(__name__)
 
@@ -26,21 +27,37 @@ class SampleNameMixin(object):
             return self._sample_name
 
 
-class ToGffMixin(object):
-    """Provide a `to_gff` function."""
+class ToOutput(object):
+    """Provides logic for writing clusters and softclip clusters."""
 
-    def to_gff(self):
+    def to_output(self, output_path, write_func, sort_func):
         """Write clusters as GFF file."""
-        logging.info("Writing clusters of GFF (%s)", self.region or 0)
-        if self.output_gff:
+        logger.info("Writing clusters of GFF (%s)", self.region or 0)
+        if output_path:
             if hasattr(self, 'softclip_finder'):
                 clusters = chain(self.clusters, self.softclip_finder.clusters)
             else:
                 clusters = self.clusters
-            write_cluster(clusters=clusters,
-                          header=self.header,
-                          output_path=self.output_gff,
-                          sample=self.sample_name,
-                          threads=self.threads)
+            write_func(clusters=clusters,
+                       header=self.header,
+                       output_path=output_path,
+                       sample_name=self.sample_name,
+                       threads=self.threads)
             if self.threads < 2:
-                sort_gff(self.output_gff, output_path=self.output_gff)
+                sort_func(input_path=output_path, output_path=output_path)
+
+
+class ToGffMixin(ToOutput):
+    """Provide a `to_gff` function."""
+
+    def to_gff(self, output_path):
+        """Write clusters as GFF file."""
+        self.to_output(output_path, write_func=write_gff_cluster, sort_func=sort_gff)
+
+
+class ToVcfMixin(ToOutput):
+    """Provide a `to_vcf` function."""
+
+    def to_vcf(self, output_path):
+        """Write clusters as VCF file."""
+        self.to_output(output_path=output_path, write_func=write_vcf, sort_func=sort_gff)

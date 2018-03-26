@@ -16,6 +16,24 @@ class SoftClipCluster(BaseCluster):
     """A cluster that groups reads with the same soft clipping position."""
 
     exportable = ['source', 'consensus', 'score', 'max_mapq', 'ID']
+    vcf_mandatory = {
+        'alts': ('vcf_type',),
+        'pos': 'pos',
+        'chrom': 'reference_name',
+        'ref': 'ref',
+        'id': 'id',
+    }
+    vcf_info = {
+        'SVTYPE': 'vcf_type',
+        'MQ': 'max_mapq',
+        'EVENT': 'id',
+        'MATEID': 'parent_clusters'
+    }
+    vcf_sample = {
+        'AD': ['nref', 'nalt'],
+        'SU': 'nalt',
+        'CLIP_CONSENSUS': 'consensus'
+    }
     source = 'find_softclip'
 
     def __init__(self, clip_position, clip_type):
@@ -27,6 +45,20 @@ class SoftClipCluster(BaseCluster):
         self.clip_type = clip_type
         self.type = clip_type
         self.clipped_sequences = []
+        self.parent_clusters = []
+        self.nref = 0
+
+    @property
+    def pos(self):
+        """Return the 1-based start of the softclip position."""
+        return self.start + 1
+
+    @property
+    def vcf_type(self):
+        """Return the VCF compatible type of this cluster."""
+        if self.clip_type == '3p_clip':
+            return '<SOFTCLIP:3P>'
+        return '<SOFTCLIP:5P>'
 
     def append(self, read, seq=None):
         """Append read to `self`."""
@@ -54,11 +86,6 @@ class SoftClipCluster(BaseCluster):
                     yield cluster
             else:
                 break
-
-    def to_feature_args(self):
-        """Return this clusters attributes as a GFF subfeature."""
-        return {'qualifiers': {k: getattr(self, k.lower()) for k in self.exportable},
-                'type': self.clip_type}
 
 
 class SoftClipClusterFinder(SampleNameMixin, ToGffMixin):

@@ -180,6 +180,7 @@ def test_clustermanager_single_core(datadir_copy, tmpdir):  # noqa: D103
 def test_clustermanager_multiprocessing(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
     input_path = str(datadir_copy[MULTIPROCESSING])
     output_gff = tmpdir.join('output.gff').strpath
+    output_vcf = tmpdir.join('output.vcf').strpath
     output_bam = tmpdir.join('output.bam').strpath
     output_fasta = tmpdir.join('output.fasta').strpath
     ClusterManager(input_path=input_path,
@@ -189,6 +190,7 @@ def test_clustermanager_multiprocessing(datadir_copy, tmpdir, reference_fasta): 
                    output_bam=output_bam,
                    output_fasta=output_fasta,
                    output_gff=output_gff,
+                   output_vcf=output_vcf,
                    threads=2,
                    max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
 
@@ -560,9 +562,11 @@ def test_clusterfinder_multisample(datadir_copy, tmpdir, reference_fasta):  # no
 def test_clusterfinder_clip_assigned_to_insertion(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
     input_path = str(datadir_copy[CLIP_TO_INSERTION])
     output_gff = tmpdir.join('output.gff').strpath
+    output_vcf = tmpdir.join('output.vcf').strpath
     clusters = ClusterFinder(input_path=input_path,
                              output_bam=None,
                              output_gff=output_gff,
+                             output_vcf=output_vcf,
                              transposon_reference_fasta=reference_fasta,
                              max_proper_pair_size=649)
     assert len(clusters.softclip_finder.clusters) == 16
@@ -596,6 +600,23 @@ def test_clusterfinder_predicted_insertion_rover(datadir_copy, tmpdir, reference
                              output_bam=None,
                              output_fasta=output_fasta,
                              output_gff=output_gff,
+                             transposon_reference_fasta=reference_fasta,
+                             max_proper_pair_size=649)
+    assert len(clusters.softclip_finder.clusters) == 2
+    assert len(clusters.clusters[0].feature_args) == 1
+
+
+def test_clusterfinder_vcf(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
+    input_path = str(datadir_copy[PREDICTED_INSERTION])
+    output_gff = tmpdir.join('output.gff').strpath
+    output_vcf = tmpdir.join('output.vcf').strpath
+    output_fasta = tmpdir.join('output.fa').strpath
+    output_bam = tmpdir.join('output.bam').strpath
+    clusters = ClusterFinder(input_path=input_path,
+                             output_bam=output_bam,
+                             output_fasta=output_fasta,
+                             output_gff=output_gff,
+                             output_vcf=output_vcf,
                              transposon_reference_fasta=reference_fasta,
                              max_proper_pair_size=649)
     assert len(clusters.softclip_finder.clusters) == 2

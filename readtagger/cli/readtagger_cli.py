@@ -1,3 +1,4 @@
+import logging
 import click
 
 from readtagger.readtagger import TagManager
@@ -35,28 +36,56 @@ def parse_file_tags(filetags):
 
 
 @click.command()
-@click.option('-t', '--target_path', help="Annotate reads in this file.", required=True, type=click.Path(exists=True))
+@click.option('-t',
+              '--target_path',
+              help="Annotate reads in this file.",
+              required=True,
+              type=click.Path(exists=True))
 @click.option('-s', '--source_path',
               help="Tag reads in target_path if reads are aligned in these files."
                    "Append `:A:B` to tag first letter of tag describing read as A, "
                    "and first letter of tag describing the mate as B",
               multiple=True,
-              required=True)
-@click.option('-o', '--output_path', help="Write alignment file to this path", required=True)
+              required=True,
+              type=click.Path(exists=True))
+@click.option('-o',
+              '--output_path',
+              help="Write alignment file to this path",
+              required=True,
+              type=click.Path(exists=False))
 @click.option('-C', '--cram', help="Write alignment files as CRAM files (default BAM)")
-@click.option('-r', '--reference_fasta', help='Reference fasta to align clipped reads to', default=None, required=False)
+@click.option('-r', '--reference_fasta',
+              help='Reference fasta to align clipped reads to',
+              default=None,
+              required=False,
+              type=click.Path(exists=True))
 @click.option('--allow_dovetailing/--no_allow_dovetailing', default=True,
               help="Sets the proper pair flag (0x0002) to true if reads dovetail [reads reach into or surpass the mate sequence].")
 @click.option('--discard_if_proper_pair/--no_discard_if_proper_pair', default=True, help="Discard an alternative flag if the current read is in a proper pair.")
 @click.option('--discard_suboptimal_alternate_tags/--no_discard_suboptimal', default=True,
               help="By default cigarstrings of the alternative tags are compared and alternates that are not explaining the current cigar "
                    "strings are discarded. Use this option to keep the alternative tags (effectively restoring the behaviour of readtagger < 0.1.4)")
-@click.option('--discarded_path', help="Write reads with discarded tags to this path", type=click.Path(exists=False), required=False)
-@click.option('--verified_path', help="Write reads with verified tags to this path", type=click.Path(exists=False), required=False)
+@click.option('--discarded_path',
+              help="Write reads with discarded tags to this path",
+              type=click.Path(exists=False),
+              required=False)
+@click.option('--verified_path',
+              help="Write reads with verified tags to this path",
+              type=click.Path(exists=False),
+              required=False)
 @click.option('--cores', default=1, help='Number of cores to use for tagging reads.')
+@click.option('-v', '--verbosity', default='DEBUG', help="Set the default logging level.")
+@click.option('-l',
+              '--log_to',
+              default=None,
+              help='Write logs to this file',
+              type=click.Path(exists=False))
 @click.version_option(version=VERSION)
 def readtagger(**kwargs):
     """Tag reads in alignment file `target_path` with reads in `source_path`."""
+    logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s - %(message)s',
+                        filename=kwargs.pop('log_to'),
+                        level=getattr(logging, kwargs.pop('verbosity')))
     source_path, tag_prefix_self, tag_prefix_mate = list(zip(*parse_file_tags(kwargs.pop('source_path'))))[0]
     kwargs['source_path'] = source_path
     kwargs['tag_prefix_self'] = tag_prefix_self

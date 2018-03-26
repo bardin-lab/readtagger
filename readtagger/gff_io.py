@@ -39,6 +39,7 @@ def merge_gff_files(gff_files, output_path, sort=True):
                         if line.startswith('#') and wrote_header:
                             continue
                         gff_writer.write(line)
+            wrote_header = True
     if sort:
         sort_gff(input_path=output_path, output_path=output_path)
 
@@ -75,7 +76,8 @@ def sort_gff(input_path, output_path):
         out.close()
     with open(output_path, 'w') as out:
         p = subprocess.Popen(['sort', '-k', '1,1', '-k4,4n', tmp], stdout=subprocess.PIPE, close_fds=True)
-        out.write("\n".join(header_lines))
+        # No need to add newlines, those should be present already
+        out.write("".join(header_lines))
         for line in p.stdout:
             out.write(line.decode())
     os.close(fd)

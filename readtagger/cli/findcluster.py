@@ -25,6 +25,9 @@ import multiprocessing_logging
 @click.option('--output_gff',
               help='Write out GFF file with cluster information to this path.',
               type=click.Path(exists=False))
+@click.option('--output_vcf',
+              help='Write out VCF file with cluster information to this path.',
+              type=click.Path(exists=False))
 @click.option('--output_fasta',
               help='Write out supporting evidence for clusters to this path.',
               type=click.Path(exists=False))
@@ -37,6 +40,7 @@ import multiprocessing_logging
               help='Include reads marked as duplicates when finding clusters.',
               default=False)
 @click.option('--transposon_reference_fasta',
+              type=click.Path(exists=True),
               help=('Transposon fasta to align clipped reads to. '
                     'Not necessary if BWA index is provided.'),
               default=None,
@@ -46,6 +50,7 @@ import multiprocessing_logging
               default=None,
               required=False)
 @click.option('--genome_reference_fasta',
+              type=click.Path(exists=True),
               help=('Genome fasta to align clipped reads to. '
                     'Not necessary if BWA index is provided.'),
               default=None,
@@ -65,7 +70,11 @@ import multiprocessing_logging
               envvar="SHM_DIR",
               help='Path to shared memory folder', default=None, type=click.Path(exists=True))
 @click.option('-v', '--verbosity', default='DEBUG', help="Set the default logging level.")
-@click.option('-l', '--log_to', default=None, help='Write logs to this file')
+@click.option('-l',
+              '--log_to',
+              default=None,
+              help='Write logs to this file',
+              type=click.Path(exists=False))
 @click.version_option(version=VERSION)
 def findcluster(**kwds):
     """Find clusters of reads that support a TE insertion."""
