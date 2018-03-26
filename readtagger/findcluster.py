@@ -7,7 +7,6 @@ from concurrent.futures import (
     ThreadPoolExecutor,
     ProcessPoolExecutor
 )
-import six
 
 from .assemby_realignment import AssemblyRealigner
 from .bam_io import (
@@ -333,10 +332,9 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
 
     def collect_non_evidence(self):
         """Count reads that overlap cluster site but do not provide evidence for an insertion."""
-        chunks = Chunks(clusters=self.clusters, header=self.header, input_path=self.input_path)
         logger.info("Collecting evidence (%s)", self.region or 0)
-        for chunk in chunks.chunks:
-            result = non_evidence(chunk)
+        for cluster in self.clusters:
+            result = non_evidence(cluster, self.input_path)
             for index, evidence_against in result['against'].items():
                 self.clusters[index].evidence_against = {r for l in evidence_against.values() for r in l}
                 self.clusters[index].nref = len(evidence_against)
@@ -404,48 +402,3 @@ class ClusterFinder(SampleNameMixin, ToGffMixin):
                 # We do this only if not using threads, since with multiple threads we split and merge at the end,
                 # so there we'd need to sort again anyway.
                 sort_bam(inpath=self.output_bam, output=self.output_bam, sort_order='coordinate', threads=self.threads)
-
-
-class Chunks(object):
-    """Hold chunks of clusters."""
-
-    def __init__(self, clusters, header, input_path):
-        """Establish chunks of clusters for all clusters in `clusters`."""
-        super(Chunks, self).__init__()
-        self.clusters = clusters  # All clusters
-        self.header = header
-        self.input_path = input_path
-        self.chunks = self._chunks()
-
-    def _chunks(self):
-        regions_d = {}
-        for cluster in self.clusters:
-            if cluster.abnormal:
-                continue
-            if cluster.tid not in regions_d:
-                regions_d[cluster.tid] = []
-            regions_d[cluster.tid].append(cluster)
-        self.regions_d = regions_d  # Chromosome TID as key, clusters as values
-        # stream over chromosomes and collect non support evidence
-        allchunks = self._get_chunks()
-        tasks = []
-        for tid, chromosome_chunks in six.iteritems(allchunks):
-            chromosome = self.header['SQ'][tid]['SN']
-            input_path = self.input_path
-            for chunk in chromosome_chunks:
-                tasks.append({'chromosome': chromosome, 'input_path': input_path, 'chunk': chunk})
-        return tasks
-
-    def _get_chunks(self):
-        """Return a list of chunks per chromosome."""
-        chromosomes = {}
-        for tid, cluster_list in six.iteritems(self.regions_d):
-            chunks = self.chunk(cluster_list)
-            chromosomes[tid] = ([chunk for chunk in chunks])
-        return chromosomes
-
-    @staticmethod
-    def chunk(l, n=500):
-        """Yield successive n-sized chunks from l."""
-        for i in range(0, len(l), n):
-            yield [chunk.serialize() for chunk in l[i:i + n]]
