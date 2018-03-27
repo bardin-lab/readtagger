@@ -21,7 +21,7 @@ from .bwa import (
     make_bwa_index
 )
 from .cluster import Cluster
-from .cluster import non_evidence
+from .cluster import collect_evidence
 from .cluster_base import (
     SampleNameMixin,
     ToGffMixin,
@@ -186,7 +186,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin, ToVcfMixin):
                 self.annotate_softclip()
                 self.to_fasta()
                 self.align_bwa()
-                self.collect_non_evidence()
+                self.collect_evidence()
                 self.to_bam()
                 self.to_gff(output_path=self.output_gff)
                 self.to_vcf(output_path=self.output_vcf)
@@ -337,20 +337,13 @@ class ClusterFinder(SampleNameMixin, ToGffMixin, ToVcfMixin):
                     self.clusters.insert(current_index, cluster)
                 current_index += 1
 
-    def collect_non_evidence(self):
+    def collect_evidence(self):
         """Count reads that overlap cluster site but do not provide evidence for an insertion."""
         logger.info("Collecting evidence (%s)", self.region or 0)
-        for cluster in self.clusters:
-            result = non_evidence(cluster, self.input_path)
-            for index, evidence_against in result['against'].items():
-                self.clusters[index].evidence_against = {r for l in evidence_against.values() for r in l}
-                self.clusters[index].nref = len(evidence_against)
-            for index, evidence_for in result['for'].items():
-                for r, evidence in evidence_for.values():
-                    if evidence == 'five_p':
-                        self.clusters[index].evidence_for_five_p.add(r)
-                    else:
-                        self.clusters[index].evidence_for_three_p.add(r)
+        with Reader(self.input_path, external_bin=False, index=True) as alignment_file:
+            for cluster in self.clusters:
+                if not cluster.abnormal:
+                    collect_evidence(cluster, alignment_file)
 
     def _create_contigs(self):
         futures = []

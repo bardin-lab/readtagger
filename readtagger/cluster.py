@@ -7,7 +7,6 @@ from itertools import (
     groupby,
     permutations
 )
-import pysam
 from .edlib_align import (
     multiple_sequences_overlap,
     sequences_overlap
@@ -758,13 +757,11 @@ class Cluster(BaseCluster):
             single_breakpoint = five_p_breakpoint
         elif three_p_breakpoint:
             single_breakpoint = three_p_breakpoint
-        return self.id, self.start, self.end, self.read_index.copy(), bp_sequences, single_breakpoint
+        return self.start, self.end, bp_sequences, single_breakpoint
 
 
-def non_evidence(cluster, input_path):
+def collect_evidence(cluster, alignment_file):
     """Count all reads that point against evidence for a transposon insertion."""
-    result = {'against': {},
-              'for': {}}
     chromosome = cluster.reference_name
     # Chunk is a small list of clusters
     start = cluster.start
@@ -774,23 +771,20 @@ def non_evidence(cluster, input_path):
         # Avoid pysam error for negative start coordinates
         min_start = 0
     max_end = end + 500
-    with pysam.AlignmentFile(input_path) as reader:
-        reads = reader.fetch(chromosome, min_start, max_end)
-        for r in reads:
-            if not r.is_duplicate \
-                and r.mapq > 0 \
-                and (r.is_proper_pair or
-                     r.next_reference_name == r.reference_name == chromosome and
-                     MIN_VALID_ISIZE_FOR_NON_PROPER_PAIR > abs(r.isize) < MAX_VALID_ISIZE):
-                add_to_clusters(cluster, r, result)
-    for index in result['against']:
-        for_reads = set(result['for'][index])
-        against_reads = set(result['against'][index])
-        result['against'][index] = {k: result['against'][index][k] for k in against_reads - for_reads}
-    return result
+    start, end, bp_sequence, single_breakpoint = cluster.serialize()
+    reads = alignment_file.fetch(chromosome, min_start, max_end)
+    for r in reads:
+        if not r.is_duplicate \
+            and r.mapq > 0 \
+            and (r.is_proper_pair or
+                 r.next_reference_name == r.reference_name == chromosome and
+                 MIN_VALID_ISIZE_FOR_NON_PROPER_PAIR > abs(r.isize) < MAX_VALID_ISIZE):
+            add_to_clusters(cluster, r, start, end, bp_sequence, single_breakpoint)
+    cluster.evidence_against = {r for r in cluster.evidence_against if r.query_name not in cluster.read_index}
+    cluster.nref = len(set(r.query_name for r in cluster.evidence_against))
 
 
-def add_to_clusters(cluster, r, result):
+def add_to_clusters(cluster, r, start, end, bp_sequence, single_breakpoint):
     """
     Count reads overlapping a cluster.
 
@@ -806,18 +800,17 @@ def add_to_clusters(cluster, r, result):
     else:
         min_start = min([reference_start, r.next_reference_start])
         max_end = max(reference_end, r.reference_start + r.isize)
-    index, start, end, supporting_read_index, bp_sequence, single_breakpoint = cluster.serialize()
-    if index not in result['against']:
-        result['against'][index] = defaultdict(list)
-    if index not in result['for']:
-        result['for'][index] = dict()
+
     query_name = r.query_name
-    if query_name not in supporting_read_index and query_name not in result['for'][index]:
+    if query_name not in cluster.read_index:
         if bp_sequence:
             if {reference_start, reference_end} & set(bp_sequence):
                 evidence = evidence_for(read=r, breakpoint_sequences=bp_sequence)
                 if evidence:
-                    result['for'][index][query_name] = (r, evidence)
+                    if evidence == 'five_p':
+                        cluster.evidence_for_five_p.add(r)
+                    else:
+                        cluster.evidence_for_three_p.add(r)
                     return
         if single_breakpoint:
             # We only know where one of the breakpoints is, so we ask if any reads overlap that breakpoint
@@ -827,7 +820,7 @@ def add_to_clusters(cluster, r, result):
             # only by mate pairs. In that instance it might be more accurate to sample the coverage at the breakpoint
             # boundaries, and assume that  nalt / coverage estimates the AF.
             if (min_start + 1 < single_breakpoint < max_end - 1):
-                result['against'][index][query_name].append(r)
+                cluster.evidence_against.add(r)
         elif end - start < 50:
             if min_start + 1 < start < max_end - 1 and min_start + 1 < end < max_end - 1:
                 # A read is only incompatible if it overlaps both ends
@@ -835,14 +828,14 @@ def add_to_clusters(cluster, r, result):
                 # to avoid dealing with reads with a single mismatch at the start/end,
                 # which wouldn't be soft-clipped. This shouldn't introduce any bias since we also can't assign these
                 # reads to an insertion, so we simple ignore them.
-                result['against'][index][query_name].append(r)
+                cluster.evidence_against.add(r)
         else:
             # We were not able to narrow down the insertion breakpoints.
             # We can estimate the insertion frequency by looking at how many reads overlap
             # start and end of the insertion. This isn't very precise, but insertions without
             # exact start/end are probably low in frequency anyways.
             if (min_start + 1 < start < max_end - 1) or (min_start + 1 < end < max_end - 1):
-                result['against'][index][query_name].append(r)
+                cluster.evidence_against.add(r)
 
 
 def evidence_for(read, breakpoint_sequences):
