@@ -14,3 +14,4 @@ htmlcov
 prof
 .ipynb_checkpoints/
 tests/*.bam
+.pytest_cache/
