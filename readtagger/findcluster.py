@@ -73,7 +73,7 @@ class ClusterManager(object):
             for i, region in enumerate(chunks):
                 kwds = self.kwds.copy()
                 kwds['region'] = region
-                for key, ext in [('output_bam', '.bam'), ('output_gff', '.gff'), ('output_vcf', ',vcf'), ('output_fasta', '.fasta')]:
+                for key, ext in [('output_bam', '.bam'), ('output_gff', '.gff'), ('output_vcf', '.vcf'), ('output_fasta', '.fasta')]:
                     kwds[key] = os.path.join(tempdir, "%d%s" % (i, ext))
                 self.process_list.append(kwds)
                 futures.append(executor.submit(wrapper, kwds))

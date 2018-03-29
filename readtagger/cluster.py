@@ -144,6 +144,7 @@ class Cluster(BaseCluster):
         ('SR', 'total_split_count',),
         ('SR5', 'left_split_count',),
         ('SR3', 'right_split_count',),
+        ('MSP', 'evidence_spanning_insertion'),
         ('MENAME', 'insert_reference_name',),
         ('MESTART', 'insert_start',),
         ('MEEND', 'insert_end',),
@@ -161,6 +162,11 @@ class Cluster(BaseCluster):
         self._cannot_join_d = {}
         self.abnormal = False
         self.softclip_clusters = []
+
+    @property
+    def evidence_spanning_insertion(self):
+        """Return the number of mate pair fragments that span 5' and 3' of an insertion."""
+        return len(set(self.clustertag.left_sequences.keys()) & set(self.clustertag.right_sequences.keys()))
 
     @property
     def pos(self):
@@ -198,7 +204,7 @@ class Cluster(BaseCluster):
     @property
     def stop(self):
         """Return the stop for VCF output."""
-        return self.end - self.start
+        return self.end + 1
 
     @property
     def depth(self):

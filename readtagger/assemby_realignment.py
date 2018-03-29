@@ -44,7 +44,7 @@ class AssemblyRealigner(object):
                             other_qname = "%s.1" % qname
                         reads[current_qname] = r.query_sequence
                         reads[other_qname] = r.get_tag('MS')
-            if len(reads) < 500:
+            if 0 < len(reads) < 500:
                 informative_reads = self.assemble_reads(reads)
         return informative_reads
 

@@ -62,7 +62,7 @@ class Cap3Assembly(BaseAssembly):
 
     def assemble(self):
         """Assemble sequences."""
-        if len(self.sequences) < self.seq_limit:
+        if 0 < len(self.sequences) < self.seq_limit:
             with open(os.devnull, 'w') as DEVNULL:
                 args = ['cap3', self.input_path, '-p', '75', '-s', '500', '-z', '2']
                 try:

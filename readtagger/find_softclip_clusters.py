@@ -26,8 +26,8 @@ class SoftClipCluster(BaseCluster):
     vcf_info = {
         'SVTYPE': 'vcf_type',
         'MQ': 'max_mapq',
-        'EVENT': 'id',
-        'MATEID': 'parent_clusters'
+        'EVENT': 'mate_id',
+        'MATEID': 'mate_id'
     }
     vcf_sample = {
         'AD': ['nref', 'nalt'],
@@ -45,7 +45,7 @@ class SoftClipCluster(BaseCluster):
         self.clip_type = clip_type
         self.type = clip_type
         self.clipped_sequences = []
-        self.parent_clusters = []
+        self.mate_id = None
         self.nref = 0
 
     @property
