@@ -2,6 +2,7 @@ import logging
 import os
 import subprocess
 import pysam
+from collections import defaultdict
 try:
     from tempfile import TemporaryDirectory
 except ImportError:
@@ -171,11 +172,9 @@ class Bwa(object):
 
     def split_reads_into_tid_clusters(self, read_d):
         """Split reads in read_d into clusters based on the read tid."""
-        cluster = {}
+        cluster = defaultdict(list)
         for read in read_d.values():
             if read.tid not in cluster:
-                cluster[read.tid] = [read]
-            else:
                 cluster[read.tid].append(read)
         return cluster
 

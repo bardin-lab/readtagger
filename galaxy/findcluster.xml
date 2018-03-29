@@ -28,33 +28,57 @@
                 --genome_bwa_index '$genome_source.ref_file.fields.path'
             #end if
         #end if
-        --output_bam '$output_bam'
-        --output_gff '$output_gff'
-        --output_fasta '$output_fasta'
+        #if str($make_bam) == 'True':
+            --output_bam '$output_bam'
+        #end if
+        #if str($make_vcf) == 'True'
+             --output_vcf '$output_vcf'
+        #end if
+        #if str($make_gff) == 'True'
+             --output_gff '$output_gff'
+        #end if
+        #if str($make_fasta) == 'True'
+            --output_fasta '$output_fasta'
+        #end if
         --sample_name '$sample_name'
         --threads "\${GALAXY_SLOTS:-2}"
     ]]></command>
     <inputs>
         <param name="input" argument="--input_path" type="data" format="bam"/>
-
+        <param name="make_bam" type="boolean" truevalue="True" checked="true" label="Produce an alignment file containing evidence for insertions."/>
+        <param name="make_vcf" type="boolean" truevalue="True" checked="true" label="Produce a VCF file describing the insertion that have been found."/>
+        <param name="make_gff" type="boolean" truevalue="True" checked="false" label="produce a GFF file describing the insertions that have been found."/>
+        <param name="make_fasta" type="boolean" checked="True" truevalue="True" label="Produce a fasta file containing assembled contigs."/>
         <expand macro="reference_source_conditional" reference_type="transposon"/>
         <expand macro="reference_source_conditional" reference_type="genome"/>
     </inputs>
     <outputs>
-        <data name="output_bam" format="bam" label="findcluster BAM on $on_string"/>
-        <data name="output_fasta" format="fasta" label="findcluster contigs on $on_string"/>
-        <data name="output_gff" format="gff3" label="findcluster GFF on $on_string"/>
+        <data name="output_bam" format="bam" label="findcluster BAM on $on_string">
+            <filter>make_bam</filter>
+        </data>
+        <data name="output_fasta" format="fasta" label="findcluster contigs on $on_string">
+            <filter>make_fasta</filter>
+        </data>
+        <data name="output_vcf" format="vcf" label="findcluster VCF on $on_string">
+            <filter>make_vcf</filter>
+        </data>
+        <data name="output_gff" format="gff3" label="findcluster GFF on $on_string">
+            <filter>make_gff</filter>
+        </data>
     </outputs>
     <tests>
         <test>
             <param name="input" value="extended_and_annotated_roi.bam" ftype="bam"/>
+            <param name="make_gff" value="true"/>
             <output name="output_bam" file="three_cluster_out.bam" ftype="bam" lines_diff="2"/>
-            <output name="output_gff" file="three_cluster_out.gff" ftype="gff3" lines_diff="0" sort="True"/>
+            <output name="output_gff" file="three_cluster_out.gff" ftype="gff3" lines_diff="0"/>
+            <output name="output_vcf" file="three_cluster_out.vcf" ftype="vcf" lines_diff="2"/>
         </test>
         <test>
             <param name="input" value="extended_and_annotated_roi.bam" ftype="bam"/>
             <param name="transposon_source|reference_source_selector" value="history"/>
             <param name="transposon_source|ref_file" value="reference.fasta" ftype="fasta"/>
+            <param name="make_gff" value="true"/>
             <output name="output_bam" file="three_cluster_out.bam" ftype="bam" lines_diff="2"/>
             <output name="output_gff">
                 <assert_contents>

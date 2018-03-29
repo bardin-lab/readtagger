@@ -201,7 +201,7 @@ class Cluster(BaseCluster):
     @property
     def id(self):
         """Return a unique id for this cluster."""
-        return "INS_%s" % abs(self.hash)
+        return "INS_%s" % abs(hash("".join(r.query_name for r in self)))
 
     @property
     def stop(self):
