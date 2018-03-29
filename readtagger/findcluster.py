@@ -295,7 +295,6 @@ class ClusterFinder(SampleNameMixin, ToGffMixin, ToVcfMixin):
         # We are done, we can give the clusters a numeric index, so that we can distribute the processing and recover the results
         logger.info("Found %d cluster overall (%s)", len(self.clusters), self.region or 0)
         self.clusters.sort(key=lambda x: x.start)
-        [c.set_id(idx) for idx, c in enumerate(self.clusters)]
 
     def annotate_softclip(self):
         """Walk along all found clusters and annotate them with softclip clusters."""
@@ -370,8 +369,8 @@ class ClusterFinder(SampleNameMixin, ToGffMixin, ToVcfMixin):
                       bwa_index=self.transposon_bwa_index,
                       reference_fasta=self.transposon_reference_fasta,
                       threads=self.threads)
-            for i, cluster in enumerate(self.clusters):
-                description = bwa.description.get(i)
+            for cluster in self.clusters:
+                description = bwa.description.get(cluster.id)
                 if description:
                     cluster.insert_reference_name = description.pop(-1)
                     for cluster_description in description:

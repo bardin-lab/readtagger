@@ -48,6 +48,10 @@ class SoftClipCluster(BaseCluster):
         self.mate_id = None
         self.nref = 0
 
+    def set_id(self, id):
+        """Set a numeric id that identifies this cluster."""
+        self.id = id
+
     @property
     def pos(self):
         """Return the 1-based start of the softclip position."""
@@ -153,5 +157,5 @@ class SoftClipClusterFinder(SampleNameMixin, ToGffMixin):
             new_list.append(cluster)
         self.clusters = new_list
         for i, cluster in enumerate(self.clusters):
-            cluster.set_id("softclip_%d" % i)
+            cluster.set_id("SOFTCLIP_%d" % abs(cluster.hash))
         logger.info("Found %s clusters after merging clusters", len(self.clusters))

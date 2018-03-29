@@ -35,7 +35,6 @@ class BaseCluster(list):
         """Initialize BaseCluster instance."""
         super(BaseCluster, self).__init__()
         self.nref = 0
-        self.id = -1
         self.evidence_against = set()
         self.evidence_for_five_p = set()
         self.evidence_for_three_p = set()
@@ -107,10 +106,6 @@ class BaseCluster(list):
         :return:
         """
         return Genotype(nref=self.nref, nalt=self.nalt)
-
-    def set_id(self, id):
-        """Set a numeric id that identifies this cluster."""
-        self.id = id
 
 
 class Cluster(BaseCluster):
@@ -202,6 +197,11 @@ class Cluster(BaseCluster):
     def svtype(self):
         """Return the SVTYPE for VCF output."""
         return 'INS:ME'
+
+    @property
+    def id(self):
+        """Return a unique id for this cluster."""
+        return "INS_%s" % abs(self.hash)
 
     @property
     def stop(self):
@@ -735,16 +735,16 @@ class Cluster(BaseCluster):
         fasta_items = []
         if self.left_contigs:
             for i, contig in enumerate(self.left_contigs):
-                fasta_items.append(">cluster_%s_left_contigs_%s\n%s\n" % (self.id, i, contig))
+                fasta_items.append(">%s|lcontigs|%s\n%s\n" % (self.id, i, contig))
         else:
             for key, seq in self.clustertag.left_sequences.items():
-                fasta_items.append(">cluster_%s_left_sequences_%s\n%s\n" % (self.id, key, seq))
+                fasta_items.append(">%s|lsequences|%s\n%s\n" % (self.id, key, seq))
         if self.right_contigs:
             for i, contig in enumerate(self.right_contigs):
-                fasta_items.append(">cluster_%s_right_contigs_%s\n%s\n" % (self.id, i, contig))
+                fasta_items.append(">%s|rcontigs|%s\n%s\n" % (self.id, i, contig))
         else:
             for key, seq in self.clustertag.right_sequences.items():
-                fasta_items.append(">cluster_%s_left_sequences_%s\n%s\n" % (self.id, key, seq))
+                fasta_items.append(">%s|lsequences|%s\n%s\n" % (self.id, key, seq))
         return fasta_items
 
     def serialize(self):

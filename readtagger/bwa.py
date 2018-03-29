@@ -50,12 +50,12 @@ class Bwa(object):
         >>> from tests.helpers import roo_seq
         >>> with TemporaryDirectory(prefix='bwa_doctest') as tempdir:
         ...     reference_fasta = os.path.join(str(tempdir), 'reference.fasta')
-        ...     reference_fasta = write_sequences({'cluster_1_left_sequences_0': roo_seq}, output_path=reference_fasta)
+        ...     reference_fasta = write_sequences({'1|lsequences|0': roo_seq}, output_path=reference_fasta)
         ...     b = Bwa(input_path=reference_fasta, reference_fasta=reference_fasta)
         >>> len(b.bwa_run) == 1
         True
         >>> result = b.reads_to_clusters()
-        >>> assert len(result[1]['left_sequences']) == 1
+        >>> assert len(result['1']['lsequences']) == 1
         >>> b.cleanup_index()
         """
         self.input_path = input_path
@@ -90,12 +90,12 @@ class Bwa(object):
         for r in self.bwa_run:
             if not r.is_unmapped:
                 qname = r.query_name
-                cluster_number = int(qname.split('cluster_')[1].split('_')[0])
+                cluster_number = qname.split('|')[0]
                 if cluster_number not in clusters:
-                    clusters[cluster_number] = {'left_sequences': {}, 'right_sequences': {}, 'left_contigs': {}, 'right_contigs': {}}
+                    clusters[cluster_number] = {'lsequences': {}, 'rsequences': {}, 'lcontigs': {}, 'rcontigs': {}}
                 for cluster_item in clusters[cluster_number].keys():
                     if cluster_item in qname:
-                        number = qname.split('_%s_' % cluster_item)[1]
+                        number = qname.split('|')[0]
                         clusters[cluster_number][cluster_item][number] = r
                         break
         return clusters
@@ -105,8 +105,8 @@ class Bwa(object):
         cluster_description = {}
         for cluster_number, cluster in self.clusters.items():
             all_reads = {}
-            all_reads['left'] = self.split_reads_into_tid_clusters(cluster['left_contigs'] or cluster['left_sequences'])
-            all_reads['right'] = self.split_reads_into_tid_clusters(cluster['right_contigs'] or cluster['right_sequences'])
+            all_reads['left'] = self.split_reads_into_tid_clusters(cluster['lcontigs'] or cluster['lsequences'])
+            all_reads['right'] = self.split_reads_into_tid_clusters(cluster['rcontigs'] or cluster['rsequences'])
             common_tids = set(all_reads['left'].keys()) & set(all_reads['right'].keys())
             best_candidates = []
             left_candidates = []
