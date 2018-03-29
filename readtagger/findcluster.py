@@ -321,6 +321,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin, ToVcfMixin):
                         if position - SEARCH_WINDOW < c.clip_position < position + SEARCH_WINDOW:
                             if set(cluster) & set(c):
                                 cluster.softclip_clusters.append(c.id)
+                                c.mate_id = str(cluster.id)
                         elif c.clip_position > position + SEARCH_WINDOW:
                             softclip_idx = i - 100
                             if softclip_idx < 0:

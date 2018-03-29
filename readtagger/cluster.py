@@ -24,6 +24,8 @@ MAX_VALID_ISIZE = 10000
 MIN_VALID_ISIZE_FOR_NON_PROPER_PAIR = 700
 # If a read is not a proper pair we still consider it if is not a proper pair because
 # of an isize that is too big, which can happen with deletions.
+MAX_COLLECT_EVIDENCE = 10000
+# maximum amount of evidence to consider
 
 
 class BaseCluster(list):
@@ -779,13 +781,14 @@ def collect_evidence(cluster, alignment_file):
     max_end = end + 500
     start, end, bp_sequence, single_breakpoint = cluster.serialize()
     reads = alignment_file.fetch(chromosome, min_start, max_end)
-    for r in reads:
-        if not r.is_duplicate \
-            and r.mapq > 0 \
-            and (r.is_proper_pair or
-                 r.next_reference_name == r.reference_name == chromosome and
-                 MIN_VALID_ISIZE_FOR_NON_PROPER_PAIR > abs(r.isize) < MAX_VALID_ISIZE):
-            add_to_clusters(cluster, r, start, end, bp_sequence, single_breakpoint)
+    for i, r in enumerate(reads):
+        if i <= MAX_COLLECT_EVIDENCE:
+            if not r.is_duplicate \
+                and r.mapq > 0 \
+                and (r.is_proper_pair or
+                     r.next_reference_name == r.reference_name == chromosome and
+                     MIN_VALID_ISIZE_FOR_NON_PROPER_PAIR > abs(r.isize) < MAX_VALID_ISIZE):
+                add_to_clusters(cluster, r, start, end, bp_sequence, single_breakpoint)
     cluster.evidence_against = {r for r in cluster.evidence_against if r.query_name not in cluster.read_index}
     cluster.nref = len(set(r.query_name for r in cluster.evidence_against))
 
