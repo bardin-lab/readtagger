@@ -46,8 +46,7 @@ def parse_file_tags(filetags):
                    "Append `:A:B` to tag first letter of tag describing read as A, "
                    "and first letter of tag describing the mate as B",
               multiple=True,
-              required=True,
-              type=click.Path(exists=True))
+              required=True)
 @click.option('-o',
               '--output_path',
               help="Write alignment file to this path",
