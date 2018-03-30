@@ -33,6 +33,8 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 DEFAULT_CHUNK_SIZE = 10000
+SELF = 's'
+MATE = 'm'
 
 
 class TagManager(object):
@@ -263,9 +265,9 @@ class SamTagProcessor(object):
         for r in self.source_alignment:
             if self.is_taggable(r):
                 if r.query_name in tag_d:
-                    tag_d[r.query_name][r.is_read1] = {'s': self.compute_tag(r)}
+                    tag_d[r.query_name][r.is_read1] = {SELF: self.compute_tag(r)}
                 else:
-                    tag_d[r.query_name] = {r.is_read1: {'s': self.compute_tag(r)}}
+                    tag_d[r.query_name] = {r.is_read1: {SELF: self.compute_tag(r)}}
         return tag_d
 
     def add_mate(self):
@@ -276,10 +278,10 @@ class SamTagProcessor(object):
             new_tag_d = tag_d.copy()
             for k, v in tag_d.items():
                 if (not k) in tag_d:
-                    v['m'] = tag_d[(not k)]['s']
+                    v[MATE] = tag_d[(not k)][SELF]
                     new_tag_d[k] = v
                 else:
-                    new_tag_d[(not k)] = {'m': v['s']}
+                    new_tag_d[(not k)] = {MATE: v[SELF]}
                 self.result[top_level_k] = new_tag_d
 
 
@@ -400,17 +402,29 @@ class SamAnnotator(object):
         verified_alt_tag = {}
         if read.is_unmapped:
             return verified_alt_tag
-        tags_to_check = ((v, 's', read.cigar) if k == 's' else (v, 'm', read.get_tag('MC')) if read.has_tag('MC') else (None, None, None) for k, v in
-                         alt_tag.items())
-        for (alt_tag, s_or_m, cigar) in tags_to_check:
+        for (alt_tag, self_or_mate, cigar) in self.get_tags_to_check(alt_tag=alt_tag, read=read):
             if cigar:
                 # Can only check if read has cigar/alt_cigar
-                same_orientation = alt_tag.is_reverse == (read.is_reverse if s_or_m == 's' else read.mate_is_reverse)
+                same_orientation = alt_tag.is_reverse == (read.is_reverse if self_or_mate == SELF else read.mate_is_reverse)
                 keep = alternative_alignment_cigar_is_better(current_cigar=cigar,
                                                              alternative_cigar=alt_tag.cigar,
                                                              same_orientation=same_orientation)
-                if keep or (s_or_m == 'm' and not read.is_proper_pair):
+                if keep or (self_or_mate == MATE and not read.is_proper_pair):
                     # either the transposon tag is better, or we are on a different chromosome (perhaps a scaffold),
                     # in which case we still want to consider the alternative tag
-                    verified_alt_tag[s_or_m] = alt_tag
+                    verified_alt_tag[self_or_mate] = alt_tag
+            elif self_or_mate == MATE:
+                if read.mate_is_unmapped:
+                    verified_alt_tag[self_or_mate] = alt_tag
         return verified_alt_tag
+
+    def get_tags_to_check(self, alt_tag, read):
+        """Determine the appropriate tag to check."""
+        for self_or_mate, tag in alt_tag.items():
+            if self_or_mate == SELF:
+                yield (tag, SELF, read.cigar)
+            else:
+                if read.has_tag('MC'):
+                    yield (tag, MATE, read.get_tag('MC'))
+                else:
+                    yield (tag, MATE, None)
