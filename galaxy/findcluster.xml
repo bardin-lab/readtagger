@@ -71,8 +71,8 @@
             <param name="input" value="extended_and_annotated_roi.bam" ftype="bam"/>
             <param name="make_gff" value="true"/>
             <output name="output_bam" file="three_cluster_out.bam" ftype="bam" lines_diff="2"/>
-            <output name="output_gff" file="three_cluster_out.gff" ftype="gff3" lines_diff="0"/>
-            <output name="output_vcf" file="three_cluster_out.vcf" ftype="vcf" lines_diff="2"/>
+            <output name="output_gff" file="three_cluster_out.gff" ftype="gff3" compare="sim_size"/>
+            <output name="output_vcf" file="three_cluster_out.vcf" ftype="vcf" compare="sim_size"/>
         </test>
         <test>
             <param name="input" value="extended_and_annotated_roi.bam" ftype="bam"/>
