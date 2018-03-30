@@ -157,5 +157,5 @@ class SoftClipClusterFinder(SampleNameMixin, ToGffMixin):
             new_list.append(cluster)
         self.clusters = new_list
         for i, cluster in enumerate(self.clusters):
-            cluster.set_id("SOFTCLIP_%d" % abs(hash("".join(r.query_name for r in cluster))))
+            cluster.set_id("SOFTCLIP_%d" % abs(hash("".join(sorted(r.query_name for r in cluster)))))
         logger.info("Found %s clusters after merging clusters", len(self.clusters))
