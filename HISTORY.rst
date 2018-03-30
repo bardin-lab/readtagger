@@ -6,6 +6,27 @@ History
 .. to_doc
 
 ---------------------
+0.4.10 (2018-03-30)
+---------------------
+* Include unmapped but tagged mates in veriefied tags
+* Update findcluster galaxy tool and fix softclip cluster ids
+* Use a unique ID as variant ID
+* Stop collection evidence once we reach 10000 reads
+* Speed up finding of soft clip clusters
+* Implement VCF output
+* Make loglevel configurable for findcluster script and add option to output log to file
+* Look for softclipped reads in a 15nt window and compare 5p clips by their end
+* Add script and tool to confirm/reject insertions
+* Refine the detection of TE clusters that are very close to each other
+* Verify that reads really support a specific insertion
+* Fix sorting to CRAM output
+* Move sorting of softclip clusters to merging phase
+* Skip finding softclipped clusters when skipping TE clusters
+* Annotate softclips as part of TEs
+* Embedd SoftClipClusterFinder in ClusterFinder
+* Fix softclipped positions when read contains deletions
+
+---------------------
 0.4.9 (2018-01-23)
 ---------------------
 * Fix deployment to PyPI
@@ -380,4 +401,3 @@ History
 0.1.0 (2017-02-05)
 ---------------------
 * Initial version
-
