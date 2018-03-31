@@ -20,6 +20,7 @@ install:
   -O miniconda.sh; else wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
   -O miniconda.sh; fi
 - bash miniconda.sh -bp $CONDA_PREFIX
+- export ORIGINAL_PATH=$PATH
 - export PATH="$CONDA_PREFIX/bin:$PATH"
 - "$CONDA_BIN config --set always_yes yes --set changeps1 no"
 - "$CONDA_BIN --version"
@@ -28,7 +29,7 @@ install:
 - "$CONDA_BIN config --add channels conda-forge"
 - "$CONDA_BIN install bwa cap3 samtools virtualenv conda-build -c bioconda"
 - samtools --version
-- pip install tox-travis coveralls anaconda-client
+- pip install tox-travis coveralls
 - mkdir -p ~/.planemo/ && virtualenv ~/.planemo/gx_venv
 - $CONDA_BIN build --python "$TRAVIS_PYTHON_VERSION" conda/multiprocessing-logging
 - $CONDA_BIN build --python "$TRAVIS_PYTHON_VERSION" conda/readtagger
@@ -37,6 +38,7 @@ script: tox
 after_success:
 - chmod +x conda/deploy.sh galaxy/deploy.sh
 - coveralls
+- export PATH=$ORIGINAL_PATH
 deploy:
 - provider: pypi
   user: mvdbeek

@@ -6,6 +6,7 @@
 set -e
 
 echo "Deploying to Anaconda.org..."
+pip install anaconda-client
 anaconda -t $ANACONDA_TOKEN upload --force $CONDA_PREFIX/conda-bld/**/multiprocessing-logging-*.tar.bz2
 anaconda -t $ANACONDA_TOKEN upload --force $CONDA_PREFIX/conda-bld/**/readtagger-*.tar.bz2
 
