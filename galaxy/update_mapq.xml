@@ -1,7 +1,7 @@
-<tool id="update_mapq" name="Update MAPQ score" version="0.4.9">
+<tool id="update_mapq" name="Update MAPQ score" version="0.4.10">
     <description>of supplementary alignments</description>
     <requirements>
-        <requirement type="package" version="0.4.9">readtagger</requirement>
+        <requirement type="package" version="0.4.10">readtagger</requirement>
     </requirements>
     <version_command>update_mapq --version</version_command>
     <command detect_errors="aggressive"><![CDATA[
