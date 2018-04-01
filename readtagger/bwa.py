@@ -154,19 +154,18 @@ class Bwa(object):
             reference_name = None
             if best_candidates:
                 most_likely_insertion = best_candidates[0]
-                reference_name = most_likely_insertion.sbjct
-                reference_name = "_".join(reference_name.split('_')[1:-1])
+                reference_name = split_reference_name(most_likely_insertion.sbjct)
             else:
                 if left_candidates and right_candidates:
-                    left_reference_names = ["_".join(c.sbjct.split('_')[1:-1]) for c in left_candidates]
-                    right_reference_names = ["_".join(c.sbjct.split('_')[1:-1]) for c in right_candidates]
+                    left_reference_names = [split_reference_name(c.sbjct) for c in left_candidates]
+                    right_reference_names = [split_reference_name(c.sbjct) for c in right_candidates]
                     overlapping_reference_names = set(left_reference_names) & set(right_reference_names)
                     if overlapping_reference_names:
                         reference_name = overlapping_reference_names.pop()  # A random overlapping name ...
                 if not reference_name:
                     candidates = left_candidates or right_candidates
                     if candidates:
-                        reference_name = "_".join(candidates[0].sbjct.split('_')[1:-1])
+                        reference_name = split_reference_name(candidates[0].sbjct)
             cluster_description[cluster_number] = [best_candidates, left_candidates, right_candidates, reference_name]
         return cluster_description
 
@@ -255,3 +254,18 @@ def wait_and_get_return_code(p):
     if rc:
         logger.warning(p.stderr.read())
     return rc
+
+
+def split_reference_name(reference_name, at="_"):
+    """
+    Split reference_name at the first `at`.
+
+    This returns the TE family name if the TEs are named "$ID_$NAME_$SUPERFAMILY".
+
+    >>> split_reference_name('FBti0019298_rover_Gypsy')
+    'rover'
+    """
+    if at in reference_name:
+        return "_".join(reference_name.split(at)[1:-1])
+    else:
+        return reference_name
