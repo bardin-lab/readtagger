@@ -109,10 +109,7 @@ def write_vcf(output_path, clusters, header, sample_name, **kwargs):
             for cluster in clusters:
                 record = vcf_out.new_record()
                 for k, v in cluster.vcf_mandatory.items():
-                    if isinstance(v, tuple):
-                        v = tuple((getattr(cluster, _) for _ in v))
-                    else:
-                        v = getattr(cluster, v)
+                    v = getattr(cluster, v)
                     setattr(record, k, v)
                 for k, v in cluster.vcf_info.items():
                     record.info[k] = getattr(cluster, v)

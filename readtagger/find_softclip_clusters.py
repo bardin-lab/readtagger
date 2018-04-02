@@ -18,7 +18,7 @@ class SoftClipCluster(BaseCluster):
 
     exportable = ['source', 'consensus', 'score', 'max_mapq', 'ID']
     vcf_mandatory = {
-        'alts': ('vcf_type',),
+        'alts': 'alts',
         'pos': 'pos',
         'chrom': 'reference_name',
         'ref': 'ref',
@@ -59,11 +59,16 @@ class SoftClipCluster(BaseCluster):
         return self.start + 1
 
     @property
+    def alts(self):
+        """Return VCF formatted ALT allele."""
+        return ('<%s>' % self.vcf_type,)
+
+    @property
     def vcf_type(self):
         """Return the VCF compatible type of this cluster."""
         if self.clip_type == '3p_clip':
-            return '<SOFTCLIP:3P>'
-        return '<SOFTCLIP:5P>'
+            return 'SOFTCLIP:3P'
+        return 'SOFTCLIP:5P'
 
     def append(self, read, seq=None):
         """Append read to `self`."""
