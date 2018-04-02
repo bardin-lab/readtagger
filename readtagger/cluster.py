@@ -131,6 +131,7 @@ class Cluster(BaseCluster):
         ('MQ', 'max_mapq',),
         ('EVENT', 'vcf_id',),
         ('MATEID', 'softclip_clusters',),
+        ('VALID_TSD', 'valid_tsd'),
     ])
     vcf_sample = OrderedDict([
         ('GT', 'vcf_genotype',),
@@ -140,6 +141,9 @@ class Cluster(BaseCluster):
         ('SU', 'nalt',),
         ('SU5', 'total_left_count',),
         ('SU3', 'total_right_count',),
+        ('PE', 'total_mate_count'),
+        ('PE5', 'left_mate_count'),
+        ('PE3', 'right_mate_count'),
         ('SR', 'total_split_count',),
         ('SR5', 'left_split_count',),
         ('SR3', 'right_split_count',),
@@ -618,6 +622,11 @@ class Cluster(BaseCluster):
     def right_mate_count(self):
         """Return mates on the right that support an insertion."""
         return len(self.right_mate_support)
+
+    @property
+    def total_mate_count(self):
+        """Return the number of all mates that support this cluster."""
+        return self.left_mate_count + self.right_mate_count
 
     @property
     def total_right_count(self):

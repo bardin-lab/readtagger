@@ -48,6 +48,7 @@ $contigs
 ##INFO=<ID=EVENT,Number=1,Type=String,Description="ID of event associated to breakend">
 ##INFO=<ID=MATEID,Number=.,Type=String,Description="ID of mate breakends">
 ##INFO=<ID=MQ,Number=1,Type=Integer,Description="Maximum MAPQ of evidence supporting the variant">
+##INFO=<ID=VALID_TSD,Number=0,Type=Flag,Description="Insertion is flanked by a Target Site Duplication.">
 ##ALT=<ID=DEL,Description="Deletion">
 ##ALT=<ID=DEL:ME,Description="Deletion of mobile element present in reference">
 ##ALT=<ID=INS,Description="Insertion of novel sequence">
