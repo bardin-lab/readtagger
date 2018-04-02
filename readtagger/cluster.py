@@ -2,6 +2,7 @@ from collections import (
     defaultdict,
     OrderedDict
 )
+from hashlib import md5
 from itertools import (
     chain,
     groupby,
@@ -41,6 +42,7 @@ class BaseCluster(list):
         self.feature_args = []
         self.exclude = False
         self.ref = 'N'
+        self.sequence = -1
 
     def __hash__(self):
         """Delegate to self.hash for hash specific to this cluster."""
@@ -201,7 +203,10 @@ class Cluster(BaseCluster):
     @property
     def id(self):
         """Return a unique id for this cluster."""
-        return "INS_%s" % abs(hash("".join(sorted(r.query_name for r in self))))
+        unique_string = "{reference_name},{sequence},{start}".format(reference_name=self.reference_name,
+                                                                     sequence=self.sequence,
+                                                                     start=self.start)
+        return "INS_%s" % md5(unique_string.encode()).hexdigest()
 
     @property
     def stop(self):

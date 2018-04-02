@@ -1,4 +1,5 @@
 import logging
+from hashlib import md5
 
 from .bam_io import BamAlignmentReader as Reader
 from .cluster import BaseCluster
@@ -157,5 +158,8 @@ class SoftClipClusterFinder(SampleNameMixin, ToGffMixin):
             new_list.append(cluster)
         self.clusters = new_list
         for i, cluster in enumerate(self.clusters):
-            cluster.set_id("SOFTCLIP_%d" % abs(hash("".join(sorted(r.query_name for r in cluster)))))
+            unique_string = "{reference_name},{sequence},{start}".format(reference_name=cluster.reference_name,
+                                                                         sequence=i,
+                                                                         start=cluster.start)
+            cluster.set_id("SOFTCLIP_%s" % md5(unique_string.encode()).hexdigest())
         logger.info("Found %s clusters after merging clusters", len(self.clusters))

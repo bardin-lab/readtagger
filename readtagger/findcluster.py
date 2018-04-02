@@ -293,6 +293,8 @@ class ClusterFinder(SampleNameMixin, ToGffMixin, ToVcfMixin):
             cluster.refine_members(self.assembly_realigner)
             cluster.join_adjacent(all_clusters=self.clusters)
         # We are done, we can give the clusters a numeric index, so that we can distribute the processing and recover the results
+        for i, cluster in enumerate(self.clusters):
+            cluster.sequence = i
         logger.info("Found %d cluster overall (%s)", len(self.clusters), self.region or 0)
         self.clusters.sort(key=lambda x: x.start)
 
