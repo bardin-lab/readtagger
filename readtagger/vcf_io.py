@@ -5,6 +5,8 @@ from string import Template
 import pysam
 import pysam.bcftools
 
+from .utils import sort
+
 try:
     from readtagger import VERSION
 except Exception:
@@ -123,7 +125,7 @@ def write_vcf(output_path, clusters, header, sample_name, **kwargs):
                 vcf_out.write(record)
 
 
-def merge_vcf_files(vcf_files, output_path):
+def merge_vcf_files(vcf_files, output_path, sort_output=True):
     """Merge vcf files."""
     # Ideally we'd be able to use
     # pysam.bcftools.merge('-o', output_path, *vcf_files)
@@ -140,3 +142,10 @@ def merge_vcf_files(vcf_files, output_path):
     finally:
         for vf in all_vfs:
             vf.close()
+    if sort_output:
+        sort_vcf(input_path=output_path, output_path=output_path)
+
+
+def sort_vcf(input_path, output_path):
+    """Sort VCF."""
+    return sort(input_path=input_path, output_path=output_path, sort_cmd="sort -k 1,1 -k2,2n")
