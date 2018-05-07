@@ -10,4 +10,4 @@ shutilwhich==1.1.0; python_version < '3.3'
 six==1.11.0
 backports.tempfile==1.0; python_version < '3.3'
 multiprocessing_logging==0.2.6
-edlib==1.2.3
+edlib==1.2.3.post1
