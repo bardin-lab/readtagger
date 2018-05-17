@@ -500,8 +500,8 @@ def test_clusterfinder_skip_abnormal(datadir_copy, tmpdir, reference_fasta):  # 
                              transposon_reference_fasta=reference_fasta,
                              max_proper_pair_size=649,
                              skip_decoy=False)
-    assert len(clusters.clusters) == 25
-    assert clusters.clusters[3].abnormal
+    assert len(clusters.clusters) == 22
+    assert clusters.clusters[2].abnormal
 
 
 def test_clusterfinder_start_end_problem(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811

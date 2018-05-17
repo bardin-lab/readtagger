@@ -398,16 +398,17 @@ class Cluster(BaseCluster):
 
         If we have left or right mates without AD tags the breakpoint cannot be within the region covered by the mates.
         """
+        ALIGNMENT_ERROR = 5  # Occasionally ends should be clipped, but due to mirohomologies this doesn't always happen
         if self.abnormal:
             return [self]
         three_p_reads_to_to_discard = set()
         five_p_reads_to_to_discard = set()
         for read in self.right_mate_support.values():
-            if self.clustertag.three_p_breakpoint and read.reference_start < self.clustertag.three_p_breakpoint:
+            if self.clustertag.three_p_breakpoint and read.reference_start < self.clustertag.three_p_breakpoint - ALIGNMENT_ERROR:
                 for support_read in self.clustertag.tsd.three_p_reads:
                     three_p_reads_to_to_discard.add(support_read)
         for read in self.left_mate_support.values():
-            if self.clustertag.five_p_breakpoint and read.reference_end > self.clustertag.five_p_breakpoint:
+            if self.clustertag.five_p_breakpoint and read.reference_end > self.clustertag.five_p_breakpoint + ALIGNMENT_ERROR:
                 for support_read in self.clustertag.tsd.three_p_reads:
                     five_p_reads_to_to_discard.add(support_read)
         new_clusters = [self]
