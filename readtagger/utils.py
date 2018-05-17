@@ -33,3 +33,9 @@ def sort(input_path, output_path, sort_cmd="sort -k 1,1 -k4,4n"):
         for line in p.stdout:
             out.write(line.decode())
     os.close(fd)
+
+
+def overlap(start1, end1, start2, end2, tolerance=0):
+    """Check that range (start1, end1) overlaps with (start2, end2)."""
+    # Taken from https://nedbatchelder.com/blog/201310/range_overlap_in_two_compares.html
+    return end1 + tolerance >= start2 and end2 + tolerance >= start1

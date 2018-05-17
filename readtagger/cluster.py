@@ -16,6 +16,7 @@ from .cap3 import Cap3Assembly
 from .genotype import Genotype
 from .instance_lru import instance_method_lru_cache
 from .tagcluster import TagCluster
+from .utils import overlap
 
 MIN_LONG_READ = 200
 # Minimum read length to consider a read coming from longread tech
@@ -278,12 +279,6 @@ class Cluster(BaseCluster):
         """Return reference end of last read added to cluster."""
         return max((r.reference_end for r in self))
 
-    @staticmethod
-    def _strict_overlap(start1, end1, start2, end2, tolerance=0):
-        """Check that range (start1, end1) overlaps with (start2, end2)."""
-        # Taken from https://nedbatchelder.com/blog/201310/range_overlap_in_two_compares.html
-        return end1 + tolerance >= start2 and end2 + tolerance >= start1
-
     def overlaps(self, r, strict=False):
         """Determine if r overlaps the current cluster."""
         if strict:
@@ -291,7 +286,7 @@ class Cluster(BaseCluster):
             # from low reference_start to high_reference_start
             start1 = min((_.reference_start for _ in self))
             end1 = max((_.reference_end for _ in self))
-            return self._strict_overlap(start1, end1, r.reference_start, r.reference_end)
+            return overlap(start1, end1, r.reference_start, r.reference_end)
         return r.reference_start <= self.max
 
     def same_chromosome(self, r):
@@ -570,11 +565,11 @@ class Cluster(BaseCluster):
         other_switches = other_cluster.orientation_switches
         if len(self_switches) == 1 and len(other_switches) == 1 and self_switches != other_switches:
             tolerance = 0 if self.valid_tsd else 10
-            if abs(other_cluster.min - self.max) < max_distance and self._strict_overlap(start1=self.start,
-                                                                                         end1=self.end,
-                                                                                         start2=other_cluster.start,
-                                                                                         end2=other_cluster.end,
-                                                                                         tolerance=tolerance):
+            if abs(other_cluster.min - self.max) < max_distance and overlap(start1=self.start,
+                                                                            end1=self.end,
+                                                                            start2=other_cluster.start,
+                                                                            end2=other_cluster.end,
+                                                                            tolerance=tolerance):
                 # This check doesn't take into account the read length, as the isize
                 # is determined as read-length 1 +  inner distance  + readlength 2
                 min_read_read_length = min([r.reference_length for r in other_cluster if r.reference_start == other_cluster.min])
