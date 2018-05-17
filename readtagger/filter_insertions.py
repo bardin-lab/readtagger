@@ -135,7 +135,7 @@ def sequences_match(seq1, seq2, compare='5p_clip'):
         seq1 = seq1[-10:]
         seq2 = seq2[-10:]
     if len(seq1) > 2 and len(seq2) > 2:
-        if len(seq1) == 10 and len(seq2) == 10:
+        if len(seq1) >= 10 and len(seq2) >= 10:
             if align(seq1, seq2)['editDistance'] < 2:
                 return True
         else:

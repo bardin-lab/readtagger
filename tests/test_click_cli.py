@@ -3,6 +3,7 @@ from readtagger.cli.add_matesequence import annotate_mate
 from readtagger.cli.annotate_softclipped_reads import annotate_softclipped_reads
 from readtagger.cli.classify_somatic_insertions import confirm_insertions
 from readtagger.cli.findcluster import findcluster
+from readtagger.cli.merge_findcluster_vcf import merge_findcluster
 from readtagger.cli.plot_coverage import plot_coverage
 from readtagger.cli.pysamtools_view_cli import pysamtools_view
 from readtagger.cli.update_mapq import update_mapq
@@ -17,6 +18,7 @@ command_line_functions = [allow_dovetailing,
                           annotate_softclipped_reads,
                           confirm_insertions,
                           findcluster,
+                          merge_findcluster,
                           plot_coverage,
                           pysamtools_view,
                           update_mapq,

@@ -13,6 +13,7 @@ ENTRY_POINTS = '''
         annotate_softclipped_reads=readtagger.cli.annotate_softclipped_reads:annotate_softclipped_reads
         confirm_insertions=readtagger.cli.classify_somatic_insertions:confirm_insertions
         findcluster=readtagger.cli.findcluster:findcluster
+        merge_clusterfinder_vcfs=readtagger.cli.merge_findcluster_vcf:merge_findcluster
         plot_coverage=readtagger.cli.plot_coverage:plot_coverage
         pysamtools_view=readtagger.cli.pysamtools_view_cli:pysamtools_view
         readtagger=readtagger.cli.readtagger_cli:readtagger
