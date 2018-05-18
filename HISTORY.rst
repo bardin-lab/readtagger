@@ -6,6 +6,16 @@ History
 .. to_doc
 
 ---------------------
+0.4.11 (2018-05-18)
+---------------------
+* Add a script that merges findlcuster VCF output
+* Allow 5 nt overlaps at cluster consistency check
+* Include VALID_TSD in INFO field and write out PE support
+* Sort output VCF file
+* Generate IDs using reference_name start and cluster order
+* Improve support for arbitrary insertion names
+
+---------------------
 0.4.10 (2018-03-30)
 ---------------------
 * Include unmapped but tagged mates in veriefied tags
@@ -401,3 +411,4 @@ History
 0.1.0 (2017-02-05)
 ---------------------
 * Initial version
+
