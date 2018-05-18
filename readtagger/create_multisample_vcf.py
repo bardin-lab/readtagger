@@ -12,12 +12,17 @@ from .filter_insertions import (
 )
 from .utils import overlap
 
+# SEARCH_WINDOW is the maximum distance around an insertion in which to look for potentially overlapping insertions
 SEARCH_WINDOW = 800
 VCF_MANDATORY = list(Cluster.vcf_mandatory.keys())
 VCF_ME_INFO = list(Cluster.vcf_info.keys())
 VCF_ME_SAMPLE = list(Cluster.vcf_sample.keys())
 VCF_SC_INFO = list(SoftClipCluster.vcf_info.keys())
 VCF_SC_SAMPLE = list(SoftClipCluster.vcf_sample.keys())
+
+
+class NotSingleSampleVcfException(Exception):
+    """Indicate that function can't deal with multi sample VCF files."""
 
 
 def window(variant_files, chrom, n=1000):
@@ -36,7 +41,7 @@ def collect_sample_names(variant_files):
     for f in variant_files:
         sample_name = list(f.header.samples)
         if len(sample_name) != 1:
-            raise Exception('Can only process single sample VCF/BCF files, offending file is "%s"' % f.filename)
+            raise NotSingleSampleVcfException('Can only process single sample VCF/BCF files, offending file is "%s"' % f.filename)
         else:
             sample_names.append(sample_name[0])
     return sample_names
@@ -45,13 +50,14 @@ def collect_sample_names(variant_files):
 class VCFMerger(object):
     """Class that will merge multiple VCF samples."""
 
-    def __init__(self, variant_file_paths, output_path, window_size=1000):
+    def __init__(self, variant_file_paths, output_path, window_size=1000, search_window=SEARCH_WINDOW):
         """Merge VCF file in variant_file_paths and write merged output to output_path."""
         self.variant_file_paths = variant_file_paths
         self.variant_files = [pysam.VariantFile(f) for f in self.variant_file_paths]
         self.sample_names = collect_sample_names(self.variant_files)
         self.header = self.setup_header()
         self.window_size = window_size
+        self.search_window = search_window
         with pysam.VariantFile(output_path, 'w', header=self.header) as self.merged_variants:
             self.evaluate()
 
@@ -64,14 +70,19 @@ class VCFMerger(object):
 
     def evaluate(self):
         """Process all variant files."""
+        def process_chunks(chunks):
+            chunk = chunks.popleft()
+            if chunk:
+                merged_record = self.merge_items(current_record=chunk, records=chunks)
+                self.fix_empty_values(merged_record)
+                self.merged_variants.write(merged_record)
+
         for chrom in list(self.header.contigs):
             windows = window(self.variant_files, chrom=chrom, n=self.window_size)
             for chunks in windows:
-                chunk = chunks.popleft()
-                if chunk:
-                    merged_record = self.merge_items(current_record=chunk, records=chunks)
-                    self.fix_empty_values(merged_record)
-                    self.merged_variants.write(merged_record)
+                process_chunks(chunks)
+            while chunks:
+                process_chunks(chunks)
 
     def fix_empty_values(self, record):
         """Remove consecutive `.` in empty format fields."""
@@ -91,7 +102,7 @@ class VCFMerger(object):
         current_record = self.copy_record(current_record=current_record)
         for j, other_record in enumerate(records):
             if other_record:
-                if current_record.start > other_record.stop + SEARCH_WINDOW:
+                if current_record.start > other_record.stop + self.search_window:
                     break
                 else:
                     if self.can_merge(current_record, other_record, current_name):
@@ -124,12 +135,10 @@ class VCFMerger(object):
                         current_assembled_sequences = self.get_format_values(record=current_record, key=key)
                         if current_assembled_sequences:
                             other_assembled_sequences = self.get_format_values(record=other_record, key=key)
-                            if other_assembled_sequences:
-                                if current_assembled_sequences & other_assembled_sequences:
-                                    return True
-                                else:
-                                    if multiple_sequences_overlap(current_assembled_sequences, other_assembled_sequences, check_revcom=False):
-                                        return True
+                            if other_assembled_sequences and multiple_sequences_overlap(current_assembled_sequences,
+                                                                                        other_assembled_sequences,
+                                                                                        check_revcom=False):
+                                return True
                 # TODO: if MENAME doesn't match try to rescue via annotated softclips
         return False
 
@@ -156,10 +165,8 @@ class VCFMerger(object):
         # We copy the other records' format attributes
         for k, v in other_record.samples[other_name].items():
             current_record.samples[other_name][k] = v
-        if other_record.stop < current_record.stop:
-            current_record.stop = other_record.stop
-        if other_record.start > current_record.start:
-            current_record.start = other_record.start
+        current_record.stop = min((other_record.stop, current_record.stop))
+        current_record.start = max((other_record.start, current_record.start))
         return current_record
 
     def copy_record(self, current_record):

@@ -28,6 +28,8 @@ EXTENDED = 'extended_annotated_updated_all_reads.bam'
 PUTATIVE = 'putative_insertions.gff'
 ALL_TREATMENT = 'all_treatment_insertions.gff'
 ALL_CONTROL = 'all_control_insertions.gff'
+TEST_BCF_FILES = ['H6.bcf', 'H9.bcf']
+TEST_BCF_INDICES = ['H6.bcf.csi', 'H9.bcf.csi']
 
 
 @pytest.mark.parametrize('f', command_line_functions, ids=ids)
@@ -112,4 +114,15 @@ def test_pysamtools_view_cli(datadir_copy, tmpdir):  # noqa: D103
                                              '2L:10-100',
                                              '--output_bam',
                                              out_path])
+    assert result.exit_code == 0
+
+
+def test_merge_vcf_cli(datadir_copy, tmpdir):  # noqa: D103
+    in_paths = [str(datadir_copy[p]) for p in TEST_BCF_FILES]
+    [str(datadir_copy[p]) for p in TEST_BCF_INDICES]
+    out_path = tmpdir.join('out.bam').strpath
+    runner = CliRunner()
+    result = runner.invoke(merge_findcluster, [in_paths[0],
+                                               in_paths[1],
+                                               out_path])
     assert result.exit_code == 0
