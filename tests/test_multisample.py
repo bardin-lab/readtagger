@@ -15,29 +15,29 @@ MULTISAMPLE_VCF_INDEX = ['multisample.vcf.gz.csi']
 
 
 def test_vcf_merger_vcf(datadir_copy, tmpdir):  # noqa: D103
-    variant_files = [str(datadir_copy[f]) for f in TEST_VCF_FILES]
-    [str(datadir_copy[f]) for f in TEST_VCF_INDICES]
+    variant_files = tuple(str(datadir_copy[f]) for f in TEST_VCF_FILES)
+    tuple(str(datadir_copy[f]) for f in TEST_VCF_INDICES)
     output_path = tmpdir.join('merged.vcf').strpath
     VCFMerger(variant_file_paths=variant_files, output_path=output_path, window_size=2)
 
 
 def test_vcf_merger_bcf(datadir_copy, tmpdir):  # noqa: D103
-    variant_files = [str(datadir_copy[f]) for f in TEST_VCF_FILES]
-    [str(datadir_copy[f]) for f in TEST_VCF_INDICES]
+    variant_files = tuple(str(datadir_copy[f]) for f in TEST_VCF_FILES)
+    tuple(str(datadir_copy[f]) for f in TEST_VCF_INDICES)
     output_path = tmpdir.join('merged.vcf').strpath
     VCFMerger(variant_file_paths=variant_files, output_path=output_path, window_size=300, search_window=-500)
 
 
 def test_vcf_merger_bcf2(datadir_copy, tmpdir):  # noqa: D103
-    variant_files = [str(datadir_copy[f]) for f in TEST_BCF_FILES]
-    [str(datadir_copy[f]) for f in TEST_BCF_INDICES]
+    variant_files = tuple(str(datadir_copy[f]) for f in TEST_BCF_FILES)
+    tuple(str(datadir_copy[f]) for f in TEST_BCF_INDICES)
     output_path = tmpdir.join('merged.vcf').strpath
     VCFMerger(variant_file_paths=variant_files, output_path=output_path, window_size=300, search_window=300)
 
 
 def test_vcf_merger_multisample_exception(datadir_copy, tmpdir):  # noqa: D103
-    variant_files = [str(datadir_copy[f]) for f in MULTISAMPLE_VCF]
-    [str(datadir_copy[f]) for f in MULTISAMPLE_VCF_INDEX]
+    variant_files = tuple(str(datadir_copy[f]) for f in MULTISAMPLE_VCF)
+    tuple(str(datadir_copy[f]) for f in MULTISAMPLE_VCF_INDEX)
     output_path = tmpdir.join('merged.vcf').strpath
     with pytest.raises(NotSingleSampleVcfException):
         VCFMerger(variant_file_paths=variant_files, output_path=output_path, window_size=300, search_window=300)
