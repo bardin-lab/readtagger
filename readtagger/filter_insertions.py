@@ -138,8 +138,10 @@ def sequences_match(seq1, seq2, compare='5p_clip'):
         if len(seq1) >= 10 and len(seq2) >= 10:
             if align(seq1, seq2)['editDistance'] < 2:
                 return True
-        else:
+        elif compare == '3p_clip':
             return seq1.startswith(seq2) or seq2.startswith(seq1)
+        else:
+            return seq1.endswith(seq2) or seq2.endswith(seq1)
     return False
 
 
