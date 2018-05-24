@@ -72,18 +72,21 @@ def fetch_records(tabixfile, region):
         return[]
 
 
-def fill_comparison(putative, control, treatment):
+def fill_comparison(putative, controls, treatment):
     """Convert tabix record to a Comparison named tuple."""
     for putative_event in putative.fetch():
         putative_record = to_gff_record(putative_event)
         putative_record_complements = [to_gff_record(r) for r in fetch_records(treatment, putative_record)]
-        control_records = [to_gff_record(r) for r in fetch_records(control, putative_record)]
+        control_records = []
+        for control in controls:
+            for r in fetch_records(control, putative_record):
+                control_records.append(to_gff_record(r))
         yield (comparison(putative_record, putative_record_complements, control_records))
 
 
-def filter_putative_insertions(putative, treatment, control, output_discarded_records=True):
+def filter_putative_insertions(putative, treatment, controls, output_discarded_records=True):
     """Remove insertions that are based on clipped sequences which are also present in the control."""
-    for (putative_record, putative_complements, control_records) in fill_comparison(putative, control, treatment):
+    for (putative_record, putative_complements, control_records) in fill_comparison(putative, controls, treatment):
         valid_record = True
         clips = []
         control_clips = []
@@ -145,13 +148,13 @@ def sequences_match(seq1, seq2, compare='5p_clip'):
     return False
 
 
-def confirm_insertions(putative_insertions_path, all_treatments_path, all_controls_path, output_path, output_discarded_records=True):
+def confirm_insertions(putative_insertions_path, all_treatments_path, all_controls_paths, output_path, output_discarded_records=True):
     """Confirm putative insertions by absence of softclipping patterns in a somatic control file."""
     putative = get_tabix_file(putative_insertions_path)
     treatment = get_tabix_file(all_treatments_path)
-    control = get_tabix_file(all_controls_path)
+    controls = [get_tabix_file(p) for p in all_controls_paths if not p == all_treatments_path]
     gff_record_iterator = filter_putative_insertions(putative=putative,
                                                      treatment=treatment,
-                                                     control=control,
+                                                     controls=controls,
                                                      output_discarded_records=output_discarded_records)
     write_gff_records(gff_record_iterator, path=output_path)

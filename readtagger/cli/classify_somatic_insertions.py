@@ -15,9 +15,10 @@ from readtagger.filter_insertions import confirm_insertions as _confirm_insertio
               required=True,
               type=click.Path(exists=True))
 @click.option('-c',
-              '--all_controls_path',
+              '--all_controls_paths',
               help='Path to file containing all control insertions',
               required=True,
+              multiple=True,
               type=click.Path(exists=True))
 @click.option('-o',
               '--output_path',
