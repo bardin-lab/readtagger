@@ -110,6 +110,8 @@ def filter_putative_insertions(putative, treatment, controls, output_discarded_r
                         if sequences_match(seq1=c_seq, seq2=t_seq, compare=c.type):
                             valid_record = False
                             break
+            if valid_record is False:
+                break
         if valid_record:
             yield putative_record
         elif output_discarded_records:
