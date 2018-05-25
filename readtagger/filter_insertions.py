@@ -5,6 +5,7 @@ from collections import (
 )
 import pysam
 from edlib import align
+from .utils import overlap
 
 gff_record = namedtuple('GFF_record', 'seqid source type start end score strand phase attributes')
 comparison = namedtuple('Comparison', 'putative_event treatment_events control_events')
@@ -87,36 +88,57 @@ def fill_comparison(putative, controls, treatment):
 def filter_putative_insertions(putative, treatment, controls, output_discarded_records=True):
     """Remove insertions that are based on clipped sequences which are also present in the control."""
     for (putative_record, putative_complements, control_records) in fill_comparison(putative, controls, treatment):
-        valid_record = True
-        clips = []
+        treatment_clips = []
         control_clips = []
+        control_insertions = []
         softclip_clusters = putative_record.attributes.get('softclip_clusters')
         if not softclip_clusters:
             yield putative_record
             continue
         for putative_complement in putative_complements:
-            if putative_complement.type in ('3p_clip', '5p_clip') and putative_complement.attributes['ID'] in softclip_clusters:
-                # We only verify clipped sequences that are part of the insertion to verify
-                clips.append(putative_complement)
+            if putative_complement.type in ('3p_clip', '5p_clip'):
+                if putative_complement.attributes['ID'] in softclip_clusters:
+                    # We only verify clipped sequences that are part of the insertion to verify
+                    treatment_clips.append(putative_complement)
+            else:
+                control_insertions.append(putative_complement)
         for control_record in control_records:
             if control_record.type in ('3p_clip', '5p_clip'):
                 control_clips.append(control_record)
-        for c in control_clips:
-            for t in clips:
-                if c.type == t.type:
-                    if abs(c.start - t.start) < SCAN_SOFT_CLIP_REGION or abs(c.end - t.end) < SCAN_SOFT_CLIP_REGION:
-                        c_seq = c.attributes.get('consensus')
-                        t_seq = t.attributes.get('consensus')
-                        if sequences_match(seq1=c_seq, seq2=t_seq, compare=c.type):
-                            valid_record = False
-                            break
-            if valid_record is False:
-                break
+        valid_record = compare_clipped_sequences(control_clips=control_clips, treatment_clips=treatment_clips)
+        if valid_record:
+            valid_record = compare_control_insertions(putative_record, control_insertions)
         if valid_record:
             yield putative_record
         elif output_discarded_records:
             putative_record.attributes['FAIL'] = 'clip_seq_in_control'
             yield putative_record
+
+
+def compare_control_insertions(putative_record, control_insertions):
+    """If the putative record is a TE of the same kind we return False."""
+    for control in control_insertions:
+        if overlap(start1=putative_record.start,
+                   end1=putative_record.end,
+                   start2=control.start,
+                   end2=control.end,
+                   tolerance=1):
+            if control.type == putative_record.type:
+                return False
+    return True
+
+
+def compare_clipped_sequences(control_clips, treatment_clips):
+    """If control clips and treatment clips overlap we return False."""
+    for c in control_clips:
+        for t in treatment_clips:
+            if c.type == t.type:
+                if abs(c.start - t.start) < SCAN_SOFT_CLIP_REGION or abs(c.end - t.end) < SCAN_SOFT_CLIP_REGION:
+                    c_seq = c.attributes.get('consensus')
+                    t_seq = t.attributes.get('consensus')
+                    if sequences_match(seq1=c_seq, seq2=t_seq, compare=c.type):
+                        return False
+    return True
 
 
 def sequences_match(seq1, seq2, compare='5p_clip'):
