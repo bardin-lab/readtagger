@@ -24,7 +24,7 @@ TEST_SAM_ROVER_DM6 = 'rover_single_mate_dm6.sam'
 TEST_SAM_ROVER_FBTI = 'rover_single_mate_fbti.sam'
 EXTENDED = 'extended_all_reads.bam'
 
-ARGS_TEMPLATE = namedtuple('args', ['source_path',
+ARGS_TEMPLATE = namedtuple('args', ['source_paths',
                                     'target_path',
                                     'reference_fasta',
                                     'allow_dovetailing',
@@ -56,7 +56,7 @@ def test_samtag_annotator(datadir_copy, tmpdir):  # noqa: D103
         header = annotate_bam.header
         annotate_reads = [r for r in annotate_bam]
     with Writer(output_path.strpath, header=header) as output_writer:
-        a = SamAnnotator(samtag_instance=p,
+        a = SamAnnotator(samtag_instances=[p],
                          annotate_bam=annotate_reads,
                          output_writer=output_writer,
                          allow_dovetailing=False,
@@ -68,9 +68,9 @@ def test_samtag_annotator(datadir_copy, tmpdir):  # noqa: D103
 def test_main_keep_suboptimal(datadir_copy, tmpdir):  # noqa: D103
     # Annotate dm6 with pasteurianus reads, keep suboptimal tags
     discarded, verified, output = get_output_files(tmpdir)
-    source_path = str(datadir_copy[TEST_BAM_B])
+    source_paths = [str(datadir_copy[TEST_BAM_B])]
     target_path = str(datadir_copy[TEST_BAM_A])
-    TagManager(source_path=source_path, target_path=target_path, reference_fasta=None, allow_dovetailing=True, discard_suboptimal_alternate_tags=True,
+    TagManager(source_paths=source_paths, target_path=target_path, reference_fasta=None, allow_dovetailing=True, discard_suboptimal_alternate_tags=True,
                discard_if_proper_pair=False, output_path=output.strpath, discarded_path=discarded.strpath, verified_path=verified.strpath,
                cores=1)
 
@@ -78,9 +78,9 @@ def test_main_keep_suboptimal(datadir_copy, tmpdir):  # noqa: D103
 def test_multicore(datadir_copy, tmpdir):  # noqa: D103
     # Annotate dm6 with pasteurianus reads, keep suboptimal tags
     discarded, verified, output = get_output_files(tmpdir)
-    source_path = str(datadir_copy[TEST_BAM_B])
+    source_paths = [str(datadir_copy[TEST_BAM_B])]
     target_path = str(datadir_copy[TEST_BAM_A])
-    TagManager(source_path=source_path, target_path=target_path, reference_fasta=None, allow_dovetailing=True, discard_suboptimal_alternate_tags=True,
+    TagManager(source_paths=source_paths, target_path=target_path, reference_fasta=None, allow_dovetailing=True, discard_suboptimal_alternate_tags=True,
                discard_if_proper_pair=False, output_path=output.strpath, discarded_path=discarded.strpath, verified_path=verified.strpath,
                cores=2)
 
@@ -88,9 +88,9 @@ def test_multicore(datadir_copy, tmpdir):  # noqa: D103
 def test_main_discard_suboptimal(datadir_copy, tmpdir):  # noqa: D103
     # Annotate dm6 with pasteurianus reads, keep suboptimal tags
     discarded, verified, output = get_output_files(tmpdir)
-    source_path = str(datadir_copy[TEST_BAM_B])
+    source_paths = [str(datadir_copy[TEST_BAM_B])]
     target_path = str(datadir_copy[TEST_BAM_A])
-    TagManager(source_path=source_path, target_path=target_path, reference_fasta=None, allow_dovetailing=True, discard_suboptimal_alternate_tags=False,
+    TagManager(source_paths=source_paths, target_path=target_path, reference_fasta=None, allow_dovetailing=True, discard_suboptimal_alternate_tags=False,
                discard_if_proper_pair=False, output_path=output.strpath, discarded_path=discarded.strpath, verified_path=verified.strpath,
                cores=1)
 
@@ -98,9 +98,9 @@ def test_main_discard_suboptimal(datadir_copy, tmpdir):  # noqa: D103
 def test_main_discard_suboptimal_discard_if_proper(datadir_copy, tmpdir):  # noqa: D103
     # Annotate dm6 with pasteurianus reads, keep suboptimal tags, discard proper pairs
     discarded, verified, output = get_output_files(tmpdir)
-    source_path = str(datadir_copy[TEST_BAM_B])
+    source_paths = [str(datadir_copy[TEST_BAM_B])]
     target_path = str(datadir_copy[TEST_BAM_A])
-    TagManager(source_path=source_path, target_path=target_path, reference_fasta=None, allow_dovetailing=True, discard_suboptimal_alternate_tags=False,
+    TagManager(source_paths=source_paths, target_path=target_path, reference_fasta=None, allow_dovetailing=True, discard_suboptimal_alternate_tags=False,
                discard_if_proper_pair=True, output_path=output.strpath, discarded_path=discarded.strpath, verified_path=verified.strpath,
                cores=1)
 
@@ -109,9 +109,9 @@ def test_main_with_argparse(datadir_copy, tmpdir, mocker):  # noqa: D103
     # Annotate dm6 with pasteurianus reads, keep suboptimal tags, discard proper pairs
     # and test that argparse argument parsing works as expected.
     discarded, verified, output = get_output_files(tmpdir)
-    source_path = str(datadir_copy[TEST_BAM_B])
+    source_paths = [str(datadir_copy[TEST_BAM_B])]
     target_path = str(datadir_copy[TEST_BAM_A])
-    args = ARGS_TEMPLATE(source_path=source_path, target_path=target_path, reference_fasta=None, allow_dovetailing=True,
+    args = ARGS_TEMPLATE(source_paths=source_paths, target_path=target_path, reference_fasta=None, allow_dovetailing=True,
                          discard_suboptimal_alternate_tags=False,
                          discard_if_proper_pair=True, output_path=output.strpath, discarded_path=discarded.strpath, verified_path=verified.strpath,
                          cores='1')
@@ -125,9 +125,9 @@ def test_main_with_argparse(datadir_copy, tmpdir, mocker):  # noqa: D103
 
 def test_main_rover(datadir_copy, tmpdir, mocker, reference_fasta):  # noqa: D103, F811
     discarded, verified, output = get_output_files(tmpdir)
-    source_path = str(datadir_copy[TEST_SAM_ROVER_FBTI])
+    source_paths = [str(datadir_copy[TEST_SAM_ROVER_FBTI])]
     target_path = str(datadir_copy[TEST_SAM_ROVER_DM6])
-    args = ARGS_TEMPLATE(source_path=source_path, target_path=target_path, allow_dovetailing=True, discard_suboptimal_alternate_tags=False,
+    args = ARGS_TEMPLATE(source_paths=source_paths, target_path=target_path, allow_dovetailing=True, discard_suboptimal_alternate_tags=False,
                          reference_fasta=None, discard_if_proper_pair=True, output_path=output.strpath,
                          discarded_path=discarded.strpath, verified_path=verified.strpath, cores='1')
     argv = namedtuple_to_argv(args, 'readtagger.py')
@@ -138,7 +138,7 @@ def test_main_rover(datadir_copy, tmpdir, mocker, reference_fasta):  # noqa: D10
         pass
     assert len([r for r in pysam.AlignmentFile(verified.strpath)]) == 0  # 1 if discard_suboptimal_alternate_tags is really False, but difficult to test ...
     # Now test with 2 cores
-    args = ARGS_TEMPLATE(source_path=source_path, target_path=target_path, reference_fasta=None, allow_dovetailing=True,
+    args = ARGS_TEMPLATE(source_paths=source_paths, target_path=target_path, reference_fasta=None, allow_dovetailing=True,
                          discard_suboptimal_alternate_tags=False,
                          discard_if_proper_pair=True, output_path=output.strpath, discarded_path=discarded.strpath, verified_path=verified.strpath,
                          cores='2')
@@ -153,9 +153,9 @@ def test_main_rover(datadir_copy, tmpdir, mocker, reference_fasta):  # noqa: D10
 
 def test_tag_manager_small_chunks(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
     discarded, verified, output = get_output_files(tmpdir)
-    source_path = str(datadir_copy[EXTENDED])
+    source_paths = [str(datadir_copy[EXTENDED])]
     target_path = str(datadir_copy[EXTENDED])
-    args = {'source_path': source_path,
+    args = {'source_paths': source_paths,
             'target_path': target_path,
             'output_path': output.strpath,
             'discarded_path': discarded.strpath,
@@ -171,9 +171,9 @@ def test_tag_manager_small_chunks(datadir_copy, tmpdir, reference_fasta):  # noq
 
 def test_tag_manager_big_chunks(datadir_copy, tmpdir):  # noqa: D103
     discarded, verified, output = get_output_files(tmpdir)
-    source_path = str(datadir_copy[EXTENDED])
+    source_paths = [str(datadir_copy[EXTENDED])]
     target_path = str(datadir_copy[EXTENDED])
-    args = {'source_path': source_path,
+    args = {'source_paths': source_paths,
             'target_path': target_path,
             'output_path': output.strpath,
             'discarded_path': discarded.strpath,
@@ -187,9 +187,9 @@ def test_tag_manager_big_chunks(datadir_copy, tmpdir):  # noqa: D103
 
 
 def get_samtag_processor(datadir_copy, tag_mate):  # noqa: D103
-    source_path = str(datadir_copy[TEST_SAM])
-    header = pysam.AlignmentFile(source_path).header
-    return SamTagProcessor(Reader(source_path, sort_order='queryname').__enter__(), header=header, tag_mate=tag_mate)
+    source_paths = str(datadir_copy[TEST_SAM])
+    header = pysam.AlignmentFile(source_paths).header
+    return SamTagProcessor(Reader(source_paths, sort_order='queryname').__enter__(), header=header, tag_mate=tag_mate)
 
 
 def get_output_files(tmpdir):  # noqa: D103

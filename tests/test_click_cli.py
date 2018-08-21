@@ -6,11 +6,13 @@ from readtagger.cli.findcluster import findcluster
 from readtagger.cli.merge_findcluster_vcf import merge_findcluster
 from readtagger.cli.plot_coverage import plot_coverage
 from readtagger.cli.pysamtools_view_cli import pysamtools_view
+from readtagger.cli.readtagger_cli import readtagger
 from readtagger.cli.update_mapq import update_mapq
 from readtagger.cli.write_supplementary_fastq import write_supplementary_fastq
 from readtagger import VERSION
 from click.testing import CliRunner
 import pytest
+import pysam
 from .helpers import reference_fasta  # noqa: F401
 
 command_line_functions = [allow_dovetailing,
@@ -30,6 +32,8 @@ ALL_TREATMENT = 'all_treatment_insertions.gff'
 ALL_CONTROL = 'all_control_insertions.gff'
 TEST_BCF_FILES = ['H6.bcf', 'H9.bcf']
 TEST_BCF_INDICES = ['H6.bcf.csi', 'H9.bcf.csi']
+TEST_BAM_A = 'dm6.bam'
+TEST_BAM_B = 'pasteurianus.bam'
 
 
 @pytest.mark.parametrize('f', command_line_functions, ids=ids)
@@ -126,3 +130,27 @@ def test_merge_vcf_cli(datadir_copy, tmpdir):  # noqa: D103
                                                in_paths[1],
                                                out_path])
     assert result.exit_code == 0
+
+
+def test_readtagger_multiple(datadir_copy, tmpdir):  # noqa: D103
+    A = str(datadir_copy[TEST_BAM_A])
+    B = str(datadir_copy[TEST_BAM_B])
+    out_path = tmpdir.join('out.bam').strpath
+    disc_path = tmpdir.join('disc.bam').strpath
+    runner = CliRunner()
+    result = runner.invoke(readtagger, ['-t',
+                                        A,
+                                        '-s',
+                                        "%s:a:a" % B,
+                                        '-s',
+                                        "%s:b:b" % B,
+                                        '-o',
+                                        out_path,
+                                        '--discarded_path',
+                                        disc_path
+                                        ])
+    assert result.exit_code == 0
+    with pysam.AlignmentFile(disc_path) as discarded:
+        for read in discarded:
+            assert read.has_tag('AR')
+            assert read.has_tag('BR')

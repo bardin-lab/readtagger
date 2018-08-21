@@ -41,7 +41,7 @@ def parse_file_tags(filetags):
               help="Annotate reads in this file.",
               required=True,
               type=click.Path(exists=True))
-@click.option('-s', '--source_path',
+@click.option('-s', '--source_paths',
               help="Tag reads in target_path if reads are aligned in these files."
                    "Append `:A:B` to tag first letter of tag describing read as A, "
                    "and first letter of tag describing the mate as B",
@@ -85,8 +85,8 @@ def readtagger(**kwargs):
     logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s - %(message)s',
                         filename=kwargs.pop('log_to'),
                         level=getattr(logging, kwargs.pop('verbosity')))
-    source_path, tag_prefix_self, tag_prefix_mate = list(zip(*parse_file_tags(kwargs.pop('source_path'))))[0]
-    kwargs['source_path'] = source_path
-    kwargs['tag_prefix_self'] = tag_prefix_self
-    kwargs['tag_prefix_mate'] = tag_prefix_mate
+    source_paths, tag_prefixes_self, tag_prefixes_mate = parse_file_tags(kwargs.pop('source_paths'))
+    kwargs['source_paths'] = source_paths
+    kwargs['tag_prefixes_self'] = tag_prefixes_self
+    kwargs['tag_prefixes_mate'] = tag_prefixes_mate
     TagManager(**kwargs)

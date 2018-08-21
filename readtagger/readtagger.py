@@ -40,7 +40,8 @@ MATE = 'm'
 class TagManager(object):
     """Orchestrates SamTagProcessor and SamAnnotator classes, holds reference to input and output files."""
 
-    def __init__(self, source_path,
+    def __init__(self,
+                 source_paths,
                  target_path,
                  output_path='test.bam',
                  cram=False,
@@ -53,14 +54,14 @@ class TagManager(object):
                  discard_suboptimal_alternate_tags=True,
                  reference_fasta=None,
                  bwa_index=None,
-                 tag_prefix_self='A',
-                 tag_prefix_mate='B',
+                 tag_prefixes_self=('A',),
+                 tag_prefixes_mate=('B',),
                  cores=1,
                  chunk_size='auto',
                  ):
         """Open input and output files and construct worker classes."""
-        self.source_path = source_path
-        self.source_path_sorted = None
+        self.source_paths = source_paths
+        self.source_paths_sorted = []
         self.annotate_path = target_path
         self.annotate_path_sorted = None
         self.output_path = output_path
@@ -74,8 +75,8 @@ class TagManager(object):
         self.discard_suboptimal_alternate_tags = discard_suboptimal_alternate_tags
         self.reference_fasta = reference_fasta
         self.bwa_index = bwa_index
-        self.tag_prefix_self = tag_prefix_self
-        self.tag_prefix_mate = tag_prefix_mate
+        self.tag_prefixes_self = tag_prefixes_self
+        self.tag_prefixes_mate = tag_prefixes_mate
         self.cores = cores
         self.chunk_size = chunk_size
         with TemporaryDirectory(prefix='TagManager_') as self.tempdir:
@@ -88,22 +89,18 @@ class TagManager(object):
             fd, path = tempfile.mkstemp()
             self.annotate_path_sorted = sort_bam(self.annotate_path, output=path, sort_order='queryname', threads=self.cores)
             os.close(fd)
-        if is_file_coordinate_sorted(self.source_path):
-            fd, path = tempfile.mkstemp()
-            self.source_path_sorted = sort_bam(self.source_path, output=path, sort_order='queryname', threads=self.cores)
-            os.close(fd)
+        for source_path in self.source_paths:
+            if is_file_coordinate_sorted(source_path):
+                fd, path = tempfile.mkstemp()
+                self.source_paths_sorted.append(sort_bam(source_path, output=path, sort_order='queryname', threads=self.cores))
+                os.close(fd)
         self.annotate_path_sorted = self.annotate_path_sorted or self.annotate_path
-        self.source_path_sorted = self.source_path_sorted or self.source_path
+        self.source_paths_sorted = self.source_paths_sorted or self.source_paths
 
-    def process(self):
-        """Create worker objects and stream pairs to SamAnnotator process method."""
-        if self.allow_dovetailing and not self.max_proper_size:
-            self.max_proper_size = get_max_proper_pair_size(self.annotate_path)
-        mean_read_length = get_mean_read_length(self.annotate_path)
-        if not self.bwa_index and self.reference_fasta:
-            self.bwa_index, _ = make_bwa_index(reference_fasta=self.reference_fasta, dir=self.tempdir)
+    def setup_kwargs(self):
+        """Set up arguments to pass to worker."""
         kwds = {}
-        kwds['source_path'] = self.source_path_sorted
+        kwds['source_paths'] = self.source_paths_sorted
         kwds['annotate_path'] = self.annotate_path_sorted
         kwds['discarded_path'] = self.discarded_path
         kwds['verified_path'] = self.verified_path
@@ -114,30 +111,59 @@ class TagManager(object):
         kwds['max_proper_size'] = self.max_proper_size
         kwds['discard_suboptimal_alternate_tags'] = self.discard_suboptimal_alternate_tags
         kwds['discard_if_proper_pair'] = self.discard_if_proper_pair
-        kwds['tag_prefix_self'] = self.tag_prefix_self
-        kwds['tag_prefix_mate'] = self.tag_prefix_mate
-        kwds['source_header'] = pysam.AlignmentFile(self.source_path_sorted).header.to_dict()
-        logger.info("Finding position at which to split input files")
+        kwds['tag_prefix_self'] = self.tag_prefixes_self
+        kwds['tag_prefix_mate'] = self.tag_prefixes_mate
+        kwds['source_headers'] = [pysam.AlignmentFile(p).header.to_dict() for p in self.source_paths_sorted]
+        return kwds
+
+    def setup_chunk_size(self):
+        """Determine the chunk size."""
         if self.chunk_size == 'auto':
             # Adjust the chunk size based on read-length. We use the DEFAULT_CHUNK_SIZE for 200 nt reads
             # or less if the reads are longer (with a minimum of 10)
+            mean_read_length = get_mean_read_length(self.annotate_path)
             chunk_normalization_factor = int(mean_read_length / 200)
             if chunk_normalization_factor == 0:
                 chunk_normalization_factor = 1
             chunk_size = DEFAULT_CHUNK_SIZE / chunk_normalization_factor
             self.chunk_size = chunk_size if not chunk_size < 20 else 20
             logger.info("Chunk size is '%s', read size is '%s'", chunk_size, mean_read_length)
-        pos_qname = get_queryname_positions(self.source_path_sorted, chunk_size=self.chunk_size)
+
+    def setup_source_file_splitting(self):
+        """Find positions to which to jump in source path files."""
+        kwds = self.setup_kwargs()
+        mp_args = []
+        pos_qname = get_queryname_positions(self.source_paths_sorted[0], chunk_size=self.chunk_size)
         last_qnames = [t[1] for t in pos_qname]
         starts_annotate = start_positions_for_last_qnames(self.annotate_path_sorted, last_qnames=last_qnames)
-        mp_args = []
-        for (start_source, qname), start_annotate in zip(pos_qname, starts_annotate):
+        additional_source_starts = []
+        if len(self.source_paths_sorted) > 1:
+            for source_path in self.source_paths_sorted[1:]:
+                additional_source_starts.append(start_positions_for_last_qnames(source_path, last_qnames=last_qnames))
+        for i, ((start_source, qname), start_annotate) in enumerate(zip(pos_qname, starts_annotate)):
             args = kwds.copy()
             args['start_annotate'] = start_annotate
+            start_source = [start_source]
+            for sp in additional_source_starts:
+                start_source.append(sp[i])
             args['start_source'] = start_source
             args['qname'] = qname
             mp_args.append(args)
         logger.info("Split processing into %d chunks", len(mp_args))
+        return mp_args
+
+    def process(self):
+        """Create worker objects and stream pairs to SamAnnotator process method."""
+        if self.allow_dovetailing and not self.max_proper_size:
+            self.max_proper_size = get_max_proper_pair_size(self.annotate_path)
+
+        if not self.bwa_index and self.reference_fasta:
+            self.bwa_index, _ = make_bwa_index(reference_fasta=self.reference_fasta, dir=self.tempdir)
+
+        self.setup_chunk_size()
+        logger.info("Finding position at which to split input files")
+        mp_args = self.setup_source_file_splitting()
+
         if self.cores > 1:
             p = mp.Pool(self.cores)
             r = p.map_async(multiprocess_worker, mp_args)
@@ -166,17 +192,17 @@ class TagManager(object):
 def multiprocess_worker(kwds):
     """Process chunks of input bam files."""
     # source_bam can be a subset of annotate_bam
-    start_source = kwds['start_source']
     start_annotate = kwds['start_annotate']
     qname = kwds['qname']
-    source_header = kwds['source_header']
+    source_headers = kwds['source_headers']
     tempdir = kwds['tempdir']
-    source_reads = get_reads(kwds['source_path'], start=start_source, last_qname=qname)
+    source_reads = [get_reads(p, start=s, last_qname=qname) for p, s in zip(kwds['source_paths'], kwds['start_source'])]
     annotate_reads = get_reads(kwds['annotate_path'], start=start_annotate, last_qname=qname)
     bwa_index = kwds.get('bwa_index')
     if bwa_index:
         TagSoftClip(source=annotate_reads, bwa_index=bwa_index, threads=2, min_clip_length=20)
-    AnnotateMateInformation(source=source_reads, target=annotate_reads)
+    for reads in source_reads:
+        AnnotateMateInformation(source=reads, target=annotate_reads)
     annotate_header = pysam.AlignmentFile(kwds['annotate_path']).header
     discarded_out = os.path.join(tempdir, "%s_discarded.bam" % qname) if kwds['discarded_path'] else None
     discarded_writer = pysam.AlignmentFile(discarded_out, header=annotate_header, mode='wbu') if discarded_out else None
@@ -184,8 +210,8 @@ def multiprocess_worker(kwds):
     verified_writer = pysam.AlignmentFile(verified_out, header=annotate_header, mode='wbu') if verified_out else None
     output_path = os.path.join(tempdir, "%s_output.bam" % qname)
     output_writer = pysam.AlignmentFile(output_path, header=annotate_header, mode='wbu')
-    samtag_p = SamTagProcessor(source_bam=source_reads, header=source_header, tag_mate=kwds['tag_mate'])
-    SamAnnotator(samtag_instance=samtag_p,
+    samtag_p = [SamTagProcessor(source_bam=reads, header=headers, tag_mate=kwds['tag_mate']) for reads, headers in zip(source_reads, source_headers)]
+    SamAnnotator(samtag_instances=samtag_p,
                  annotate_bam=annotate_reads,
                  output_writer=output_writer,
                  allow_dovetailing=kwds['allow_dovetailing'],
@@ -194,8 +220,8 @@ def multiprocess_worker(kwds):
                  discard_if_proper_pair=kwds['discard_if_proper_pair'],
                  discarded_writer=discarded_writer,
                  verified_writer=verified_writer,
-                 tag_prefix_self=kwds['tag_prefix_self'],
-                 tag_prefix_mate=kwds['tag_prefix_mate'])
+                 tag_prefixes_self=kwds['tag_prefix_self'],
+                 tag_prefixes_mate=kwds['tag_prefix_mate'])
     if verified_writer:
         verified_writer.close()
     if discarded_writer:
@@ -289,7 +315,7 @@ class SamAnnotator(object):
     """Use list of SamTagProcessor instances to add tags to a BAM file."""
 
     def __init__(self,
-                 samtag_instance,
+                 samtag_instances,
                  annotate_bam,
                  output_writer=None,
                  allow_dovetailing=False,
@@ -298,8 +324,8 @@ class SamAnnotator(object):
                  discard_if_proper_pair=False,
                  discarded_writer=None,
                  verified_writer=None,
-                 tag_prefix_self='A',
-                 tag_prefix_mate='B', ):
+                 tag_prefixes_self=('A',),
+                 tag_prefixes_mate=('B',), ):
         """
         Compare `samtags` with `annotate_file`.
 
@@ -321,7 +347,7 @@ class SamAnnotator(object):
         :param tag_prefix_mate: Tag to use as indicating that the current mate is aligned
         :type tag_prefix_mate: basestring
         """
-        self.samtag_instance = samtag_instance
+        self.samtag_instances = samtag_instances
         self.annotate_bam = annotate_bam
         self.output_writer = output_writer
         self.discarded_writer = discarded_writer
@@ -330,12 +356,12 @@ class SamAnnotator(object):
         self.discard_if_proper_pair = discard_if_proper_pair
         self.max_proper_size = max_proper_size
         self.allow_dovetailing = allow_dovetailing
-        self.tag_prefix_self = tag_prefix_self
-        self.tag_prefix_mate = tag_prefix_mate
-        self.detail_tag_self = tag_prefix_self + 'D'
-        self.detail_tag_mate = tag_prefix_mate + 'D'
-        self.reference_tag_self = tag_prefix_self + 'R'
-        self.reference_tag_mate = tag_prefix_mate + 'R'
+        self.tag_prefixes_self = tag_prefixes_self
+        self.tag_prefixes_mate = tag_prefixes_mate
+        self.detail_tag_self = ["%sD" % t for t in self.tag_prefixes_self]
+        self.detail_tag_mate = ["%sD" % t for t in self.tag_prefixes_mate]
+        self.reference_tag_self = ["%sR" % t for t in self.tag_prefixes_self]
+        self.reference_tag_mate = ["%sR" % t for t in self.tag_prefixes_mate]
         self.process()
 
     def process(self):
@@ -346,22 +372,35 @@ class SamAnnotator(object):
             discarded_tags = []
             verified_tags = []
             verified_tag = None
-            alt_tag = self.samtag_instance.result.get(read.query_name, {}).get(read.is_read1)
-            if alt_tag and self.discard_suboptimal_alternate_tags:
-                # This is either not the correct read (unlikely because)
-                verified_tag = self.verify_alt_tag(read, alt_tag)
-                if self.discarded_writer and len(verified_tag) < len(alt_tag):
-                    # we have more alt tags than verified tags,
-                    # so we track the discarded tags
-                    discarded_tag = self.format_tags({k: v for k, v in alt_tag.items() if k not in verified_tag})
-                    discarded_tags.extend(discarded_tag)
-                alt_tag = verified_tag
-            if alt_tag:
-                verified_tag = self.format_tags(alt_tag)
-            if verified_tag and self.discard_if_proper_pair and read.is_proper_pair:
-                discarded_tags.extend(verified_tag)
-            elif verified_tag:
-                verified_tags.extend(verified_tag)
+            for samtag_instance, detail_tag_self, details_tag_mate, reference_tag_self, reference_tag_mate in zip(self.samtag_instances,
+                                                                                                                  self.detail_tag_self,
+                                                                                                                  self.detail_tag_mate,
+                                                                                                                  self.reference_tag_self,
+                                                                                                                  self.reference_tag_mate):
+                alt_tag = samtag_instance.result.get(read.query_name, {}).get(read.is_read1)
+                if alt_tag and self.discard_suboptimal_alternate_tags:
+                    # This is either not the correct read (unlikely because)
+                    verified_tag = self.verify_alt_tag(read, alt_tag)
+                    if self.discarded_writer and len(verified_tag) < len(alt_tag):
+                        # we have more alt tags than verified tags,
+                        # so we track the discarded tags
+                        discarded_tag = self.format_tags({k: v for k, v in alt_tag.items() if k not in verified_tag},
+                                                         detail_tag_self=detail_tag_self,
+                                                         detail_tag_mate=details_tag_mate,
+                                                         reference_tag_self=reference_tag_self,
+                                                         reference_tag_mate=reference_tag_mate)
+                        discarded_tags.extend(discarded_tag)
+                    alt_tag = verified_tag
+                if alt_tag:
+                    verified_tag = self.format_tags(alt_tag,
+                                                    detail_tag_self=detail_tag_self,
+                                                    detail_tag_mate=details_tag_mate,
+                                                    reference_tag_self=reference_tag_self,
+                                                    reference_tag_mate=reference_tag_mate)
+                if verified_tag and self.discard_if_proper_pair and read.is_proper_pair:
+                    discarded_tags.extend(verified_tag)
+                elif verified_tag:
+                    verified_tags.extend(verified_tag)
             if discarded_tags:
                 discarded_read = read.__copy__()
                 discarded_read.tags += discarded_tags
@@ -373,7 +412,7 @@ class SamAnnotator(object):
                     self.verified_writer.write(read)
             self.output_writer.write(read)
 
-    def format_tags(self, tags):
+    def format_tags(self, tags, detail_tag_self, detail_tag_mate, reference_tag_self, reference_tag_mate):
         """
         Format tags dictionary.
 
@@ -382,11 +421,11 @@ class SamAnnotator(object):
         formatted_tags = []
         for k, v in tags.items():
             if k == 's':
-                formatted_tags.append((self.detail_tag_self, str(v)))
-                formatted_tags.append((self.reference_tag_self, v.reference_name()))
+                formatted_tags.append((detail_tag_self, str(v)))
+                formatted_tags.append((reference_tag_self, v.reference_name()))
             else:
-                formatted_tags.append((self.detail_tag_mate, str(v)))
-                formatted_tags.append(((self.reference_tag_mate, v.reference_name())))
+                formatted_tags.append((detail_tag_mate, str(v)))
+                formatted_tags.append(((reference_tag_mate, v.reference_name())))
         return formatted_tags
 
     def verify_alt_tag(self, read, alt_tag):

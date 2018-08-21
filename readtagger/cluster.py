@@ -781,7 +781,6 @@ class Cluster(BaseCluster):
 def collect_evidence(cluster, alignment_file):
     """Count all reads that point against evidence for a transposon insertion."""
     chromosome = cluster.reference_name
-    # Chunk is a small list of clusters
     start = cluster.start
     end = cluster.end
     min_start = start - 500
