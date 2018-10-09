@@ -1,5 +1,5 @@
 bcbio-gff==0.6.4
-biopython==1.70
+biopython==1.72
 cached_property==1.4.0
 click==6.7
 contextlib2==0.5.5
