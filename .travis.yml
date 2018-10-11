@@ -16,23 +16,22 @@ env:
 install:
 - git fetch --unshallow
 - python -c 'import os,sys,fcntl; flags = fcntl.fcntl(sys.stdout, fcntl.F_GETFL); fcntl.fcntl(sys.stdout, fcntl.F_SETFL, flags&~os.O_NONBLOCK);'
-- if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh
+- if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then wget http://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh
   -O miniconda.sh; else wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
   -O miniconda.sh; fi
 - bash miniconda.sh -bp $CONDA_PREFIX
-- export ORIGINAL_PATH=$PATH
 - export PATH="$CONDA_PREFIX/bin:$PATH"
-- "$CONDA_BIN config --set always_yes yes --set changeps1 no"
-- "$CONDA_BIN --version"
-- "$CONDA_BIN config --add channels mvdbeek"
-- "$CONDA_BIN config --add channels bioconda"
-- "$CONDA_BIN config --add channels conda-forge"
-- "$CONDA_BIN install bwa cap3 samtools virtualenv conda-build -c bioconda"
+- conda config --set always_yes yes --set changeps1 no
+- conda --version
+- conda config --add channels mvdbeek
+- conda config --add channels bioconda
+- conda config --add channels conda-forge
+- conda install bwa cap3 samtools virtualenv conda-build -c bioconda
 - samtools --version
-- pip install tox-travis coveralls
-- mkdir -p ~/.planemo/ && virtualenv ~/.planemo/gx_venv
-- $CONDA_BIN build --python "$TRAVIS_PYTHON_VERSION" conda/multiprocessing-logging
-- $CONDA_BIN build --python "$TRAVIS_PYTHON_VERSION" conda/readtagger
+- conda install -c conda-forge tox coveralls
+- pip install tox-travis
+- conda build --python "$TRAVIS_PYTHON_VERSION" conda/multiprocessing-logging
+- conda build --python "$TRAVIS_PYTHON_VERSION" conda/readtagger
 - curl -L https://github.com/bardin-lab/dmel-transposon-reference-data/raw/master/fasta_sequences/dm6_TE_annotations_sequences.fasta -o ~/ref.fa
 script: tox
 after_success:
