@@ -6,6 +6,13 @@ History
 .. to_doc
 
 ---------------------
+0.4.12 (2018-08-21)
+---------------------
+* Allow multiple inputs to readtagger
+* Allow passing multiple control files to confirm_insertions script
+* Fix matching of short 3p clipped sequences
+
+---------------------
 0.4.11 (2018-05-18)
 ---------------------
 * Add a script that merges findlcuster VCF output
@@ -411,4 +418,3 @@ History
 0.1.0 (2017-02-05)
 ---------------------
 * Initial version
-
