@@ -9,7 +9,6 @@ env:
   global:
   - TE_SEQUENCE_FASTA=~/ref.fa
   - CONDA_PREFIX=~/conda
-  - CONDA_BIN=~/conda/bin/conda
   - secure: dfbb83QcBKliQ8H6eMU9WTHYrEvLVRqkGv1Wt+tKs4NgVGz80FFXNvYlWDbA+YBtlQ6q4TB+/dL4uApw2aJorI6RULNpx+uB9FjT57oSMtDnf2yH5sFGa8K6PYwFSC5gkY0IXZ1kY1fkol+ivvrp6l0i9b4z2IVomBxmrBMx7tYO68OHgwIv6FjxP+f0K99gmsoGZLYiCNuW9fB3gWFnNLGVGxbg7gjL0kFR7h3ELkaPuzuMZJ90ixSGcQGEtBOdOHF8bVUuE6voXco4dVAgKfOgAnXVZZO+nJdPMo0BzPO+clmnrTWvFJpmQg1D8nBluCdK3806ePyL2NJZv8Yc43qipf7tJ8KK4/KX0UGNEk04mrr3fto1eb6GMdBxOy1Z5SWLS+A1JeP4oQLRpxeBUjZKckfOnMQ7GA4F226icSMew2AniojSrAG/eihczlynCCyARSACxpxnK+6QZO6FqNZ2iTsinBm8waD+DN1lYaCBEhbjJgSjEHbGxbmi8C3r1N41jtxrF1H4fNWPtMdMQvBP0HnhrS2am2TyaxnXyS+YDyW68/Bs3AvnV9cqSAI2u/kZ7kgX+ieCs1hlupX5UAmlNwFWisK7tBAJClyFb2tBjol59WqFZuPai22/iPS9JwMZqO4MjiGu6HuX5+msa9C1emEymnhnQGak9qGED/g=
   - secure: UIBpSW2z8KgjEPUAh/I041aZs2cidtUm99U0/Og2FKNvmR6fCyXex4eg9Tk3C8dLjqVAlUoFswD/GrQf+ng/+8ek39ET47XjIDs9LSdbsFwy5Uez+uQlSeFxAxzUucOE0Kno54sCsafcxo8AUZieHaJF8zy80fR44EKqZl2XuOx6hZJGmDq/MSTNTfoYP29lIP/Y5K8s3i9acj79iXyDu7ysS/uesqwf7yLTt3xaF6K5HSW3EO+DVFhz4pmd2Hn/3tS8hSLV33M61LF9Bgi58LUTZ9Be3Jvf+8M1KfrpPA+YogpdqiZR62TqFyGkC8u3/Ra787b0xzgFJK3b9prE1QZtQr4kkS489uQHGWOAEnDfS+7Z4Y9aj/wUQac1ecErI5IOP/QhFOIF6LqI+2qi+3kLDookXTPSs4hHtpbMA5qqej7w4Vu++2Wz/2XTLg17FbgnQ9EDwiomcYj0XDTWbsGimfNM3PFsfqEitnTvgCM2US8bTfrJowp8kumdjG28PbnsHznaXGRJmm98YftCY0SuYOxcn80IcDQWiHPkKaJ4oN1zrPLrvSHZWNeDc1fKm5j7hM1FnPZ2N1AzXlzj2DN/oEVfLij9xycCQqUsmdjDs59MPimkZ00D1VhFusnfUAKMCUsy5YIdLoudwRqJFbGSkB70/P2ERehcYfg5J38=
   - secure: go/4X6KeeYcyAycKRixUHeSXVI1K/P7OtY9wW1fdoM1XtXTeA318+7odHxusMJk6TUDOeWcHlrow2EBEtaLDxKyR2WErKNyvZc7dnLJtPliE28I74fDeDzr+3g8BlFmS8ub6f5xj7lmaDsoymbYcB4XzIAMg1tqMU0vRg0Zx+iR1JhikiBSw4B/ef8pCMMtzfFjv5amVfd8e48355q+sd/jvCw6/b+O9z+iRvPuOTuJNtgg9jaQzcVsGvafFlADItkNdemH62WCRY1vg5XDphr72HBP3700sfpqb5TYX/a+x18ncZcVQaGpS9rp+naIKL9e8XdhMbOffwLsWNruTb/kfipQIBRriD+1cGDpGQgpnF4El8pwr74mmIK5Faa0dk8vdCikkG7gX2KbItGCHYoLhpX8VEMNv+8pW2K9KPdjM1ZqlAqyNOgiq7KcXnCdnnxeTc4ghaiqd/2HrdMiEGj9/5oZ5TZgIuhPpjaLyZBG43boQ3J0otk11ej7MlKx5lTgtfIKCtTJ++QA628sq8S3q0WOaIfBEnnil85q0z3e3DFWajmamBsA5RM53GazIacU4jZxYIt9y+bgOrKonupMr8yc2ua8Y5ycaKDJOJ+N+0XwjaXOsi0m0qApUYsY71xCMnQiH5b8TqGncolnDlf7sb1eo/RGt76WSEx1gzBw=
@@ -26,10 +25,10 @@ install:
 - conda config --add channels mvdbeek
 - conda config --add channels bioconda
 - conda config --add channels conda-forge
-- conda install bwa cap3 samtools virtualenv conda-build -c bioconda
+- conda install tox coveralls bwa cap3 samtools virtualenv conda-build -c conda-forge -c bioconda
 - samtools --version
-- conda install -c conda-forge tox coveralls
 - pip install tox-travis
+- virtualenv /home/travis/.planemo/gx_venv_None
 - conda build --python "$TRAVIS_PYTHON_VERSION" conda/multiprocessing-logging
 - conda build --python "$TRAVIS_PYTHON_VERSION" conda/readtagger
 - curl -L https://github.com/bardin-lab/dmel-transposon-reference-data/raw/master/fasta_sequences/dm6_TE_annotations_sequences.fasta -o ~/ref.fa
