@@ -16,6 +16,13 @@ def is_file_coordinate_sorted(path, reads_to_check=1000):
         i = 0
         current_start = 0
         current_tid = 0
+        try:
+            if f.header['HD']['SO'] == 'coordinate':
+                # We trust the header, seems most sane
+                logger.info("%s is sorted by coordinate", path)
+                return True
+        except Exception:
+            pass
         for r in f:
             if i > reads_to_check:
                 return True
