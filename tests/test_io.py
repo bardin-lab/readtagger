@@ -99,6 +99,12 @@ def test_bamwriter_switch_output_sorting(datadir_copy, tmpdir):  # noqa: D103
             writer.write(r)
 
 
+def test_is_file_coordinate_sorted(datadir_copy, tmpdir):  # noqa: D103
+    qname_sorted = tmpdir.join('qname_sorted').strpath
+    qname_sorted = readtagger.bam_io.sort_bam(inpath=str(datadir_copy[EXTENDED]), output=qname_sorted, sort_order='queryname')
+    assert not readtagger.bam_io.is_file_coordinate_sorted(qname_sorted, reads_to_check=10)
+
+
 def test_get_queryname_positions(datadir_copy, tmpdir):  # noqa: D103
     qname_sorted = tmpdir.join('qname_sorted').strpath
     qname_sorted = readtagger.bam_io.sort_bam(inpath=str(datadir_copy[EXTENDED]), output=qname_sorted, sort_order='queryname')
