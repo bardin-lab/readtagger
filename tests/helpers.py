@@ -47,7 +47,7 @@ class MockAlignedSegment(MockAlignedSegmentTemplate):
                 tid=0,
                 is_reverse=False,
                 mapping_quality=60):
-        """Initiates a new AlignedSegment."""
+        """Initiates a new AlignedSegment."""  # noqa: D401
         # add default values
         return super(MockAlignedSegment, cls).__new__(cls,
                                                       cigar,
