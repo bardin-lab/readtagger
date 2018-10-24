@@ -136,11 +136,13 @@ class TagManager(object):
         # We first split the file to be annotated into equal-sized chunks
         pos_qname = get_queryname_positions(self.annotate_path_sorted, chunk_size=self.chunk_size)
         # pos_qname is a list of tuples with position to seek to for first read and readname of the last read
+        logger.info("Splitting annotate file into %d chunks", len(pos_qname))
         last_qnames = [t.qname for t in pos_qname]
         # Now we fill in the start
         source_starts = []
         for source_path in self.source_paths_sorted:
             source_starts.append(start_positions_for_last_qnames(source_path, last_qnames=last_qnames))
+        assert len(source_starts[0]) == len(last_qnames), "chunk size isn't equal, annotate has %d chunks, source has %d" % (len(pos_qname), len(source_starts[0]))
         for i, (start_annotate, last_qname), in enumerate(pos_qname):
             args = kwds.copy()
             args['start_annotate'] = start_annotate
