@@ -206,11 +206,11 @@ def multiprocess_worker(kwds):
         AnnotateMateInformation(source=reads, target=annotate_reads)
     annotate_header = pysam.AlignmentFile(kwds['annotate_path']).header
     discarded_out = os.path.join(tempdir, "%s_discarded.bam" % qname) if kwds['discarded_path'] else None
-    discarded_writer = pysam.AlignmentFile(discarded_out, header=annotate_header, mode='wbu') if discarded_out else None
+    discarded_writer = pysam.AlignmentFile(discarded_out, header=annotate_header, mode='wb', threads=2) if discarded_out else None
     verified_out = os.path.join(tempdir, "%s_verified.bam" % qname) if kwds['verified_path'] else None
-    verified_writer = pysam.AlignmentFile(verified_out, header=annotate_header, mode='wbu') if verified_out else None
+    verified_writer = pysam.AlignmentFile(verified_out, header=annotate_header, mode='wb', threads=2) if verified_out else None
     output_path = os.path.join(tempdir, "%s_output.bam" % qname)
-    output_writer = pysam.AlignmentFile(output_path, header=annotate_header, mode='wbu')
+    output_writer = pysam.AlignmentFile(output_path, header=annotate_header, mode='wb', threads=2)
     samtag_p = [SamTagProcessor(source_bam=reads, header=headers, tag_mate=kwds['tag_mate']) for reads, headers in zip(source_reads, source_headers)]
     SamAnnotator(samtag_instances=samtag_p,
                  annotate_bam=annotate_reads,

@@ -63,7 +63,7 @@ def get_queryname_positions(fn, chunk_size=10000):
     Return a list of tuples, where the first item is the current file position for the first read,
     and the second item is the last query_name of the chunk.
     """
-    f = pysam.AlignmentFile(fn)
+    f = pysam.AlignmentFile(fn, threads=2)
     start = f.tell()
     last_pos = start
     seek_positions = []
@@ -179,15 +179,18 @@ def start_positions_for_last_qnames(fn, last_qnames):
                     # now we want the last file position in which current_last_qname occurs
                     last_file_pos = f.tell()
                     r = next(f)
+                jump_back = len(seek_positions) if len(seek_positions) < 5 else 5
+                f.seek(seek_positions[-jump_back])
                 seek_positions.append(last_file_pos)
             except StopIteration:
+                [seek_positions.append(last_file_pos) for i in last_qnames]
                 return seek_positions
             if last_qnames:
                 # Need to jump back as we might be behind the start of the next chunk
-                f.seek(seek_positions[-2])
                 current_last_qname = last_qnames.pop(0)
             else:
                 # We've reached the end of last_qnames
+                seek_positions.append(last_file_pos)
                 return seek_positions
     return seek_positions
 
