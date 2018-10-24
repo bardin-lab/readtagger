@@ -133,9 +133,13 @@ class TagManager(object):
         """Find positions to which to jump in source path files."""
         kwds = self.setup_kwargs()
         mp_args = []
+        # We first split the first source file into equal-sized chunks
+        # TODO: this means if the source file has few regions we split into huge chunks. that's not good.
         pos_qname = get_queryname_positions(self.source_paths_sorted[0], chunk_size=self.chunk_size)
+        # pos_qname is a list of tuples with position to seek to for first read and readname of the last read
         last_qnames = [t[1] for t in pos_qname]
         starts_annotate = start_positions_for_last_qnames(self.annotate_path_sorted, last_qnames=last_qnames)
+        # starts_annotate is list of positions to seek to in the file to annotate up to the corresponding last_qname
         additional_source_starts = []
         if len(self.source_paths_sorted) > 1:
             for source_path in self.source_paths_sorted[1:]:
