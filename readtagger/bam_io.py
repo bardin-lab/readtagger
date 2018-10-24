@@ -1,4 +1,5 @@
 import copy
+import collections
 import gzip
 import logging
 import os
@@ -8,6 +9,8 @@ import tempfile
 import pysam
 
 logger = logging.getLogger(__name__)
+
+start_last_qname = collections.namedtuple('StartLastQname', 'start qname')
 
 
 def is_file_coordinate_sorted(path, reads_to_check=1000):
@@ -73,11 +76,11 @@ def get_queryname_positions(fn, chunk_size=10000):
             count += 1
             if count % chunk_size == 0 and qn:
                 # We've reach a chunk, we append the last_pos as a new start
-                seek_positions.append((start, qn))
+                seek_positions.append(start_last_qname(start, qn))
                 start = last_pos
             qn = current_query_name
         last_pos = f.tell()
-    seek_positions.append((start, qn))
+    seek_positions.append(start_last_qname(start, qn))
     return seek_positions
 
 

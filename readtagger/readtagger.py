@@ -133,25 +133,20 @@ class TagManager(object):
         """Find positions to which to jump in source path files."""
         kwds = self.setup_kwargs()
         mp_args = []
-        # We first split the first source file into equal-sized chunks
-        # TODO: this means if the source file has few regions we split into huge chunks. that's not good.
-        pos_qname = get_queryname_positions(self.source_paths_sorted[0], chunk_size=self.chunk_size)
+        # We first split the file to be annotated into equal-sized chunks
+        pos_qname = get_queryname_positions(self.annotate_path_sorted, chunk_size=self.chunk_size)
         # pos_qname is a list of tuples with position to seek to for first read and readname of the last read
-        last_qnames = [t[1] for t in pos_qname]
-        starts_annotate = start_positions_for_last_qnames(self.annotate_path_sorted, last_qnames=last_qnames)
-        # starts_annotate is list of positions to seek to in the file to annotate up to the corresponding last_qname
-        additional_source_starts = []
-        if len(self.source_paths_sorted) > 1:
-            for source_path in self.source_paths_sorted[1:]:
-                additional_source_starts.append(start_positions_for_last_qnames(source_path, last_qnames=last_qnames))
-        for i, ((start_source, qname), start_annotate) in enumerate(zip(pos_qname, starts_annotate)):
+        last_qnames = [t.qname for t in pos_qname]
+        # Now we fill in the start
+        source_starts = []
+        for source_path in self.source_paths_sorted:
+            source_starts.append(start_positions_for_last_qnames(source_path, last_qnames=last_qnames))
+        for i, (start_annotate, last_qname), in enumerate(pos_qname):
             args = kwds.copy()
             args['start_annotate'] = start_annotate
-            start_source = [start_source]
-            for sp in additional_source_starts:
-                start_source.append(sp[i])
+            start_source = [source[i] for source in source_starts]
             args['start_source'] = start_source
-            args['qname'] = qname
+            args['qname'] = last_qname
             mp_args.append(args)
         logger.info("Split processing into %d chunks", len(mp_args))
         return mp_args
