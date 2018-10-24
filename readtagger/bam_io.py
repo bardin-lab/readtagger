@@ -164,7 +164,7 @@ def qname_cmp_func(qname1, qname2):
 
 def start_positions_for_last_qnames(fn, last_qnames):
     """Return start positions that returns the first read after the current last qname."""
-    f = pysam.AlignmentFile(fn)
+    f = pysam.AlignmentFile(fn, threads=2)
     start = f.tell()
     last_qnames = copy.deepcopy(last_qnames)
     current_last_qname = last_qnames.pop(0)
@@ -183,6 +183,8 @@ def start_positions_for_last_qnames(fn, last_qnames):
             except StopIteration:
                 return seek_positions
             if last_qnames:
+                # Need to jump back as we might be behind the start of the next chunk
+                f.seek(seek_positions[-2])
                 current_last_qname = last_qnames.pop(0)
             else:
                 # We've reached the end of last_qnames
