@@ -7,25 +7,25 @@
         <requirement type="package" version="0.4.12">readtagger</requirement>
     </requirements>
     <command detect_errors="aggressive"><![CDATA[
-        readtagger -t '$tag_file' -s
-        #for $element in $alignment_series
-            '$element.annotate_with':$element.r_tag:$element.m_tag
-        #end for
-        #if $reference_fasta:
-            --reference_fasta '$reference_fasta'
-        #end if
-        $allow_dovetailing
-        $discard_suboptimal
-        $discarded
-        $verified
-        $discard_proper_pairs
-        --cores "\${GALAXY_SLOTS:-2}"
-        -o '$tagged_file'
+readtagger -t '$tag_file' -s
+#for $element in $alignment_series
+    '$element.annotate_with':$element.r_tag:$element.m_tag
+#end for
+#if $reference_fasta:
+    --reference_fasta '$reference_fasta'
+#end if
+$allow_dovetailing
+$discard_suboptimal
+$discarded
+$verified
+$discard_proper_pairs
+--cores "\${GALAXY_SLOTS:-2}"
+-o '$tagged_file'
     ]]></command>
     <inputs>
-        <param name="tag_file" argument="--tag_file" type="data" format="bam"/>
+        <param name="tag_file" argument="--tag_file" type="data" format="qname_sorted.bam,bam"/>
         <repeat name="alignment_series" title="Alignments">
-            <param name="annotate_with" argument="--annotate_with" type="data" format="bam"/>
+            <param name="annotate_with" argument="--annotate_with" type="data" format="qname_sorted.bam,bam"/>
             <param type="select" name="r_tag" label="First letter to use for read tag" value="A">
                 <expand macro="tag_options"/>
             </param>
