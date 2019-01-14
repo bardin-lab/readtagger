@@ -1,4 +1,3 @@
-sudo: false
 os:
 - linux
 language: python
@@ -34,9 +33,7 @@ install:
 - curl -L https://github.com/bardin-lab/dmel-transposon-reference-data/raw/master/fasta_sequences/dm6_TE_annotations_sequences.fasta -o ~/ref.fa
 script: tox
 after_success:
-- chmod +x conda/deploy.sh galaxy/deploy.sh
 - coveralls
-- conda deactivate
 deploy:
 - provider: pypi
   user: mvdbeek
@@ -48,12 +45,12 @@ deploy:
     python: 2.7
 - provider: script
   skip_cleanup: true
-  script: conda/deploy.sh
+  script: bash conda/deploy.sh
   on:
     tags: true
 - provider: script
   skip_cleanup: true
-  script: galaxy/deploy.sh
+  script: bash galaxy/deploy.sh
   on:
     tags: true
     python: 2.7
