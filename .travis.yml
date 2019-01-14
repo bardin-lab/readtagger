@@ -42,6 +42,7 @@ deploy:
   user: mvdbeek
   password:
     secure: t3Icum4IahHP8eF+e8OEy2d0/Vb+AUd8GWuYM/SoG/Fqf2OBKiyS2fJGfL5N96k4JGzxfIMoV5vNJ/WPiNA3wPluYb8KW6ork2Mp/0UuxHTCkkdmjeGE528qWkprS8F+0N4qDDdK+6k+hOmGdSiiRryCzIz2deAb07npNytnlqbe70CGskTwrBAdxjFmkvjxMje0QSxdFIBNksBt4qd3x1UjMJ14BtYFPSgAXE0HYwEzrFyMLIXoA3kevCKpXYsX8bT7uPpNNKDvyG6hTyKraUPAXv/eX3JfFFu9vURzJQik5UQ+0S1Wc1hyevc9nZkTyIEpPOqmoZvBU0lI/wNGlw0c72VDwLxvJyspq/5HTsQaHih4KJX7jFHjVRbIT/Fu8KKp7gQyAAtEwgj+6SeE++EFDGSlrjqST3lHWjAZE07ODuCH/DS4oSFajrnqu7a481D03cm14FFGr6M6joxbPpylOPSqjJkVvndt06+68zdXtKg8UOHLNmUyLudZez5oEr277MQYtAZkDEVXn8mpysxeh7DdlenLQdQaW3rA65GuIe5F4nGRYX5xYwedXCQEZNWv1LqjMb1zDvlkRQ3l8e1fn8Swrdj+/Z2mZB4kq3tSS3mHL3H9euFHRbzRuE/fRLu1rkyTJH5K99Y5HrjT8C1n75md/BS3lSVggB7zcyc=
+  skip_existing: true
   on:
     tags: true
     python: 2.7
