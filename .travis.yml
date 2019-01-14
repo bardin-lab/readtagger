@@ -36,7 +36,7 @@ script: tox
 after_success:
 - chmod +x conda/deploy.sh galaxy/deploy.sh
 - coveralls
-- export PATH=$ORIGINAL_PATH
+- conda deactivate
 deploy:
 - provider: pypi
   user: mvdbeek
