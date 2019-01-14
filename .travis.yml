@@ -27,7 +27,7 @@ install:
 - conda install tox coveralls bwa cap3 samtools virtualenv conda-build -c conda-forge -c bioconda
 - samtools --version
 - pip install tox-travis
-- virtualenv /home/travis/.planemo/gx_venv_None
+- virtualenv /home/travis/.planemo/gx_venv
 - conda build --python "$TRAVIS_PYTHON_VERSION" conda/multiprocessing-logging
 - conda build --python "$TRAVIS_PYTHON_VERSION" conda/readtagger
 - curl -L https://github.com/bardin-lab/dmel-transposon-reference-data/raw/master/fasta_sequences/dm6_TE_annotations_sequences.fasta -o ~/ref.fa
