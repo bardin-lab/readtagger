@@ -6,6 +6,11 @@ History
 .. to_doc
 
 ---------------------
+0.4.13 (2018-01-15)
+---------------------
+* Build Conda package for python 3 only
+
+---------------------
 0.4.13 (2018-01-14)
 ---------------------
 * Update pinned dependencies
