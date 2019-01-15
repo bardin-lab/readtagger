@@ -6,6 +6,12 @@ History
 .. to_doc
 
 ---------------------
+0.4.13 (2018-01-14)
+---------------------
+* Update pinned dependencies
+* Fix travis deployment
+
+---------------------
 0.4.12 (2018-08-21)
 ---------------------
 * Allow multiple inputs to readtagger
