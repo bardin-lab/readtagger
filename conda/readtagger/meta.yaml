@@ -30,6 +30,7 @@ requirements:
     - multiprocessing-logging
     - pandas
     - pysam >=0.14
+    - samtools
     - python-edlib
     - scipy
     - six
