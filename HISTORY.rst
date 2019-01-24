@@ -6,6 +6,11 @@ History
 .. to_doc
 
 ---------------------
+0.4.16 (2018-01-28)
+---------------------
+* Drop samtools, do everything via pysam
+
+---------------------
 0.4.15 (2018-01-15)
 ---------------------
 * Add missing samtools dependency
