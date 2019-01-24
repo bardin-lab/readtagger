@@ -24,5 +24,5 @@ def test_main(datadir_copy, tmpdir, mocker):  # noqa: D103
     runner = CliRunner()
     result = runner.invoke(allow_dovetailing, ['--input_path', input_path, '--output_path', outpath])
     assert result.exit_code == 0
-    with Reader(outpath, external_bin=None) as reader:
+    with Reader(outpath) as reader:
         assert len([r for r in reader if r.is_proper_pair]) == 2

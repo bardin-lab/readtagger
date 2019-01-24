@@ -1,9 +1,7 @@
 import copy
-import gzip
 import logging
 import os
 import shutil
-import subprocess
 import tempfile
 import pysam
 
@@ -112,6 +110,7 @@ def get_reads(fn, start, last_qname):
 # itself based on sort_bam.c in htslib
 def qname_cmp_func(qname1, qname2):
     """Return 1 if qname1 > qname2, 0 is qname1 == gname2 and -1 of qname1 < qname2."""
+    # TODO: expose strnum_cmp directly in pysam's AlignedSegment
     def update_char(qname, index):
         """Return current char and index."""
         index += 1
@@ -302,7 +301,6 @@ class BamAlignmentWriter(object):
         :param path: Wite bam file to location `path`.
         :param template: Specify either template or header to write a bam file.
         :param header: Specify either template or header to write a bam file.
-        :param external_bin: Specify `samtools` to use samtools or `sambamba` or `None` to use pysam for writing to `path`.
         :param sort_order: Can be `coordinate` or `queryname` and will cause the output file to sorted by this strategy.
         """
         self.template = template
@@ -325,7 +323,7 @@ class BamAlignmentWriter(object):
 
     def __enter__(self):
         """Provide context handler entry."""
-        self.af = pysam.AlignmentFile(self.path, mode="wb", template=self.template, header=self.header)
+        self.af = pysam.AlignmentFile(self.path, mode="wb", template=self.template, header=self.header, threads=self.threads)
         return self.af
 
     def __exit__(self, type, value, traceback):
@@ -336,7 +334,7 @@ class BamAlignmentWriter(object):
 class BamAlignmentReader(object):
     """Wraps pysam.AlignmentFile with sambamba for reading if input file is a bam file."""
 
-    def __init__(self, path, external_bin='choose_best', sort_order=None, threads=4, region=None, index=False):
+    def __init__(self, path, sort_order=None, threads=4, region=None, index=False):
         """
         Read Bam files.
 
@@ -347,7 +345,6 @@ class BamAlignmentReader(object):
         :param sort_order: Can be `coordinate` or `queryname` and will cause the output file to sorted by this strategy.
         """
         self.path = path
-        self.external_bin = external_bin
         self.sort_order = sort_order
         self.threads = threads
         self.region = region
@@ -363,42 +360,13 @@ class BamAlignmentReader(object):
         if self.region or self.index:
             index_bam(self.path)
 
-    @property
-    def args(self):
-        """Figure out if samtools is available and return correct arguments."""
-        if self.external_bin:
-            # More threads won't speed up samtools reading
-            threads = 3 if self.threads > 3 else self.threads
-            samtools_args = ['samtools', 'view', "-@%s" % threads, '-h', self.path]
-            if self.region:
-                samtools_args.append(self.region)
-            return samtools_args
-
-    @property
-    def is_bam(self):
-        """Return whether file is BAM (True) or SAM."""
-        if not hasattr(self, '_is_bam'):
-            try:
-                g = gzip.GzipFile(self.path)
-                self._is_bam = g.read(3) == 'BAM' or b'BAM'
-            except Exception:
-                self._is_bam = False
-        return self._is_bam
-
     def close(self):
         """Close filehandles and subprocess safely."""
         self.af.close()
-        if self.is_bam and self.args:
-            self.proc.stdout.close()
-            self.proc.wait()
 
     def __enter__(self):
         """Provide context handler entry."""
-        if self.is_bam and self.args:
-            self.proc = subprocess.Popen(self.args, stdout=subprocess.PIPE, env=os.environ.copy(), close_fds=True)
-            self.af = pysam.AlignmentFile(self.proc.stdout)
-        else:
-            self.af = pysam.AlignmentFile(self.path)
+        self.af = pysam.AlignmentFile(self.path, threads=self.threads - 1)
         return self.af
 
     def __exit__(self, type, value, traceback):

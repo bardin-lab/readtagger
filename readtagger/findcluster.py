@@ -214,7 +214,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin, ToVcfMixin):
             self._remove_supplementary_without_primary()
         clusters = []
         skip = None
-        with Reader(self.input_path, external_bin=False, region=self.region, index=True) as reader:
+        with Reader(self.input_path, region=self.region, index=True) as reader:
             self.header = reader.header
             for r in reader.fetch(region=self.region):
                 if not self.include_duplicates:
@@ -342,7 +342,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin, ToVcfMixin):
     def collect_evidence(self):
         """Count reads that overlap cluster site but do not provide evidence for an insertion."""
         logger.info("Collecting evidence (%s)", self.region or 0)
-        with Reader(self.input_path, external_bin=False, index=True) as alignment_file:
+        with Reader(self.input_path, index=True) as alignment_file:
             for cluster in self.clusters:
                 if not cluster.abnormal:
                     collect_evidence(cluster, alignment_file)
