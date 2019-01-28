@@ -1,10 +1,10 @@
-<tool id="findcluster" name="Find clusters of reads" version="0.4.15">
+<tool id="findcluster" name="Find clusters of reads" version="0.4.16">
     <description>in bam files</description>
     <macros>
         <import>macros.xml</import>
     </macros>
     <requirements>
-        <requirement type="package" version="0.4.15">readtagger</requirement>
+        <requirement type="package" version="0.4.16">readtagger</requirement>
     </requirements>
     <version_command>findcluster --version</version_command>
     <command detect_errors="aggressive"><![CDATA[
