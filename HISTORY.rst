@@ -6,6 +6,11 @@ History
 .. to_doc
 
 ---------------------
+0.4.17 (2018-02-10)
+---------------------
+* Fix a bug that would lead to wrong chunk sizes
+
+---------------------
 0.4.16 (2018-01-28)
 ---------------------
 * Drop samtools, do everything via pysam
