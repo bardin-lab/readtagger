@@ -22,7 +22,7 @@ TEST_BAM_A = 'dm6.bam'
 TEST_BAM_B = 'pasteurianus.bam'
 TEST_SAM_ROVER_DM6 = 'rover_single_mate_dm6.sam'
 TEST_SAM_ROVER_FBTI = 'rover_single_mate_fbti.sam'
-EXTENDED = 'extended_all_reads.bam'
+EXTENDED_QUERYNAME = 'extended_and_annotated_roi.bam'
 
 ARGS_TEMPLATE = namedtuple('args', ['source_paths',
                                     'target_path',
@@ -153,37 +153,39 @@ def test_main_rover(datadir_copy, tmpdir, mocker, reference_fasta):  # noqa: D10
 
 def test_tag_manager_small_chunks(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
     discarded, verified, output = get_output_files(tmpdir)
-    source_paths = [str(datadir_copy[EXTENDED])]
-    target_path = str(datadir_copy[EXTENDED])
+    source_paths = [str(datadir_copy[EXTENDED_QUERYNAME])]
+    target_path = str(datadir_copy[EXTENDED_QUERYNAME])
     args = {'source_paths': source_paths,
             'target_path': target_path,
             'output_path': output.strpath,
             'discarded_path': discarded.strpath,
             'verified_path': verified.strpath,
             'reference_fasta': reference_fasta,
+            'discard_suboptimal_alternate_tags': False,
             'tag_mate': True,
             'allow_dovetailing': True,
             'cores': 1,
             'chunk_size': 10}
     TagManager(**args)
-    assert len([r for r in pysam.AlignmentFile(verified.strpath)]) == 2
+    assert len([r for r in pysam.AlignmentFile(verified.strpath)]) == 39
 
 
 def test_tag_manager_big_chunks(datadir_copy, tmpdir):  # noqa: D103
     discarded, verified, output = get_output_files(tmpdir)
-    source_paths = [str(datadir_copy[EXTENDED])]
-    target_path = str(datadir_copy[EXTENDED])
+    source_paths = [str(datadir_copy[EXTENDED_QUERYNAME])]
+    target_path = str(datadir_copy[EXTENDED_QUERYNAME])
     args = {'source_paths': source_paths,
             'target_path': target_path,
             'output_path': output.strpath,
             'discarded_path': discarded.strpath,
             'verified_path': verified.strpath,
+            'discard_suboptimal_alternate_tags': False,
             'tag_mate': True,
             'allow_dovetailing': True,
             'cores': 1,
             'chunk_size': 1000}
     TagManager(**args)
-    assert len([r for r in pysam.AlignmentFile(verified.strpath)]) == 2
+    assert len([r for r in pysam.AlignmentFile(verified.strpath)]) == 39
 
 
 def get_samtag_processor(datadir_copy, tag_mate):  # noqa: D103
