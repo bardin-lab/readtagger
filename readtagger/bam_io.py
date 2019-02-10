@@ -89,20 +89,10 @@ def get_reads(fn, start, last_qname):
         f.seek(start)
     reads = []
     for r in f:
-        if r.query_name == last_qname or qname_cmp_func(r.query_name, last_qname) == 1:
-            # We either reached the last qname, or we are already beyond,
-            # for instance if the last_qname isn't in the file. This works
-            # because the files are qname sorted.
-            last_qname = r.query_name
-            try:
-                while r.query_name == last_qname:
-                    reads.append(r)
-                    r = next(f)
-            except StopIteration:
-                break
-            return reads
-        else:
+        if qname_cmp_func(r.query_name, last_qname) < 1:
             reads.append(r)
+        else:
+            return reads
     return reads
 
 
