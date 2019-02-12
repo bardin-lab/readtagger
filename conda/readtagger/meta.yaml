@@ -25,6 +25,7 @@ requirements:
     - cached-property
     - cap3
     - click
+    - compare-reads
     - contextlib2
     - matplotlib
     - multiprocessing-logging

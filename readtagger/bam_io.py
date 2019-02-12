@@ -4,6 +4,7 @@ import os
 import shutil
 import tempfile
 import pysam
+import compare_reads
 
 logger = logging.getLogger(__name__)
 
@@ -51,48 +52,49 @@ def get_mean_read_length(path, reads_to_check=1000):
     return mean_read_length
 
 
-def get_queryname_positions(fn, chunk_size=10000):
+def get_queryname_positions(fn, chunk_size=10000, threads=0):
     """
     Get positions in order to split alignment file into equal-sized portions.
 
     Return a list of tuples, where the first item is the current file position for the first read,
     and the second item is the last query_name of the chunk.
     """
-    f = pysam.AlignmentFile(fn)
-    start = f.tell()
-    last_pos = start
-    seek_positions = []
-    qn = ''
-    count = 0
-    for r in f:
-        current_query_name = r.query_name
-        if current_query_name != qn:
-            # Next query_name
-            count += 1
-            if count % chunk_size == 0 and qn:
-                # We've reach a chunk, we append the last_pos as a new start
-                seek_positions.append((start, qn))
-                start = last_pos
-            qn = current_query_name
-        last_pos = f.tell()
-    seek_positions.append((start, qn))
+    with pysam.AlignmentFile(fn, threads=threads) as f:
+        start = f.tell()
+        last_pos = start
+        seek_positions = []
+        qn = ''
+        count = 0
+        for r in f:
+            current_query_name = r.query_name
+            if current_query_name != qn:
+                # Next query_name
+                count += 1
+                if count % chunk_size == 0 and qn:
+                    # We've reach a chunk, we append the last_pos as a new start
+                    seek_positions.append((start, qn))
+                    start = last_pos
+                qn = current_query_name
+            if (count + 1) % chunk_size == 0:
+                last_pos = f.tell()
+        seek_positions.append((start, qn))
     return seek_positions
 
 
-def get_reads(fn, start, last_qname):
+def get_reads(fn, start, last_qname, threads=0):
     """Get reads starting at `start` and ending with last_qname."""
-    f = pysam.AlignmentFile(fn)
-    # The first read returned (even after seeking!) is always the first read in the file.
-    # Calling next once resolves that.
-    if not f.tell() == start:
-        next(f)
-        f.seek(start)
-    reads = []
-    for r in f:
-        if qname_cmp_func(r.query_name, last_qname) < 1:
-            reads.append(r)
-        else:
-            return reads
+    with pysam.AlignmentFile(fn, threads=threads) as f:
+        # The first read returned (even after seeking!) is always the first read in the file.
+        # Calling next once resolves that.
+        if not f.tell() == start:
+            next(f)
+            f.seek(start)
+        reads = []
+        for r in f:
+            if compare_reads._compare_sort_with_queryname(r, last_qname) < 1:
+                reads.append(r)
+            else:
+                break
     return reads
 
 
@@ -148,32 +150,31 @@ def qname_cmp_func(qname1, qname2):
     return 1 if c1 else (-1 if c2 else 0)
 
 
-def start_positions_for_last_qnames(fn, last_qnames):
+def start_positions_for_last_qnames(fn, last_qnames, threads=0):
     """Return start positions that returns the first read after the current last qname."""
-    f = pysam.AlignmentFile(fn)
-    start = f.tell()
-    last_qnames = copy.deepcopy(last_qnames)
-    current_last_qname = last_qnames.pop(0)
-    seek_positions = [start]
-    for r in f:
-        if r.query_name == current_last_qname or qname_cmp_func(r.query_name, current_last_qname) > 0:
-            current_last_qname = r.query_name
-            last_file_pos = f.tell()
+    with pysam.AlignmentFile(fn, threads=threads) as f1, pysam.AlignmentFile(fn, threads=threads) as f2:
+        last_qnames = copy.deepcopy(last_qnames)
+        seek_positions = []
+        last_seek = f1.tell()
+        i = 0
+        next(f1)
+        current_segment = next(f1)
+        next(f2)
+        while last_qnames:
+            current_last_qname = last_qnames.pop(0)
             try:
-                while r.query_name == current_last_qname:
-                    # We've got the last query_name,
-                    # now we want the last file position in which current_last_qname occurs
-                    last_file_pos = f.tell()
-                    r = next(f)
-                seek_positions.append(last_file_pos)
+                while compare_reads._compare_sort_with_queryname(current_segment, current_last_qname) < 1:
+                    # IOW while we haven't iterated past the expected read position
+                    current_segment = next(f1)
+                    next(f2)
+                i += 1
+                logging.info("Got chunk %i", i)
+                seek_positions.append(last_seek)
+                last_seek = f2.tell()
             except StopIteration:
-                return seek_positions
-            if last_qnames:
-                current_last_qname = last_qnames.pop(0)
-            else:
-                # We've reached the end of last_qnames
-                return seek_positions
-    return seek_positions
+                break
+        seek_positions.append(last_seek)
+        return seek_positions
 
 
 def merge_bam(bam_collection, output_path, template_bam=None, sort_order=None, threads=1):

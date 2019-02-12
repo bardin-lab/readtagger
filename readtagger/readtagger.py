@@ -133,14 +133,16 @@ class TagManager(object):
         """Find positions to which to jump in source path files."""
         kwds = self.setup_kwargs()
         mp_args = []
-        pos_qname = get_queryname_positions(self.source_paths_sorted[0], chunk_size=self.chunk_size)
+        pos_qname = get_queryname_positions(self.annotate_path_sorted, chunk_size=self.chunk_size, threads=self.cores)
+        logger.info("Split annotate file %s into %d chunks" % (self.annotate_path_sorted, len(pos_qname)))
         last_qnames = [t[1] for t in pos_qname]
-        starts_annotate = start_positions_for_last_qnames(self.annotate_path_sorted, last_qnames=last_qnames)
+        starts_source = start_positions_for_last_qnames(self.source_paths_sorted[0], last_qnames=last_qnames, threads=self.cores)
+        logger.info("Split source file %s into %d chunks" % (self.source_paths_sorted[0], len(pos_qname)))
         additional_source_starts = []
         if len(self.source_paths_sorted) > 1:
             for source_path in self.source_paths_sorted[1:]:
-                additional_source_starts.append(start_positions_for_last_qnames(source_path, last_qnames=last_qnames))
-        for i, ((start_source, qname), start_annotate) in enumerate(zip(pos_qname, starts_annotate)):
+                additional_source_starts.append(start_positions_for_last_qnames(source_path, last_qnames=last_qnames, threads=self.cores))
+        for i, ((start_annotate, qname), start_source) in enumerate(zip(pos_qname, starts_source)):
             args = kwds.copy()
             args['start_annotate'] = start_annotate
             start_source = [start_source]
@@ -148,8 +150,9 @@ class TagManager(object):
                 start_source.append(sp[i])
             args['start_source'] = start_source
             args['qname'] = qname
+            args['chunk'] = i
             mp_args.append(args)
-        logger.info("Split processing into %d chunks", len(mp_args))
+
         return mp_args
 
     def process(self):
@@ -196,7 +199,10 @@ def multiprocess_worker(kwds):
     qname = kwds['qname']
     source_headers = kwds['source_headers']
     tempdir = kwds['tempdir']
+    chunk = kwds['chunk']
+    logger.info("Getting source reads for chunk %i", chunk)
     source_reads = [get_reads(p, start=s, last_qname=qname) for p, s in zip(kwds['source_paths'], kwds['start_source'])]
+    logger.info("Getting target reads for chunk %i", chunk)
     annotate_reads = get_reads(kwds['annotate_path'], start=start_annotate, last_qname=qname)
     bwa_index = kwds.get('bwa_index')
     if bwa_index:
@@ -204,11 +210,11 @@ def multiprocess_worker(kwds):
     for reads in source_reads:
         AnnotateMateInformation(source=reads, target=annotate_reads)
     annotate_header = pysam.AlignmentFile(kwds['annotate_path']).header
-    discarded_out = os.path.join(tempdir, "%s_discarded.bam" % qname) if kwds['discarded_path'] else None
+    discarded_out = os.path.join(tempdir, "%s_discarded.bam" % chunk) if kwds['discarded_path'] else None
     discarded_writer = pysam.AlignmentFile(discarded_out, header=annotate_header, mode='wbu') if discarded_out else None
-    verified_out = os.path.join(tempdir, "%s_verified.bam" % qname) if kwds['verified_path'] else None
+    verified_out = os.path.join(tempdir, "%s_verified.bam" % chunk) if kwds['verified_path'] else None
     verified_writer = pysam.AlignmentFile(verified_out, header=annotate_header, mode='wbu') if verified_out else None
-    output_path = os.path.join(tempdir, "%s_output.bam" % qname)
+    output_path = os.path.join(tempdir, "%s_output.bam" % chunk)
     output_writer = pysam.AlignmentFile(output_path, header=annotate_header, mode='wbu')
     samtag_p = [SamTagProcessor(source_bam=reads, header=headers, tag_mate=kwds['tag_mate']) for reads, headers in zip(source_reads, source_headers)]
     SamAnnotator(samtag_instances=samtag_p,

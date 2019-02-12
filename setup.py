@@ -26,6 +26,7 @@ requirements = ['bcbio-gff',
                 'cached_property',
                 'click',
                 'contextlib2',
+                'compare-reads',
                 'edlib',
                 'matplotlib',  # for plotting coverage, refactor into separate package
                 'multiprocessing_logging',
