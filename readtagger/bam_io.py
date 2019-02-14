@@ -98,58 +98,6 @@ def get_reads(fn, start, last_qname, threads=0):
     return reads
 
 
-# Copied from https://github.com/10XGenomics/supernova/blob/master/tenkit/lib/python/tenkit/bam.py,
-# itself based on sort_bam.c in htslib
-def qname_cmp_func(qname1, qname2):
-    """Return 1 if qname1 > qname2, 0 is qname1 == gname2 and -1 of qname1 < qname2."""
-    # TODO: expose strnum_cmp directly in pysam's AlignedSegment
-    def update_char(qname, index):
-        """Return current char and index."""
-        index += 1
-        if index < len(qname):
-            c = qname[index]
-        else:
-            c = ''
-        return c, index
-
-    def get_ord(c):
-        """Return ord if c or 0."""
-        if c:
-            return ord(c)
-        return 0
-
-    index_i, index_j = 0, 0
-    c1 = qname1[0] if qname1 else None
-    c2 = qname2[0] if qname2 else None
-    while c1 and c2:
-        if c1.isdigit() and c2.isdigit():
-            while c1 == '0':
-                c1, index_i = update_char(qname1, index_i)
-            while c2 == '0':
-                c2, index_j = update_char(qname2, index_j)
-            while c1.isdigit() and c2.isdigit() and c1 == c2:
-                c1, index_i = update_char(qname1, index_i)
-                c2, index_j = update_char(qname2, index_j)
-            if c1.isdigit() and c2.isdigit():
-                index_k, index_l = index_i, index_j
-                while c1.isdigit() and c2.isdigit():
-                    c1, index_k = update_char(qname1, index_k)
-                    c2, index_l = update_char(qname2, index_l)
-                return 1 if c1.isdigit() else (-1 if c2.isdigit() else get_ord(qname1[index_i]) - get_ord(qname2[index_j]))
-            elif c1.isdigit():
-                return 1
-            elif c2.isdigit():
-                return -1
-            elif index_i != index_j:
-                return 1 if index_i < index_j else -1
-        else:
-            if c1 != c2:
-                return get_ord(c1) - get_ord(c2)
-            c1, index_i = update_char(qname1, index_i)
-            c2, index_j = update_char(qname2, index_j)
-    return 1 if c1 else (-1 if c2 else 0)
-
-
 def start_positions_for_last_qnames(fn, last_qnames, threads=0):
     """Return start positions that returns the first read after the current last qname."""
     with pysam.AlignmentFile(fn, threads=threads) as f1, pysam.AlignmentFile(fn, threads=threads) as f2:
