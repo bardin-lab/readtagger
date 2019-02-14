@@ -31,7 +31,7 @@ def get_max_proper_pair_size(path, reads_to_check=1000):
         logger.info(msg, max(isize))
         return max(isize)
     else:
-        logger.warn("Could not determine maximum allowed insert size for a proper pair. Are there any proper pairs in the input file?")
+        logger.warning("Could not determine maximum allowed insert size for a proper pair. Are there any proper pairs in the input file?")
         return None
 
 
@@ -46,7 +46,7 @@ def allow_dovetailing(read, max_proper_size=351, default_max_proper_size=351):
     :rtype pysam.AlignedSegment
     """
     if max_proper_size is None:
-        logger.warn("Using default maximum insert size of %d" % default_max_proper_size)
+        logger.warning("Using default maximum insert size of %d" % default_max_proper_size)
         max_proper_size = default_max_proper_size
     if not read.is_proper_pair and not read.is_reverse == read.mate_is_reverse and read.reference_id == read.mrnm and abs(read.isize) <= max_proper_size:
         read.is_proper_pair = True
