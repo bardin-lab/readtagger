@@ -8,6 +8,13 @@ History
 ---------------------
 0.4.17 (2018-02-10)
 ---------------------
+* Use logger.warning instead of deprecated logger.warn
+* Drop now unused qname_cmp_func
+* Fix alignment splitting, fixes untagged reads and speed issues
+
+---------------------
+0.4.17 (2018-02-10)
+---------------------
 * Fix a bug that would lead to wrong chunk sizes
 
 ---------------------
