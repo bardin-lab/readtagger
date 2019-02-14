@@ -1,7 +1,7 @@
-<tool id="plot_coverage" name="Plot coverage" version="0.4.17">
+<tool id="plot_coverage" name="Plot coverage" version="0.4.18">
     <description>as area plot between BAM files</description>
     <requirements>
-        <requirement type="package" version="0.4.17">readtagger</requirement>
+        <requirement type="package" version="0.4.18">readtagger</requirement>
     </requirements>
     <command detect_errors="aggressive"><![CDATA[
         #import re
