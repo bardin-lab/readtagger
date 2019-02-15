@@ -6,7 +6,12 @@ History
 .. to_doc
 
 ---------------------
-0.4.17 (2018-02-10)
+0.4.19 (2018-02-15)
+---------------------
+* Fix findcluster crash when reference contains colon.
+
+---------------------
+0.4.18 (2018-02-14)
 ---------------------
 * Use logger.warning instead of deprecated logger.warn
 * Drop now unused qname_cmp_func
