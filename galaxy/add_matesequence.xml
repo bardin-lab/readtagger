@@ -1,7 +1,7 @@
-<tool id="add_matesequence" name="Add matesequence" version="0.4.18">
+<tool id="add_matesequence" name="Add matesequence" version="0.4.19">
     <description>into tag field</description>
     <requirements>
-        <requirement type="package" version="0.4.18">readtagger</requirement>
+        <requirement type="package" version="0.4.19">readtagger</requirement>
     </requirements>
     <version_command>add_matesequence --version</version_command>
     <command detect_errors="aggressive"><![CDATA[
