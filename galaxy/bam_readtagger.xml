@@ -23,9 +23,9 @@
         -o '$tagged_file'
     ]]></command>
     <inputs>
-        <param name="tag_file" argument="--tag_file" type="data" format="bam,qname_input_sorted.bam"/>
+        <param name="tag_file" argument="--tag_file" type="data" format="bam,qname_sorted.bam"/>
         <repeat name="alignment_series" title="Alignments">
-            <param name="annotate_with" argument="--annotate_with" type="data" format="bam,qname_input_sorted.bam"/>
+            <param name="annotate_with" argument="--annotate_with" type="data" format="bam,qname_sorted.bam"/>
             <param type="select" name="r_tag" label="First letter to use for read tag" value="A">
                 <expand macro="tag_options"/>
             </param>

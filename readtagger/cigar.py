@@ -127,7 +127,7 @@ def position_corresponds_to_transposable_element(tag, position, orientation):
     """
     Check if a tag confirms a TE insertion at a specific position.
 
-    >>> tag = 'R:FBti0060645_baggins_LOA,POS:158,QSTART:0,QEND:31,CIGAR:94S31M,S:S,MQ:60'
+    >>> tag = 'R:FBti0060645_baggins_LOA:1,POS:158,QSTART:0,QEND:31,CIGAR:94S31M,S:S,MQ:60'
     >>> position = 53
     >>> orientation = 'S'
     >>> position_corresponds_to_transposable_element(tag, position, orientation)
@@ -139,7 +139,7 @@ def position_corresponds_to_transposable_element(tag, position, orientation):
     >>> position_corresponds_to_transposable_element(tag, position, orientation)
     False
     """
-    tag_dict = dict(v.split(':') for v in tag.split(','))
+    tag_dict = dict(v.split(':', 1) for v in tag.split(','))
     transposon_cigar = cigar_to_tuple(tag_dict['CIGAR'])
     if orientation != tag_dict['S']:
         transposon_cigar = transposon_cigar[::-1]
