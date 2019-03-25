@@ -7,7 +7,7 @@ contextlib2==0.5.5
 futures==3.2.0; python_version < '3.3'
 pandas==0.24.2
 pysam==0.15.2
-scipy==1.2.0
+scipy==1.2.1
 shutilwhich==1.1.0; python_version < '3.3'
 six==1.12.0
 backports.tempfile==1.0; python_version < '3.3'
