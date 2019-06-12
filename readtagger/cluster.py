@@ -342,6 +342,7 @@ class Cluster(BaseCluster):
                     if not check.clustertag.tsd.is_valid:
                         continue
                 self.extend(other_cluster)
+                self.softclip_clusters.extend(other_cluster.softclip_clusters)
                 all_clusters.remove(other_cluster)
 
     def reachable(self, all_clusters):
