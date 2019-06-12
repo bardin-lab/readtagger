@@ -69,7 +69,7 @@ def fetch_records(tabixfile, region):
 
     except ValueError:
         # Happens if region is not present in tabix file, that's fine and expected
-        return[]
+        return []
 
 
 def fill_comparison(putative, controls, treatment):
