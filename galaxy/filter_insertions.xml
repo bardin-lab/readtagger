@@ -20,9 +20,9 @@
         $output_discard
     ]]></command>
     <inputs>
-        <param name="putative_insertions" label="Path to filtered putative insertinos" argument="--putative_insertions_path" type="data" format="gff3"/>
-        <param name="all_insertions" label="Path to all unfiltered insertions" argument="--all_treatments_path" type="data" format="gff3"/>
-        <param name="all_controls" label="Path to all unfiltered insertions from one or more control samples" argument="--all_controls_path" multiple="True" type="data" format="gff3"/>
+        <param name="putative_insertions" label="Select dataset with filtered putative insertions" argument="--putative_insertions_path" type="data" format="gff3"/>
+        <param name="all_insertions" label="Select datasets with all unfiltered insertions" argument="--all_treatments_path" type="data" format="gff3"/>
+        <param name="all_controls" label="Select datasets with all unfiltered insertions from one or more control samples" argument="--all_controls_path" multiple="True" type="data" format="gff3"/>
         <param name="output_discard" label="Output discarded records? Discarded records will be marked as failed." truevalue="--output_discarded_records" falsevalue="--no_output_discarded_records" checked="True" type="boolean"/>
     </inputs>
     <outputs>
