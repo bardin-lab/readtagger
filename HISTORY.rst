@@ -6,6 +6,11 @@ History
 .. to_doc
 
 ---------------------
+0.5.0 (2018-06-12)
+---------------------
+* Drop support for Python 2
+
+---------------------
 0.4.20 (2018-06-12)
 ---------------------
 * Keep all associated softclip patterns when merging adjacent read clusters
