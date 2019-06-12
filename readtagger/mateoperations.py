@@ -1,5 +1,4 @@
 import pysam
-from six import string_types
 
 
 class AnnotateMateInformation(object):
@@ -24,11 +23,11 @@ class AnnotateMateInformation(object):
 
     def setup(self):
         """Set up input and output files if these are paths."""
-        if isinstance(self.source, string_types):
+        if isinstance(self.source, str):
             self.source = pysam.AlignmentFile(self.source)
-        if isinstance(self.target, string_types):
+        if isinstance(self.target, str):
             self.target = pysam.AlignmentFile(self.target)
-        if isinstance(self.output_path, string_types):
+        if isinstance(self.output_path, str):
             self.writer = pysam.AlignmentFile(self.output_path, mode='wb', header=self.target.header)
 
     def get_reads_to_annotate(self):

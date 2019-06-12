@@ -1,6 +1,5 @@
 from collections import deque
 import pysam
-import six
 
 
 from .cluster import Cluster
@@ -90,7 +89,7 @@ class VCFMerger(object):
         # This sounds similar to what BCF encoders/decoders are supposed to do.
         for sample, vrs in record.samples.items():
             for key, value in vrs.items():
-                if value is not None and isinstance(value, six.string_types):
+                if value is not None and isinstance(value, str):
                     split_value = value.split()
                     if split_value and '\x07' in split_value[0]:
                         record.samples[sample][key] = None

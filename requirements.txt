@@ -4,12 +4,8 @@ cached_property==1.5.1
 click==7.0
 compare-reads==0.0.1
 contextlib2==0.5.5
-futures==3.2.0; python_version < '3.3'
 pandas==0.24.2
 pysam==0.15.2
 scipy==1.2.1
-shutilwhich==1.1.0; python_version < '3.3'
-six==1.12.0
-backports.tempfile==1.0; python_version < '3.3'
 multiprocessing_logging==0.2.6
 edlib==1.2.4.post1

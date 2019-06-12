@@ -5,7 +5,6 @@ from collections import (
     Mapping
 )
 from concurrent.futures import ProcessPoolExecutor
-from six import string_types
 
 import pandas as pd
 import pysam
@@ -52,7 +51,7 @@ def get_coverage(file, label, regions=None, nth=1, readcount=-1):
     readcount = float(readcount)
     contigs_coverage = defaultdict(dd)
     with pysam.AlignmentFile(file) as f:
-        if isinstance(regions, string_types):
+        if isinstance(regions, str):
             regions = [regions]
         for region in regions:
             for pileup_pos in f.pileup(region=region, max_depth=20000):

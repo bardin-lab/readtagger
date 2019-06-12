@@ -1,8 +1,4 @@
-import sys
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+from setuptools import setup
 
 __VERSION__ = '0.4.20'
 
@@ -35,9 +31,6 @@ requirements = ['bcbio-gff',
                 'scipy',
                 'six']
 
-if sys.version_info[0] == 2:
-    requirements.append('futures')
-
 readme = open('README.rst').read()
 history = open('HISTORY.rst').read().replace('.. :changelog:', '')
 
@@ -57,8 +50,6 @@ setup(
         'Operating System :: POSIX',
         'Topic :: Scientific/Engineering :: Bio-Informatics',
         'Natural Language :: English',
-        "Programming Language :: Python :: 2",
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
     ],
     extras_require={

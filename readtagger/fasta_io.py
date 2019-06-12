@@ -2,8 +2,6 @@ import os
 import shutil
 import tempfile
 
-import six
-
 
 def write_sequences(sequences, output_path=None, tmp_dir=None):
     """
@@ -28,7 +26,7 @@ def write_sequences(sequences, output_path=None, tmp_dir=None):
         elif isinstance(sequences, list):
             for qname, seq in enumerate(sequences):
                 out.write(">%s\n%s\n" % (qname, seq))
-        elif isinstance(sequences, six.string_types):
+        elif isinstance(sequences, str):
             out.write(">0\n%s\n" % sequences)
     if fd:
         os.close(fd)

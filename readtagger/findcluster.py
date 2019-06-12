@@ -34,10 +34,7 @@ from .gff_io import merge_gff_files
 from .readtagger import get_max_proper_pair_size
 from .vcf_io import merge_vcf_files
 from .verify import discard_supplementary
-try:
-    from tempfile import TemporaryDirectory
-except ImportError:
-    from backports.tempfile import TemporaryDirectory
+from tempfile import TemporaryDirectory
 
 logger = logging.getLogger(__name__)
 

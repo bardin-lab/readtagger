@@ -4,7 +4,6 @@ import tempfile
 from collections import defaultdict
 
 import pysam
-from six import string_types
 
 from .bwa import Bwa
 from .cigar import (
@@ -67,9 +66,9 @@ class TagSoftClip(object):
 
     def setup(self):
         """Set up input and output files if these are paths."""
-        if isinstance(self.source, string_types):
+        if isinstance(self.source, str):
             self.source = pysam.AlignmentFile(self.source)
-        if isinstance(self.output_path, string_types):
+        if isinstance(self.output_path, str):
             self.writer = pysam.AlignmentFile(self.output_path, mode='wb', header=self.source.header)
 
     def write_clipped_portion(self):
@@ -111,7 +110,7 @@ class TagSoftClip(object):
                             if read.has_tag('AD'):
                                 tag = "%s,%s" % (read.get_tag('AD'), tag)
                             read.set_tag('AD', tag)
-            if isinstance(self.output_path, string_types):
+            if isinstance(self.output_path, str):
                 self.writer.write(read)
 
     def make_tag(self, start, end, original_read, annotated_clipped_read):

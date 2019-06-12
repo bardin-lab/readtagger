@@ -2,7 +2,6 @@ os:
 - linux
 language: python
 python:
-- '2.7'
 - '3.6'
 env:
   global:
@@ -14,9 +13,7 @@ env:
 install:
 - git fetch --unshallow
 - python -c 'import os,sys,fcntl; flags = fcntl.fcntl(sys.stdout, fcntl.F_GETFL); fcntl.fcntl(sys.stdout, fcntl.F_SETFL, flags&~os.O_NONBLOCK);'
-- if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then wget http://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh
-  -O miniconda.sh; else wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
-  -O miniconda.sh; fi
+- wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
 - bash miniconda.sh -bp $CONDA_PREFIX
 - export PATH="$CONDA_PREFIX/bin:$PATH"
 - conda config --set always_yes yes --set changeps1 no
@@ -42,7 +39,6 @@ deploy:
   skip_existing: true
   on:
     tags: true
-    python: 2.7
 - provider: script
   skip_cleanup: true
   script: bash conda/deploy.sh
@@ -53,4 +49,3 @@ deploy:
   script: bash galaxy/deploy.sh
   on:
     tags: true
-    python: 2.7
