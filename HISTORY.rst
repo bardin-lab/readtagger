@@ -6,6 +6,11 @@ History
 .. to_doc
 
 ---------------------
+0.4.20 (2018-06-12)
+---------------------
+* Keep all associated softclip patterns when merging adjacent read clusters
+
+---------------------
 0.4.19 (2018-02-15)
 ---------------------
 * Fix findcluster crash when reference contains colon.
