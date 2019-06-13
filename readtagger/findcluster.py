@@ -29,6 +29,7 @@ from .cluster_base import (
 )
 from .cigar import aligned_segment_corresponds_to_transposable_element
 from .fasta_io import merge_fasta
+from .filter_insertions import sequences_match
 from .find_softclip_clusters import SoftClipClusterFinder
 from .gff_io import merge_gff_files
 from .readtagger import get_max_proper_pair_size
@@ -180,10 +181,10 @@ class ClusterFinder(SampleNameMixin, ToGffMixin, ToVcfMixin):
             if not self.is_decoy or not self.skip_decoy:
                 self.clean_clusters()
                 self.join_clusters()
-                self.annotate_softclip()
                 self.to_fasta()
                 self.align_bwa()
                 self.collect_evidence()
+                self.annotate_softclip()
                 self.to_bam()
                 self.to_gff(output_path=self.output_gff)
                 self.to_vcf(output_path=self.output_vcf)
@@ -297,34 +298,24 @@ class ClusterFinder(SampleNameMixin, ToGffMixin, ToVcfMixin):
 
     def annotate_softclip(self):
         """Walk along all found clusters and annotate them with softclip clusters."""
-        SEARCH_WINDOW = 300
+        SEARCH_WINDOW = 20
         softclip_idx = 0
         for cluster in self.clusters:
-            if cluster.clustertag.tsd.five_p_reads:
-                position = cluster.clustertag.tsd.five_p
-                if position:
-                    for i, c in enumerate(self.softclip_finder.clusters[softclip_idx:]):
-                        if position - SEARCH_WINDOW < c.clip_position < position + SEARCH_WINDOW:
-                            if set(cluster) & set(c):
-                                cluster.softclip_clusters.append(c.id)
-                        elif c.clip_position > position + SEARCH_WINDOW:
-                            softclip_idx = i - 100
-                            if softclip_idx < 0:
-                                softclip_idx = 0
-                            break
-            if cluster.clustertag.tsd.three_p_reads:
-                position = cluster.clustertag.tsd.three_p
-                if position:
-                    for i, c in enumerate(self.softclip_finder.clusters[softclip_idx:]):
-                        if position - SEARCH_WINDOW < c.clip_position < position + SEARCH_WINDOW:
-                            if set(cluster) & set(c):
-                                cluster.softclip_clusters.append(c.id)
-                                c.mate_id = str(cluster.id)
-                        elif c.clip_position > position + SEARCH_WINDOW:
-                            softclip_idx = i - 100
-                            if softclip_idx < 0:
-                                softclip_idx = 0
-                            break
+            left_breakpoint_sequence = cluster.clustertag.left_breakpoint_sequence
+            right_breakpoint_sequence = cluster.clustertag.right_breakpoint_sequence
+            if left_breakpoint_sequence or right_breakpoint_sequence:
+                start, end = cluster._start_and_end
+                for i, c in enumerate(self.softclip_finder.clusters[softclip_idx:]):
+                    if (start - SEARCH_WINDOW) < c.clip_position < (end + SEARCH_WINDOW):
+                        if sequences_match(c.consensus, left_breakpoint_sequence, '3p_clip'):
+                            cluster.softclip_clusters.append(c.id)
+                        elif sequences_match(c.consensus, right_breakpoint_sequence, '5p_clip'):
+                            cluster.softclip_clusters.append(c.id)
+                    elif c.clip_position > end + SEARCH_WINDOW:
+                        softclip_idx = i - 100
+                        if softclip_idx < 0:
+                            softclip_idx = 0
+                        break
 
     def _add_new_clusters(self, new_clusters, index):
         current_index = index
