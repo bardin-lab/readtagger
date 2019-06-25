@@ -11,5 +11,5 @@ scipy==1.2.1
 shutilwhich==1.1.0; python_version < '3.3'
 six==1.12.0
 backports.tempfile==1.0; python_version < '3.3'
-multiprocessing_logging==0.2.6
+multiprocessing_logging==0.3.0
 edlib==1.2.4.post1
