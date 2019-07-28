@@ -325,9 +325,9 @@ def test_clusterfinder_nanopore(datadir_copy, tmpdir, reference_fasta):  # noqa:
                              output_fasta=output_fasta,
                              max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
     cluster = clusters.clusters[0]
-    assert cluster.nalt == 7
+    assert cluster.nalt == 4
     assert cluster.total_left_count == 1
-    assert cluster.total_right_count == 6
+    assert cluster.total_right_count == 3
 
 
 def test_clusterfinder_nonsupport(datadir_copy, tmpdir):  # noqa: D103
