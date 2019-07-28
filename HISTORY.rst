@@ -6,6 +6,11 @@ History
 .. to_doc
 
 ---------------------
+0.5.3 (2018-07-28)
+---------------------
+* Sort 'extract_variants' output alignment
+
+---------------------
 0.5.2 (2018-07-28)
 ---------------------
 * Add 'extract_variants' tool for extracting insertion evidence from long reads
