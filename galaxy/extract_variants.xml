@@ -1,0 +1,37 @@
+<tool id="extract_variants" name="Extract variant fragments" version="0.5.1">
+    <description>from long reads</description>
+    <requirements>
+        <requirement type="package" version="0.5.1">readtagger</requirement>
+    </requirements>
+    <version_command>extract_variants --version</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+ln -fs '$insert_reference.fields.path' reference.fa &&
+extract_variants '$input' '$output' reference.fa
+    ]]></command>
+    <inputs>
+        <param name="input" label="Select alignment for which to extract variants" type="data" format="bam,cram"/>
+        <param name="insert_reference" label="Select a reference. If a variant aligns against this reference it will be retained" type="select">
+            <options from_data_table="all_fasta"/>
+        </param>
+    </inputs>
+    <outputs>
+        <data name="output" format_source="input"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="input" value="long_insertion.bam" ftype="bam"/>
+            <param name="insert_reference" value="transposon"/>
+            <output name="output" file="long_insert_tagged.bam" ftype="bam"/>
+        </test>
+    </tests>
+    <help><![CDATA[
+
+Extract variants will find soft-clipped alignments and alignments with insertions,
+and, if the inserted sequence aligns with the selected reference, write out
+a the alignment, but clip the aligned portion of the read to a single N
+and will add 2 tags, AR and AD to the alignment.
+The AR tag will list the contig, the AD tag contains detailed
+information on how the insert/clipped sequence aligned against the selected
+reference.
+    ]]></help>
+</tool>
