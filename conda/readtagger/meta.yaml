@@ -27,6 +27,7 @@ requirements:
     - click
     - compare-reads
     - contextlib2
+    - mappy
     - matplotlib
     - multiprocessing-logging
     - pandas
