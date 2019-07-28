@@ -5,6 +5,7 @@ import mappy as mp
 from readtagger.bam_io import (
     BamAlignmentReader,
     BamAlignmentWriter,
+    sort_bam,
 )
 from readtagger.cigar import (
     cigar_tuple_to_cigar_length,
@@ -50,6 +51,7 @@ def extract_variant_portion(input_path, output_path, filter_variant_source=None)
                         new_alignment.cigar = cigar
                         new_alignment.query_sequence = variant_sequence
                         bam_out.write(new_alignment)
+    sort_bam(inpath=output_path, output=output_path, sort_order='coordinate', threads=1)
 
 
 def yield_variant_sequences(alignment):
