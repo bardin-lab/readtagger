@@ -6,6 +6,8 @@ CODE2CIGAR = "MIDNSHP=XB"
 CIGAR2CODE = dict([y, x] for x, y in enumerate(CODE2CIGAR))
 CIGAR = namedtuple('CIGAR', 'operation length')
 MATCH = 0
+INSERTION = 1
+DELETION = 2
 SOFT_CLIP = 4
 HARD_CLIP = 5
 
@@ -93,7 +95,8 @@ def cigar_tuple_to_cigar_length(cigar):
     cigar_length_tuples = []
     start = 0
     for (m, i) in cigar:
-        end = start + i
+        # set length to length of operation, except for deletions which are not present in the read
+        end = start + i if m != DELETION else start
         cigar_length_tuples.append(((start, end), m))
         start = end
     return cigar_length_tuples

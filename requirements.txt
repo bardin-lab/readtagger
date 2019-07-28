@@ -9,3 +9,4 @@ pysam==0.15.2
 scipy==1.2.1
 multiprocessing_logging==0.2.6
 edlib==1.2.4.post1
+mappy==2.17

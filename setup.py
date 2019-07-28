@@ -15,6 +15,7 @@ ENTRY_POINTS = '''
         readtagger=readtagger.cli.readtagger_cli:readtagger
         update_mapq=readtagger.cli.update_mapq:update_mapq
         write_supplementary_fastq=readtagger.cli.write_supplementary_fastq:write_supplementary_fastq
+        extract_variants=readtagger.cli.extract_variants:extract_variants
 '''
 
 requirements = ['bcbio-gff',
@@ -25,6 +26,7 @@ requirements = ['bcbio-gff',
                 'compare-reads',
                 'edlib',
                 'matplotlib',  # for plotting coverage, refactor into separate package
+                'mappy',
                 'multiprocessing_logging',
                 'pandas',
                 'pysam',
