@@ -6,6 +6,11 @@ History
 .. to_doc
 
 ---------------------
+0.5.2 (2018-07-28)
+---------------------
+* Add 'extract_variants' tool for extracting insertion evidence from long reads
+
+---------------------
 0.5.1 (2018-06-13)
 ---------------------
 * Only associate clipping pattern with insertion if pattern matches breakpoint sequence
