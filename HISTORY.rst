@@ -6,6 +6,11 @@ History
 .. to_doc
 
 ---------------------
+0.5.4 (2018-07-29)
+---------------------
+* Bump pysam dependency to 0.15.3, contains important fixes
+
+---------------------
 0.5.3 (2018-07-28)
 ---------------------
 * Sort 'extract_variants' output alignment
