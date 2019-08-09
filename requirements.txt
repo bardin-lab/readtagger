@@ -6,7 +6,7 @@ compare-reads==0.0.1
 contextlib2==0.5.5
 pandas==0.24.2
 pysam==0.15.3
-scipy==1.2.1
+scipy==1.3.1
 multiprocessing_logging==0.2.6
 edlib==1.2.4.post1
 mappy==2.17
