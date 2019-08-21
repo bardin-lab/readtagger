@@ -15,18 +15,20 @@ install:
 - python -c 'import os,sys,fcntl; flags = fcntl.fcntl(sys.stdout, fcntl.F_GETFL); fcntl.fcntl(sys.stdout, fcntl.F_SETFL, flags&~os.O_NONBLOCK);'
 - wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
 - bash miniconda.sh -bp $CONDA_PREFIX
+- export OLD_PATH=$PATH
 - export PATH="$CONDA_PREFIX/bin:$PATH"
 - conda config --set always_yes yes --set changeps1 no
 - conda --version
 - conda config --add channels mvdbeek
 - conda config --add channels bioconda
 - conda config --add channels conda-forge
-- conda install tox coveralls bwa cap3 samtools virtualenv conda-build gxx_linux-64 -c conda-forge -c bioconda
+- conda install bwa cap3 samtools conda-build -c conda-forge -c bioconda
 - samtools --version
-- pip install tox-travis
-- virtualenv /home/travis/.planemo/gx_venv
 - conda build --python "$TRAVIS_PYTHON_VERSION" conda/multiprocessing-logging
 - conda build --python "$TRAVIS_PYTHON_VERSION" conda/readtagger
+- export PATH=$OLD_PATH:$CONDA_PREFIX/bin
+- pip install virtualenv tox-travis coveralls
+- virtualenv /home/travis/.planemo/gx_venv
 - curl -L https://github.com/bardin-lab/dmel-transposon-reference-data/raw/master/fasta_sequences/dm6_TE_annotations_sequences.fasta -o ~/ref.fa
 script: tox
 after_success:
