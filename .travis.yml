@@ -21,7 +21,7 @@ install:
 - conda config --add channels mvdbeek
 - conda config --add channels bioconda
 - conda config --add channels conda-forge
-- conda install tox coveralls bwa cap3 samtools virtualenv conda-build -c conda-forge -c bioconda
+- conda install tox coveralls bwa cap3 samtools virtualenv conda-build gxx_linux-64 -c conda-forge -c bioconda
 - samtools --version
 - pip install tox-travis
 - virtualenv /home/travis/.planemo/gx_venv
