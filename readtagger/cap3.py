@@ -67,8 +67,8 @@ class Cap3Assembly(BaseAssembly):
                 args = ['cap3', self.input_path, '-p', '75', '-s', '500', '-z', '2']
                 try:
                     # Use check call to ignore stdout of cap3
-                    subprocess.check_call(args, stdout=DEVNULL, close_fds=True)
-                except subprocess.CalledProcessError as e:
+                    subprocess.check_call(args, stdout=DEVNULL, close_fds=True, timeout=120)
+                except subprocess.SubprocessError as e:
                     logger.error("An error occured while attempting to assemble reads: "
                                  "%s\n The problematic sequences are: %s", e, self.sequences)
                     return Ace.ACEFileRecord().contigs
