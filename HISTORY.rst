@@ -6,6 +6,12 @@ History
 .. to_doc
 
 ---------------------
+0.5.5 (2018-08-27)
+---------------------
+* Add timeout to cap3 call
+* Update dependencies
+
+---------------------
 0.5.4 (2018-07-29)
 ---------------------
 * Bump pysam dependency to 0.15.3, contains important fixes
