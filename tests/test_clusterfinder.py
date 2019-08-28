@@ -573,7 +573,7 @@ def test_clusterfinder_clip_assigned_to_insertion(datadir_copy, tmpdir, referenc
     assert len(clusters.clusters) == 3
     assert clusters.clusters[1].nalt == 66
     assert clusters.clusters[1].valid_tsd
-    assert len(clusters.clusters[1].feature_args) == 0
+    assert len(clusters.clusters[1].feature_args) == 2
 
 
 def test_clusterfinder_jockey_not_found(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811

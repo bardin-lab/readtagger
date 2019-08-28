@@ -35,7 +35,10 @@ from .gff_io import merge_gff_files
 from .readtagger import get_max_proper_pair_size
 from .vcf_io import merge_vcf_files
 from .verify import discard_supplementary
-from tempfile import TemporaryDirectory
+from tempfile import (
+    mkstemp,
+    TemporaryDirectory,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -344,12 +347,13 @@ class ClusterFinder(SampleNameMixin, ToGffMixin, ToVcfMixin):
     def to_fasta(self):
         """Write supporting sequences to fasta file for detailed analysis."""
         logger.info("Writing contig fasta (%s)", self.region or 0)
-        if self.output_fasta:
-            self._create_contigs()
-            with open(self.output_fasta, 'w') as out:
-                for cluster in self.clusters:
-                    for seq in cluster.to_fasta():
-                        out.write(seq)
+        if not self.output_fasta:
+            fd, self.output_fasta = mkstemp(suffix='.fasta', prefix='contigs', dir=self._tempdir)
+            os.close(fd)
+        with open(self.output_fasta, 'w') as out:
+            for cluster in self.clusters:
+                for seq in cluster.to_fasta():
+                    out.write(seq)
 
     def align_bwa(self):
         """Align cluster contigs or invidiual reads to a reference and write result into cluster."""
