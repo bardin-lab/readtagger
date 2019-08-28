@@ -6,6 +6,12 @@ History
 .. to_doc
 
 ---------------------
+0.5.6 (2018-08-28)
+---------------------
+Always produce contig fasta, required for refining cluster positions
+Allow +/- 10 nucleotides between alignment and insert start/end
+
+---------------------
 0.5.5 (2018-08-27)
 ---------------------
 * Add timeout to cap3 call
