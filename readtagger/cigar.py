@@ -151,7 +151,7 @@ def position_corresponds_to_transposable_element(tag, position, orientation):
     for (start, end), operation in transposon_cigar_length:
         if start > position:
             break
-        if start <= position <= end and operation == MATCH:
+        if start - 10 <= position <= end + 10 and operation == MATCH:
             corresponds_to_te = True
             break
     return corresponds_to_te

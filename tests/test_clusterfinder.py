@@ -61,7 +61,7 @@ def test_clusterfinder_include_duplicates(datadir_copy):  # noqa: D103
                        include_duplicates=True,
                        max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
     assert len(cf.clusters) == 1
-    assert cf.clusters[0].nalt == 25
+    assert cf.clusters[0].nalt == 26
 
 
 def test_clusterfinder_remove_supplementary(datadir_copy):  # noqa: D103
@@ -71,7 +71,7 @@ def test_clusterfinder_remove_supplementary(datadir_copy):  # noqa: D103
                        remove_supplementary_without_primary=True,
                        max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
     assert len(cf.clusters) == 1
-    assert cf.clusters[0].nalt == 23
+    assert cf.clusters[0].nalt == 24
 
 
 def test_clusterfinder_reassemble(datadir_copy, tmpdir, reference_fasta):   # noqa: D103, F811
@@ -112,7 +112,7 @@ def test_clusterfinder_refine_split(datadir_copy, tmpdir):  # noqa: D103
     cluster = clusters.clusters[0]
     genotype = cluster.genotype_likelihoods
     assert genotype.nref == 73
-    assert genotype.nalt == 112
+    assert genotype.nalt == 117
     assert genotype.genotype == 'heterozygous'
 
 
@@ -132,7 +132,7 @@ def test_clusterfinder_refine_split2(datadir_copy, tmpdir):  # noqa: D103
     assert cluster_one.nalt == 1
     assert cluster_two.nalt == 1
     assert cluster_three.nalt == 46
-    assert cluster_four.nalt == 84
+    assert cluster_four.nalt == 88
     assert len(clusters.softclip_finder.clusters) == 12
     assert len(cluster_three.feature_args) == 0
 
@@ -325,9 +325,9 @@ def test_clusterfinder_nanopore(datadir_copy, tmpdir, reference_fasta):  # noqa:
                              output_fasta=output_fasta,
                              max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
     cluster = clusters.clusters[0]
-    assert cluster.nalt == 4
+    assert cluster.nalt == 6
     assert cluster.total_left_count == 1
-    assert cluster.total_right_count == 3
+    assert cluster.total_right_count == 5
 
 
 def test_clusterfinder_nonsupport(datadir_copy, tmpdir):  # noqa: D103
