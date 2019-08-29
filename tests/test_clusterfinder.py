@@ -126,13 +126,13 @@ def test_clusterfinder_refine_split2(datadir_copy, tmpdir):  # noqa: D103
                              max_proper_pair_size=1500)
     # Should be 3 or 4 clusters -- one mate pointing away from the cluster (1),
     # one read with BD and AD tag (2), which doesn't join with the large cluster(s) to the right.
-    # This could be 1 or 2 clusters ... it deos have evidence for 2 distinct events via 3 different clipping patterns
+    # This could be 1 or 2 clusters ... it does have evidence for 2 distinct events via 3 different clipping patterns
     assert len(clusters.clusters) == 4
     cluster_one, cluster_two, cluster_three, cluster_four = clusters.clusters
     assert cluster_one.nalt == 1
     assert cluster_two.nalt == 1
-    assert cluster_three.nalt == 46
-    assert cluster_four.nalt == 88
+    assert cluster_three.nalt == 48
+    assert cluster_four.nalt == 86
     assert len(clusters.softclip_finder.clusters) == 12
     assert len(cluster_three.feature_args) == 0
 
@@ -500,7 +500,7 @@ def test_clusterfinder_skip_abnormal(datadir_copy, tmpdir, reference_fasta):  # 
                              transposon_reference_fasta=reference_fasta,
                              max_proper_pair_size=649,
                              skip_decoy=False)
-    assert len(clusters.clusters) in (21, 22)  # TODO: this should really be deterministic, what's going on here?
+    assert len(clusters.clusters) == 19
     assert clusters.clusters[2].abnormal
 
 
