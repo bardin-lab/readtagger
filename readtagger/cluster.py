@@ -565,13 +565,14 @@ class Cluster(BaseCluster):
                     return True
         self_switches = self.orientation_switches
         other_switches = other_cluster.orientation_switches
-        if len(self_switches) == 1 and len(other_switches) == 1 and self_switches != other_switches:
-            tolerance = 0 if self.valid_tsd else 10
-            if abs(other_cluster.min - self.max) < max_distance and overlap(start1=self.start,
-                                                                            end1=self.end,
-                                                                            start2=other_cluster.start,
-                                                                            end2=other_cluster.end,
-                                                                            tolerance=tolerance):
+        single_orientation = len(self_switches) == len(other_switches) == 1
+        tolerance = 0 if self.valid_tsd else 10
+        if abs(other_cluster.min - self.max) < max_distance and overlap(start1=self.start,
+                                                                        end1=self.end,
+                                                                        start2=other_cluster.start,
+                                                                        end2=other_cluster.end,
+                                                                        tolerance=tolerance):
+            if single_orientation and self_switches != other_switches:
                 # This check doesn't take into account the read length, as the isize
                 # is determined as read-length 1 +  inner distance  + readlength 2
                 min_read_read_length = min([r.reference_length for r in other_cluster if r.reference_start == other_cluster.min])
@@ -580,10 +581,24 @@ class Cluster(BaseCluster):
                     # Merge a cluster that is split by an insertion and not connected via split reads
                     if self_switches[0][0] == 'F' and other_switches[0][0] == 'R':
                         return True
+            elif len(other_switches) == 1 and other_switches[0][0] == 'R':
+                # This is not a very specific check, so we require the most common reference of both clusters to check
+                if set(self.insert_reference_tags()) & set(other_cluster.insert_reference_tags()):
+                    return True
         # We know this cluster (self) cannot be joined with other_cluster, so we cache this result,
         # Since we may ask this question multiple times when joining the clusters.
         self._mark_clusters_incompatible(self, other_cluster)
         return False
+
+    def insert_reference_tags(self):
+        """Return insert reference tags."""
+        insert_ref_tags = []
+        for r in self:
+            if r.has_tag('AR'):
+                insert_ref_tags.append(r.get_tag('AR'))
+            if r.has_tag('BR'):
+                insert_ref_tags.append(r.get_tag('BR'))
+        return insert_ref_tags
 
     @property
     def total_left_count(self):
