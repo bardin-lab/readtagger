@@ -6,6 +6,14 @@ History
 .. to_doc
 
 ---------------------
+0.5.7 (2018-08-29)
+---------------------
+Don't mark clusters incompatible after splitting them out from original cluster
+Use corrected or uncorrected start/end when finding reachable clusters
+Also allow joining with downstream reverse cluster
+Detect local maximum proper pair size
+
+---------------------
 0.5.6 (2018-08-28)
 ---------------------
 Always produce contig fasta, required for refining cluster positions
