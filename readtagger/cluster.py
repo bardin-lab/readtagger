@@ -348,9 +348,10 @@ class Cluster(BaseCluster):
     def reachable(self, all_clusters):
         """Find all cluster that are closeby."""
         idx = all_clusters.index(self)
-        current_end = self.end_corrected
+        current_end = self.end_corrected or self.end
         for i, cluster in enumerate(all_clusters[idx + 1:]):
-            if cluster.start_corrected and current_end and cluster.start_corrected <= current_end:
+            other_start = cluster.start_corrected or cluster.start
+            if other_start and current_end and other_start <= current_end:
                 yield cluster
             elif i == 0:
                 yield cluster
