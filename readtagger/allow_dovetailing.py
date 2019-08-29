@@ -7,7 +7,7 @@ from .bam_io import BamAlignmentWriter as Writer
 logger = logging.getLogger(__name__)
 
 
-def get_max_proper_pair_size(path, reads_to_check=1000):
+def get_max_proper_pair_size(path, reads_to_check=1000, region=None):
     """
     Iterate over the first 1000 properly paired records in alignment_file and get the maximum valid isize for a proper pair.
 
@@ -20,7 +20,11 @@ def get_max_proper_pair_size(path, reads_to_check=1000):
     isize = []
     msg = "Maximum insert size for a proper pair is %s"
     with pysam.AlignmentFile(path) as alignment_file:
-        for r in alignment_file:
+        if region:
+            iter_reads = alignment_file.fetch(region=region)
+        else:
+            iter_reads = alignment_file
+        for r in iter_reads:
             if r.is_proper_pair and not r.is_secondary and not r.is_supplementary:
                 isize.append(abs(r.isize))
             if len(isize) == reads_to_check:

@@ -41,6 +41,7 @@ from tempfile import (
 )
 
 logger = logging.getLogger(__name__)
+DEFAULT_MAX_PROPER_PAIR_SIZE = 700
 
 
 class ClusterManager(object):
@@ -48,8 +49,6 @@ class ClusterManager(object):
 
     def __init__(self, **kwds):
         """Decide if passing kwds on to ClusterFinder or if splitting input file is required."""
-        if kwds.get('max_proper_pair_size', 0) == 0:
-            kwds['max_proper_pair_size'] = get_max_proper_pair_size(kwds['input_path'])
         if kwds['threads'] > 1:
             self.threads = kwds['threads']
             # this is ugly, but each ClusterFinder instance should be able to use an additional thread
@@ -163,7 +162,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin, ToVcfMixin):
         self.include_duplicates = include_duplicates
         self.min_mapq = min_mapq
         self.max_clustersupport = max_clustersupport
-        self.max_proper_pair_size = max_proper_pair_size
+        self.max_proper_pair_size = max_proper_pair_size or get_max_proper_pair_size(self.input_path, region=self.region) or DEFAULT_MAX_PROPER_PAIR_SIZE
         self.skip_decoy = skip_decoy
         self.softclip_finder = SoftClipClusterFinder(region=self.region,
                                                      min_mapq=self.min_mapq,

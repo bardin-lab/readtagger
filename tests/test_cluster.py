@@ -9,5 +9,5 @@ def test_nonevidence(datadir_copy):  # noqa: D103
     assert len(result) == 4
     assert result[0].nref == 12
     assert result[1].nref == 39
-    assert result[2].nref == 32
-    assert result[3].nref == 30
+    assert result[2].nref == 30
+    assert result[3].nref == 32
