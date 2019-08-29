@@ -429,7 +429,6 @@ class Cluster(BaseCluster):
                     # I suppose this can happen with very small TE inserts where we can have mates on both sides
                     self.remove(read)
             new_clusters.append(new_five_p_cluster)
-        self._mark_clusters_incompatible(*new_clusters)
         # TODO: may want to remove any mates that correspond to the removed reads
         return new_clusters
 
