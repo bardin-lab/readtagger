@@ -6,6 +6,11 @@ History
 .. to_doc
 
 ---------------------
+0.5.9 (2018-08-31)
+---------------------
+Fix crash when corrected start/end can't be calculated.
+
+---------------------
 0.5.8 (2018-08-31)
 ---------------------
 Improve joining of clusters
