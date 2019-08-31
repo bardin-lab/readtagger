@@ -757,6 +757,9 @@ class Cluster(BaseCluster):
     def _get_start_and_end(self):
         start = self.start_corrected
         end = self.end_corrected
+        if start is None and end is None:
+            start = self.start
+            end = self.end
         if start is None:
             start = end
         if end is None:
