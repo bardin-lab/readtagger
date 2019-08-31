@@ -533,8 +533,9 @@ class Cluster(BaseCluster):
             # We already tried joining this cluster with another cluster,
             # so if we checked if we can try joining the exact same clusters
             # (self.hash is key in self._cannot_join and other_cluster.hash is value in self._cannot_join)
-            # we know this didn't work and save ourselves the expensive assembly check
-            return False
+            # we know this didn't work and save ourselves the expensive assembly check,
+            # but we can check if the insert reference name is compatible now
+            return self.check_overlap_compatible(other_cluster, max_distance)
         return self._can_join(other_cluster, max_distance)
 
     def _can_join(self, other_cluster, max_distance):
@@ -563,10 +564,25 @@ class Cluster(BaseCluster):
                 # We don't want clusters to be spaced too far away. Not sure if this is really a problem in practice.
                 if multiple_sequences_overlap(self.clustertag.right_sequences.values(), other_clustertag.right_sequences.values()):
                     return True
+        if self.check_overlap_compatible(other_cluster, max_distance):
+            return True
+        # We know this cluster (self) cannot be joined with other_cluster, so we cache this result,
+        # Since we may ask this question multiple times when joining the clusters.
+        self._mark_clusters_incompatible(self, other_cluster)
+        return False
+
+    def check_overlap_compatible(self, other_cluster, max_distance):
+        """
+        Check that overlap between clusters is compatible with joining.
+
+        This means the orientation switches make sense (i.e F self and R other is ok,
+        but not R self and F other), and that the putative insert reference is compatible,
+        or that insert tags match (this is from the tagging step).
+        """
         self_switches = self.orientation_switches
         other_switches = other_cluster.orientation_switches
         single_orientation = len(self_switches) == len(other_switches) == 1
-        tolerance = 0 if self.valid_tsd else 10
+        tolerance = 0 if self.valid_tsd else max_distance
         if abs(other_cluster.min - self.max) < max_distance and overlap(start1=self.start,
                                                                         end1=self.end,
                                                                         start2=other_cluster.start,
@@ -579,21 +595,23 @@ class Cluster(BaseCluster):
                 max_read_read_length = min([r.reference_length for r in self if r.reference_end == self.max])
                 if abs(other_cluster.min - self.max) < (max_distance - min_read_read_length - max_read_read_length):
                     # Merge a cluster that is split by an insertion and not connected via split reads
-                    if self_switches[0][0] == 'F' and other_switches[0][0] == 'R':
-                        return True
+                    if self_switches[0][0] == 'F':
+                        if set(self.insert_reference_tags()) & set(other_cluster.insert_reference_tags()):
+                            return True
             elif len(other_switches) == 1 and other_switches[0][0] == 'R':
                 # This is not a very specific check, so we require the most common reference of both clusters to check
                 if set(self.insert_reference_tags()) & set(other_cluster.insert_reference_tags()):
                     return True
-        # We know this cluster (self) cannot be joined with other_cluster, so we cache this result,
-        # Since we may ask this question multiple times when joining the clusters.
-        self._mark_clusters_incompatible(self, other_cluster)
-        return False
 
     def insert_reference_tags(self):
         """Return insert reference tags."""
         insert_ref_tags = []
         for r in self:
+            if self.insert_reference_name and self.insert_reference_name != 'TE':
+                print(self.insert_reference_name)
+                insert_ref_tags.append(self.insert_reference_name)
+                # This should be authoritative IMO
+                continue
             if r.has_tag('AR'):
                 insert_ref_tags.append(r.get_tag('AR'))
             if r.has_tag('BR'):
