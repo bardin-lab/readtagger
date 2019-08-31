@@ -6,6 +6,11 @@ History
 .. to_doc
 
 ---------------------
+0.5.8 (2018-08-31)
+---------------------
+Improve joining of clusters
+
+---------------------
 0.5.7 (2018-08-29)
 ---------------------
 Don't mark clusters incompatible after splitting them out from original cluster
