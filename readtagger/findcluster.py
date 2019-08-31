@@ -185,6 +185,8 @@ class ClusterFinder(SampleNameMixin, ToGffMixin, ToVcfMixin):
                 self.join_clusters()
                 self.to_fasta()
                 self.align_bwa()
+                # second pass, see if having reference name assigned by align_bwa improves joining
+                self.join_clusters()
                 self.collect_evidence()
                 self.annotate_softclip()
                 self.to_bam()

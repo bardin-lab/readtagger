@@ -116,6 +116,21 @@ def test_clusterfinder_refine_split(datadir_copy, tmpdir):  # noqa: D103
     assert genotype.genotype == 'heterozygous'
 
 
+def test_clusterfinder_join_cluster_test(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
+    input_path = str(datadir_copy['join_cluster_test.bam'])
+    output_bam = tmpdir.join('output.bam').strpath
+    clusters = ClusterFinder(input_path=input_path,
+                             output_bam=output_bam,
+                             output_gff=tmpdir.join('output.gff').strpath,
+                             transposon_reference_fasta=reference_fasta,
+                             max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
+    cluster_gate, cluster_rover = clusters.clusters
+    assert len(cluster_gate) == 1
+    assert len(cluster_rover) == 21
+    assert not cluster_gate.valid_tsd
+    assert cluster_rover.valid_tsd
+
+
 def test_clusterfinder_refine_split2(datadir_copy, tmpdir):  # noqa: D103
     input_path = str(datadir_copy[SPLIT_CLUSTER_OPT2])
     output_bam = tmpdir.join('output.bam').strpath
@@ -153,14 +168,14 @@ def test_clusterfinder_multiple_cluster(datadir_copy, tmpdir):  # noqa: D103
     input_path = str(datadir_copy[EXTENDED])
     output_bam = tmpdir.join('tagged_clusters.bam')
     cf = ClusterFinder(input_path=input_path, output_bam=output_bam.strpath, max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
-    assert len(cf.clusters) == 2
+    assert len(cf.clusters) == 3
 
 
 def test_clusterfinder_multiple_cluster_gff(datadir_copy, tmpdir):  # noqa: D103
     input_path = str(datadir_copy[EXTENDED])
     output_gff = tmpdir.join('output.gff')
     cf = ClusterFinder(input_path=input_path, output_gff=output_gff.strpath, max_proper_pair_size=DEFAULT_MAX_PROPER_PAIR_SIZE)
-    assert len(cf.clusters) == 2
+    assert len(cf.clusters) == 3
 
 
 def test_clustermanager_single_core(datadir_copy, tmpdir):  # noqa: D103
@@ -373,7 +388,7 @@ def test_clusterfinder_refine_coord(datadir_copy, tmpdir):  # noqa: D103
     cluster = clusters.clusters[-1]
     genotype = cluster.genotype_likelihoods
     assert genotype.nref == 0
-    assert genotype.nalt == 5
+    assert genotype.nalt == 3
     assert genotype.genotype == 'homozygous'
 
 
@@ -455,11 +470,11 @@ def test_clusterfinder_estimate_coverage(datadir_copy, tmpdir, reference_fasta):
                              output_gff=output_gff,
                              transposon_reference_fasta=reference_fasta,
                              max_proper_pair_size=1500)
-    assert len(clusters.clusters) == 1
+    assert len(clusters.clusters) == 2
     cluster_one = clusters.clusters[0]
     assert cluster_one.genotype == 'reference'
-    assert cluster_one.nref == 174
-    assert cluster_one.nalt == 8
+    assert cluster_one.nref == 66
+    assert cluster_one.nalt == 4
 
 
 def test_clusterfinder_check_consistency(datadir_copy, tmpdir, reference_fasta):  # noqa: D103, F811
@@ -500,7 +515,7 @@ def test_clusterfinder_skip_abnormal(datadir_copy, tmpdir, reference_fasta):  # 
                              transposon_reference_fasta=reference_fasta,
                              max_proper_pair_size=649,
                              skip_decoy=False)
-    assert len(clusters.clusters) == 19
+    assert len(clusters.clusters) == 18
     assert clusters.clusters[2].abnormal
 
 
