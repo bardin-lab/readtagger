@@ -6,6 +6,11 @@ History
 .. to_doc
 
 ---------------------
+0.5.11 (2018-09-01)
+---------------------
+Annotate overlaps of insertions of the same kind
+
+---------------------
 0.5.10 (2018-09-01)
 ---------------------
 Write out matching softclip cluster
