@@ -1,6 +1,6 @@
 from setuptools import setup
 
-__VERSION__ = '0.5.9'
+__VERSION__ = '0.5.10'
 
 ENTRY_POINTS = '''
         [console_scripts]
