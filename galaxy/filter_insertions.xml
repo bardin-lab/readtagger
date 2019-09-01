@@ -18,12 +18,14 @@
         #end for
         --output_path '$output'
         $output_discard
+        --min_length $min_length
     ]]></command>
     <inputs>
         <param name="putative_insertions" label="Select dataset with filtered putative insertions" argument="--putative_insertions_path" type="data" format="gff3"/>
         <param name="all_insertions" label="Select datasets with all unfiltered insertions" argument="--all_treatments_path" type="data" format="gff3"/>
         <param name="all_controls" label="Select datasets with all unfiltered insertions from one or more control samples" argument="--all_controls_path" multiple="True" type="data" format="gff3"/>
         <param name="output_discard" label="Output discarded records? Discarded records will be marked as failed." truevalue="--output_discarded_records" falsevalue="--no_output_discarded_records" checked="True" type="boolean"/>
+        <param argument="--min_length" label="Minimum length necessary to match clip patterns" help="If too low will create false matches, if too high will not find legitimate matches." value="4" min="1" type="integer"/>
     </inputs>
     <outputs>
         <data name="output" format="gff3"/>

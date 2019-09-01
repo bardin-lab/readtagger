@@ -84,7 +84,7 @@ def fill_comparison(putative, controls, treatment):
         yield (comparison(putative_record, putative_record_complements, control_records))
 
 
-def filter_putative_insertions(putative, treatment, controls, output_discarded_records=True):
+def filter_putative_insertions(putative, treatment, controls, min_len, output_discarded_records=True):
     """Remove insertions that are based on clipped sequences which are also present in the control."""
     for (putative_record, putative_complements, control_records) in fill_comparison(putative, controls, treatment):
         valid_record = True
@@ -107,7 +107,7 @@ def filter_putative_insertions(putative, treatment, controls, output_discarded_r
                     if abs(c.start - t.start) < SCAN_SOFT_CLIP_REGION or abs(c.end - t.end) < SCAN_SOFT_CLIP_REGION:
                         c_seq = c.attributes.get('consensus')
                         t_seq = t.attributes.get('consensus')
-                        if sequences_match(seq1=c_seq, seq2=t_seq, compare=c.type):
+                        if sequences_match(seq1=c_seq, seq2=t_seq, compare=c.type, min_len=min_len):
                             valid_record = False
                             break
             if valid_record is False:
@@ -119,7 +119,7 @@ def filter_putative_insertions(putative, treatment, controls, output_discarded_r
             yield putative_record
 
 
-def sequences_match(seq1, seq2, compare='5p_clip'):
+def sequences_match(seq1, seq2, compare='5p_clip', min_len=4):
     """
     Compare 2 sequences and determine whether they are likely the same.
 
@@ -139,7 +139,7 @@ def sequences_match(seq1, seq2, compare='5p_clip'):
     else:
         seq1 = seq1[-10:]
         seq2 = seq2[-10:]
-    if len(seq1) > 2 and len(seq2) > 2:
+    if len(seq1) > min_len and len(seq2) > min_len:
         if len(seq1) >= 10 and len(seq2) >= 10:
             if align(seq1, seq2)['editDistance'] < 2:
                 return True
@@ -150,7 +150,7 @@ def sequences_match(seq1, seq2, compare='5p_clip'):
     return False
 
 
-def confirm_insertions(putative_insertions_path, all_treatments_path, all_controls_paths, output_path, output_discarded_records=True):
+def confirm_insertions(putative_insertions_path, all_treatments_path, all_controls_paths, output_path, min_len=4, output_discarded_records=True):
     """Confirm putative insertions by absence of softclipping patterns in a somatic control file."""
     putative = get_tabix_file(putative_insertions_path)
     treatment = get_tabix_file(all_treatments_path)
@@ -158,5 +158,6 @@ def confirm_insertions(putative_insertions_path, all_treatments_path, all_contro
     gff_record_iterator = filter_putative_insertions(putative=putative,
                                                      treatment=treatment,
                                                      controls=controls,
+                                                     min_len=min_len,
                                                      output_discarded_records=output_discarded_records)
     write_gff_records(gff_record_iterator, path=output_path)
