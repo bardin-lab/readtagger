@@ -608,7 +608,6 @@ class Cluster(BaseCluster):
         insert_ref_tags = []
         for r in self:
             if self.insert_reference_name and self.insert_reference_name != 'TE':
-                print(self.insert_reference_name)
                 insert_ref_tags.append(self.insert_reference_name)
                 # This should be authoritative IMO
                 continue
