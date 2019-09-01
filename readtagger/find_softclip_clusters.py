@@ -37,9 +37,10 @@ class SoftClipCluster(BaseCluster):
     }
     source = 'find_softclip'
 
-    def __init__(self, clip_position, clip_type):
+    def __init__(self, clip_position, clip_type, sample_name):
         """Collect all reads with same `clip_position` and `clip_type`."""
         super(SoftClipCluster, self).__init__()
+        self._sample_name = sample_name
         self.clip_position = clip_position
         self.start = self.clip_position
         self.end = self.clip_position
@@ -139,12 +140,12 @@ class SoftClipClusterFinder(SampleNameMixin, ToGffMixin):
             seq = r.query_sequence[start:end]
             if not self.clusters:
                 # This is the first cluster we found
-                cluster = SoftClipCluster(clip_position=clip_position, clip_type=clip_type)
+                cluster = SoftClipCluster(clip_position=clip_position, clip_type=clip_type, sample_name=self.sample_name)
                 self.clusters.append(cluster)
             else:
                 cluster = self.clusters[-1]
             if not cluster.read_is_compatible(clip_position, clip_type=clip_type):
-                cluster = SoftClipCluster(clip_position=clip_position, clip_type=clip_type)
+                cluster = SoftClipCluster(clip_position=clip_position, clip_type=clip_type, sample_name=self.sample_name)
                 self.clusters.append(cluster)
             cluster.append(read=r, seq=seq)
 
@@ -166,5 +167,5 @@ class SoftClipClusterFinder(SampleNameMixin, ToGffMixin):
             unique_string = "{reference_name},{sequence},{start}".format(reference_name=cluster.reference_name,
                                                                          sequence=i,
                                                                          start=cluster.start)
-            cluster.set_id("SOFTCLIP_%s" % md5(unique_string.encode()).hexdigest())
+            cluster.set_id("SOFTCLIP_%s_%s" % (cluster._sample_name, md5(unique_string.encode()).hexdigest()))
         logger.info("Found %s clusters after merging clusters", len(self.clusters))
