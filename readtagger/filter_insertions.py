@@ -115,7 +115,7 @@ def filter_putative_insertions(putative, treatment, controls, output_discarded_r
         if valid_record:
             yield putative_record
         elif output_discarded_records:
-            putative_record.attributes['FAIL'] = 'clip_seq_in_control'
+            putative_record.attributes['FAIL'] = 'clip_seq_matches_%s' % c.attributes.get('ID')
             yield putative_record
 
 

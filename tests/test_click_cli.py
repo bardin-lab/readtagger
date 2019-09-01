@@ -105,7 +105,7 @@ def test_confirm_insertions_cli(datadir_copy, tmpdir, output_discarded_records):
     expected_lines = 4 if output_discarded_records else 3
     assert len(lines) == expected_lines
     if output_discarded_records:
-        assert 'FAIL=clip_seq_in_control' in lines[3]
+        assert 'clip_seq_matches_softclip_0' in lines[3]
 
 
 def test_pysamtools_view_cli(datadir_copy, tmpdir):  # noqa: D103
