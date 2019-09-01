@@ -6,6 +6,11 @@ History
 .. to_doc
 
 ---------------------
+0.5.10 (2018-09-01)
+---------------------
+Write out matching softclip cluster
+
+---------------------
 0.5.9 (2018-08-31)
 ---------------------
 Fix crash when corrected start/end can't be calculated.
