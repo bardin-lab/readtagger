@@ -23,6 +23,12 @@ from readtagger.filter_insertions import confirm_insertions as _confirm_insertio
 @click.option('-o',
               '--output_path',
               help='Write annotated output to this Path.')
+@click.option('--min_length',
+              help="Minimum length necessary to match clip patterns."
+                   "If too low will create false matches, if too high will not find legitimate matches",
+              default=4,
+              type=click.INT,
+              )
 @click.option('--output_discarded_records/--no_output_discarded_records',
               default=True,
               help="Discard an alternative flag if the current read is in a proper pair.")
