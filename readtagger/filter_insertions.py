@@ -84,12 +84,24 @@ def fill_comparison(putative, controls, treatment):
         yield (comparison(putative_record, putative_record_complements, control_records))
 
 
-def filter_putative_insertions(putative, treatment, controls, min_len, output_discarded_records=True):
+def annotate_with_overlapping_insertions(putative_record, control_records):
+    """If overlapping insertion of the same type is found list them in the overlaps attribute."""
+    putative_insert_reference = putative_record.attributes.get('insert_reference_name')
+    overlapping_ids = []
+    for control_record in control_records:
+        if control_record.type == 'findcluster' and control_record.attributes.get('insert_reference_name') == putative_insert_reference:
+            overlapping_ids.append(control_record.attributes.get('ID'))
+    putative_record.attributes['overlaps'] = ",".join(overlapping_ids)
+    return putative_record
+
+
+def filter_putative_insertions(putative, treatment, controls, min_length, output_discarded_records=True):
     """Remove insertions that are based on clipped sequences which are also present in the control."""
     for (putative_record, putative_complements, control_records) in fill_comparison(putative, controls, treatment):
         valid_record = True
         clips = []
         control_clips = []
+        putative_record = annotate_with_overlapping_insertions(putative_record, control_records)
         softclip_clusters = putative_record.attributes.get('softclip_clusters')
         if not softclip_clusters:
             yield putative_record
@@ -107,7 +119,7 @@ def filter_putative_insertions(putative, treatment, controls, min_len, output_di
                     if abs(c.start - t.start) < SCAN_SOFT_CLIP_REGION or abs(c.end - t.end) < SCAN_SOFT_CLIP_REGION:
                         c_seq = c.attributes.get('consensus')
                         t_seq = t.attributes.get('consensus')
-                        if sequences_match(seq1=c_seq, seq2=t_seq, compare=c.type, min_len=min_len):
+                        if sequences_match(seq1=c_seq, seq2=t_seq, compare=c.type, min_length=min_length):
                             valid_record = False
                             break
             if valid_record is False:
@@ -119,7 +131,7 @@ def filter_putative_insertions(putative, treatment, controls, min_len, output_di
             yield putative_record
 
 
-def sequences_match(seq1, seq2, compare='5p_clip', min_len=4):
+def sequences_match(seq1, seq2, compare='5p_clip', min_length=4):
     """
     Compare 2 sequences and determine whether they are likely the same.
 
@@ -139,7 +151,7 @@ def sequences_match(seq1, seq2, compare='5p_clip', min_len=4):
     else:
         seq1 = seq1[-10:]
         seq2 = seq2[-10:]
-    if len(seq1) > min_len and len(seq2) > min_len:
+    if len(seq1) > min_length and len(seq2) > min_length:
         if len(seq1) >= 10 and len(seq2) >= 10:
             if align(seq1, seq2)['editDistance'] < 2:
                 return True
@@ -150,7 +162,7 @@ def sequences_match(seq1, seq2, compare='5p_clip', min_len=4):
     return False
 
 
-def confirm_insertions(putative_insertions_path, all_treatments_path, all_controls_paths, output_path, min_len=4, output_discarded_records=True):
+def confirm_insertions(putative_insertions_path, all_treatments_path, all_controls_paths, output_path, min_length=4, output_discarded_records=True):
     """Confirm putative insertions by absence of softclipping patterns in a somatic control file."""
     putative = get_tabix_file(putative_insertions_path)
     treatment = get_tabix_file(all_treatments_path)
@@ -158,6 +170,6 @@ def confirm_insertions(putative_insertions_path, all_treatments_path, all_contro
     gff_record_iterator = filter_putative_insertions(putative=putative,
                                                      treatment=treatment,
                                                      controls=controls,
-                                                     min_len=min_len,
+                                                     min_length=min_length,
                                                      output_discarded_records=output_discarded_records)
     write_gff_records(gff_record_iterator, path=output_path)
