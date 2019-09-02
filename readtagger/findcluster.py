@@ -187,6 +187,8 @@ class ClusterFinder(SampleNameMixin, ToGffMixin, ToVcfMixin):
                 self.align_bwa()
                 # second pass, see if having reference name assigned by align_bwa improves joining
                 self.join_clusters()
+                self.to_fasta()
+                self.align_bwa()
                 self.collect_evidence()
                 self.annotate_softclip()
                 self.to_bam()
@@ -365,6 +367,7 @@ class ClusterFinder(SampleNameMixin, ToGffMixin, ToVcfMixin):
                       reference_fasta=self.transposon_reference_fasta,
                       threads=self.threads)
             for cluster in self.clusters:
+                cluster.feature_args = []
                 description = bwa.description.get(cluster.id)
                 if description:
                     cluster.insert_reference_name = description.pop(-1)
