@@ -6,6 +6,12 @@ History
 .. to_doc
 
 ---------------------
+0.5.12 (2018-09-02)
+---------------------
+Write fasta and re-align with bwa after last join_clusters
+Test and fix TE overlap annotation
+
+---------------------
 0.5.11 (2018-09-01)
 ---------------------
 Annotate overlaps of insertions of the same kind
