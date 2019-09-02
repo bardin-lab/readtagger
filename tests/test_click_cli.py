@@ -82,9 +82,10 @@ def test_annotate_softclipped_reads_cli(datadir_copy, tmpdir, reference_fasta): 
 
 
 @pytest.mark.parametrize('output_discarded_records', (True, False))
-def test_confirm_insertions_cli(datadir_copy, tmpdir, output_discarded_records):  # noqa: D103
+@pytest.mark.parametrize('control', (ALL_CONTROL, PUTATIVE))
+def test_confirm_insertions_cli(datadir_copy, tmpdir, output_discarded_records, control):  # noqa: D103
     putative = str(datadir_copy[PUTATIVE])
-    control = str(datadir_copy[ALL_CONTROL])
+    control = str(datadir_copy[control])
     treatment = str(datadir_copy[ALL_TREATMENT])
     out_path = tmpdir.join('filtered.gff').strpath
     runner = CliRunner()
@@ -102,9 +103,14 @@ def test_confirm_insertions_cli(datadir_copy, tmpdir, output_discarded_records):
     assert result.exit_code == 0
     with open(out_path) as filtered:
         lines = filtered.readlines()
-    expected_lines = 4 if output_discarded_records else 3
-    assert len(lines) == expected_lines
     if output_discarded_records:
+        expected_lines = 4
+    elif control.endswith(PUTATIVE):
+        expected_lines = 4
+    else:
+        expected_lines = 3
+    assert len(lines) == expected_lines
+    if output_discarded_records and control == PUTATIVE:
         assert 'clip_seq_matches_softclip_0' in lines[3]
 
 

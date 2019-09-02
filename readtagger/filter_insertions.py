@@ -89,7 +89,7 @@ def annotate_with_overlapping_insertions(putative_record, control_records):
     putative_insert_reference = putative_record.attributes.get('insert_reference_name')
     overlapping_ids = []
     for control_record in control_records:
-        if control_record.type == 'findcluster' and control_record.attributes.get('insert_reference_name') == putative_insert_reference:
+        if control_record.source == 'findcluster' and control_record.attributes.get('insert_reference_name') == putative_insert_reference:
             overlapping_ids.append(control_record.attributes.get('ID'))
     putative_record.attributes['overlaps'] = ",".join(overlapping_ids)
     return putative_record
