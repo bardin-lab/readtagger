@@ -6,6 +6,11 @@ History
 .. to_doc
 
 ---------------------
+0.5.13 (2018-09-03)
+---------------------
+Fix aligned_segment_corresponds_to_transposable_element
+
+---------------------
 0.5.12 (2018-09-02)
 ---------------------
 Write fasta and re-align with bwa after last join_clusters
