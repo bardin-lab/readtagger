@@ -515,7 +515,7 @@ def test_clusterfinder_skip_abnormal(datadir_copy, tmpdir, reference_fasta):  # 
                              transposon_reference_fasta=reference_fasta,
                              max_proper_pair_size=649,
                              skip_decoy=False)
-    assert len(clusters.clusters) == 19
+    assert len(clusters.clusters) == 26
     assert clusters.clusters[2].abnormal
 
 
