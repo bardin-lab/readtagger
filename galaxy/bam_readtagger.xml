@@ -1,10 +1,10 @@
-<tool id="bam_readtagger" name="Tag alignment files" version="0.5.13">
+<tool id="bam_readtagger" name="Tag alignment files" version="0.5.14">
     <description>from multiple bam files</description>
     <macros>
         <import>macros.xml</import>
     </macros>
     <requirements>
-        <requirement type="package" version="0.5.13">readtagger</requirement>
+        <requirement type="package" version="0.5.14">readtagger</requirement>
     </requirements>
     <command detect_errors="aggressive"><![CDATA[
         readtagger -t '$tag_file' -s
