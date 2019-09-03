@@ -6,6 +6,11 @@ History
 .. to_doc
 
 ---------------------
+0.5.14 (2018-09-03)
+---------------------
+Allow 15 instead of 10 nt between split and TE start
+
+---------------------
 0.5.13 (2018-09-03)
 ---------------------
 Fix aligned_segment_corresponds_to_transposable_element
