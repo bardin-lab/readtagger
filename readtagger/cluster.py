@@ -588,7 +588,7 @@ class Cluster(BaseCluster):
                                                                         start2=other_cluster.start,
                                                                         end2=other_cluster.end,
                                                                         tolerance=tolerance):
-            if single_orientation and self_switches != other_switches:
+            if single_orientation:
                 # This check doesn't take into account the read length, as the isize
                 # is determined as read-length 1 +  inner distance  + readlength 2
                 min_read_read_length = min([r.reference_length for r in other_cluster if r.reference_start == other_cluster.min])
