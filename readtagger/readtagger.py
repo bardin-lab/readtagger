@@ -26,10 +26,7 @@ from .tags import (
     make_tag
 )
 from .tag_softclip import TagSoftClip
-try:
-    from tempfile import TemporaryDirectory
-except ImportError:
-    from backports.tempfile import TemporaryDirectory
+from tempfile import TemporaryDirectory
 
 logger = logging.getLogger(__name__)
 DEFAULT_CHUNK_SIZE = 10000
