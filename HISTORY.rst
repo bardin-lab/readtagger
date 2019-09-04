@@ -6,6 +6,11 @@ History
 .. to_doc
 
 ---------------------
+0.5.15 (2018-09-04)
+---------------------
+Relax cluster merging requirement
+
+---------------------
 0.5.14 (2018-09-03)
 ---------------------
 Allow 15 instead of 10 nt between split and TE start
