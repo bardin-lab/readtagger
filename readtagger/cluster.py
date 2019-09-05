@@ -115,7 +115,7 @@ class Cluster(BaseCluster):
     """A Cluster of reads."""
 
     exportable = ['source', 'score', 'total_left_count', 'left_mate_count',
-                  'total_right_count', 'right_mate_count', 'nref',
+                  'total_right_count', 'right_mate_count', 'nref', 'proper_pair_only',
                   'max_mapq', 'genotype', 'genotype_likelihoods', 'valid_TSD',
                   'left_inserts', 'right_inserts', 'insert_reference_name', 'softclip_clusters']
     vcf_mandatory = OrderedDict([
@@ -166,6 +166,14 @@ class Cluster(BaseCluster):
         self._cannot_join_d = {}
         self.abnormal = False
         self.softclip_clusters = []
+
+    @property
+    def proper_pair_only(self):
+        """Indicate if cluster is composed of reads that are exclusively aligned as proper pairs."""
+        for r in self:
+            if not r.is_proper_pair:
+                return False
+        return True
 
     @property
     def evidence_spanning_insertion(self):
