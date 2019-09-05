@@ -6,6 +6,11 @@ History
 .. to_doc
 
 ---------------------
+0.5.16 (2018-09-05)
+---------------------
+Annotate clusters that are composed exclusively of proper pairs
+
+---------------------
 0.5.15 (2018-09-04)
 ---------------------
 Relax cluster merging requirement
