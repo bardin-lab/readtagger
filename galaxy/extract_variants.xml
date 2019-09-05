@@ -1,7 +1,7 @@
-<tool id="extract_variants" name="Extract variant fragments" version="0.5.15">
+<tool id="extract_variants" name="Extract variant fragments" version="0.5.16">
     <description>from long reads</description>
     <requirements>
-        <requirement type="package" version="0.5.15">readtagger</requirement>
+        <requirement type="package" version="0.5.16">readtagger</requirement>
     </requirements>
     <version_command>extract_variants --version</version_command>
     <command detect_errors="aggressive"><![CDATA[
