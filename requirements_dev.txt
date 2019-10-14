@@ -2,7 +2,7 @@ bumpversion==0.5.3
 cookiecutter==1.6.0
 pydocstyle==3.0.0
 flake8_docstrings==1.4.0
-planemo==0.61.0
+planemo==0.62.1
 pytest==4.3.1
 pytest-cov==2.7.1
 pytest-datadir-ng==1.1.0
