@@ -1,0 +1,45 @@
+<tool id="normalize_readsizes" name="Normalize readsizes" version="0.5.16">
+    <description>of multiple fastq files</description>
+    <requirements>
+        <requirement type="package" version="0.5.16">readtagger</requirement>
+    </requirements>
+    <version_command>normalize_readsizes --version</version_command>
+    <command detect_errors="aggressive"><![CDATA[
+#for $i, $element in enumerate($input):
+    ln -fs '$element' '${i}.${element.ext}' &&
+#end for
+normalize_readsizes
+#for $i, $element in enumerate($input):
+    -i '${i}.${element.ext}'
+    -o '${i}.out.${element.ext}'
+#end for
+#for $i, $element in enumerate($output):
+    && mv '${i}.out.${element.ext}' '$element'
+#end for
+    ]]></command>
+    <inputs>
+        <param name="input" type="data_collection" collection_type="list" label="Select collection of fastq datasets to normalize" format="fastqsanger,fastqsanger.gz"/>
+    </inputs>
+    <outputs>
+        <collection name="output" type="list" structured_like="input" inherit_format="true"/>
+    </outputs>
+    <tests>
+        <test>
+            <param name="input">
+                <collection type="list">
+                  <element name="a" value="long_reads_a.fastq" />
+                  <element name="b" value="long_reads_b.fastq" />
+                </collection>
+            </param>
+            <param name="insert_reference" value="transposon"/>
+            <output_collection name="output">
+                <element name="a" value="long_reads_a_normalized.fastq" ftype="fastqsanger"/>
+                <element name="b" value="long_reads_b_normalized.fastq" ftype="fastqsanger"/>
+            </output_collection>
+        </test>
+    </tests>
+    <help><![CDATA[
+Normalizes read size distributions across a collection of fastq files so that the read size distribution is the same
+across all datasets.
+    ]]></help>
+</tool>
