@@ -17,6 +17,7 @@ ENTRY_POINTS = '''
         write_supplementary_fastq=readtagger.cli.write_supplementary_fastq:write_supplementary_fastq
         extract_variants=readtagger.cli.extract_variants:extract_variants
         normalize_readsizes=readtagger.cli.normalize_readsizes:normalize_readsizes
+        summarize_fragments=readtagger.cli.summarize_fragments:cli
 '''
 
 requirements = ['bcbio-gff',

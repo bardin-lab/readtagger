@@ -6,7 +6,8 @@
     <version_command>extract_variants --version</version_command>
     <command detect_errors="aggressive"><![CDATA[
 ln -fs '$insert_reference.fields.path' reference.fa &&
-extract_variants '$input' '$output' reference.fa
+extract_variants '$input' '$output_alignment' reference.fa &&
+summarize_fragments '$output_alignment' '$output_tabular'
     ]]></command>
     <inputs>
         <param name="input" label="Select alignment for which to extract variants" type="data" format="bam,cram"/>
@@ -15,13 +16,15 @@ extract_variants '$input' '$output' reference.fa
         </param>
     </inputs>
     <outputs>
-        <data name="output" format_source="input"/>
+        <data name="output_alignment" format_source="input" label="${tool.name} on ${on_string}: alignment"/>
+        <data name="output_tabular" format="tabular" label="${tool.name} on ${on_string}: summary"/>
     </outputs>
     <tests>
         <test>
             <param name="input" value="long_insertion.bam" ftype="bam"/>
             <param name="insert_reference" value="transposon"/>
-            <output name="output" file="long_insert_tagged.bam" ftype="bam"/>
+            <output name="output_alignment" file="long_insert_tagged.bam" ftype="bam"/>
+            <output name="output_tabular" file="long_insert_tagged.tab" ftype="tabular"/>
         </test>
     </tests>
     <help><![CDATA[

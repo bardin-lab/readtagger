@@ -1,0 +1,2 @@
+reference	start	end	insert_reference	insert_start	insert_end	insert_orientation	query_start	query_end	query_length	read_length	query_name	evidence_type
+3R	18395207	18395209	F-element	2417	4708	+	0	2285	2285	2319	long_insert	insert
