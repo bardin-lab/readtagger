@@ -6,6 +6,13 @@ History
 .. to_doc
 
 ---------------------
+0.5.17 (2018-11-05)
+---------------------
+Add summarize_fragments command
+Normalize length of multiple long read fastq files
+Update dependencies
+
+---------------------
 0.5.16 (2018-09-05)
 ---------------------
 Annotate clusters that are composed exclusively of proper pairs
