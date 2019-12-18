@@ -6,6 +6,11 @@ History
 .. to_doc
 
 ---------------------
+0.5.17 (2018-12-18)
+---------------------
+Drop recursion from normalize_readsizes, didn't seem to work
+
+---------------------
 0.5.17 (2018-11-05)
 ---------------------
 Add summarize_fragments command

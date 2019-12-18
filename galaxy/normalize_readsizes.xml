@@ -1,7 +1,7 @@
-<tool id="normalize_readsizes" name="Normalize readsizes" version="0.5.17">
+<tool id="normalize_readsizes" name="Normalize readsizes" version="0.5.18">
     <description>of multiple fastq files</description>
     <requirements>
-        <requirement type="package" version="0.5.17">readtagger</requirement>
+        <requirement type="package" version="0.5.18">readtagger</requirement>
     </requirements>
     <version_command>normalize_readsizes --version</version_command>
     <command detect_errors="aggressive"><![CDATA[
