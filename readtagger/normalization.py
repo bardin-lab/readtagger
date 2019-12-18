@@ -64,9 +64,6 @@ def calculate_split(lists, result=None):
                 aux_lists[list_index].append(IndexToReadlength(index=old_length.index, readlength=remaining_length))
             intermediate_result.append(IndexToReadlength(index=old_length.index, readlength=min_length.readlength))
         result.append(intermediate_result)
-    if all(len(l) > 0 for l in aux_lists.values()):
-        # we've got some data left, recurse
-        calculate_split(list(aux_lists.values()), result)
     return result
 
 
