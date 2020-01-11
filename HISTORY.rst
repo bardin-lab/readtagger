@@ -6,7 +6,12 @@ History
 .. to_doc
 
 ---------------------
-0.5.17 (2018-12-18)
+0.5.19 (2018-01-11)
+---------------------
+Fix file opening in normalize_readsizes
+
+---------------------
+0.5.18 (2018-12-18)
 ---------------------
 Drop recursion from normalize_readsizes, didn't seem to work
 
