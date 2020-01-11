@@ -18,9 +18,9 @@ IndexToReadlength = namedtuple('IndexToReadlength', 'index readlength')
 def open_by_suffix(filename, mode='rt'):
     """Open compressed or uncompressed files."""
     if filename.endswith('.gz'):
-        return gzip.open(filename, 'rt')
+        return gzip.open(filename, mode)
     elif filename.endswith('.bz2'):
-        return bz2.BZ2file(filename, 'rt')
+        return bz2.BZ2file(filename, mode)
     else:
         return open(filename, mode[0])
 
