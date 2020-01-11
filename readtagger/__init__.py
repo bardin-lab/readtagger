@@ -1,3 +1,3 @@
 """readtagger basepackage."""
 
-VERSION = '0.5.18'
+VERSION = '0.5.19'
