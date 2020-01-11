@@ -7,8 +7,10 @@ from collections import (
     namedtuple,
 )
 from itertools import zip_longest
+from operator import neg
 
 from Bio import SeqIO
+from sortedcontainers import SortedKeyList
 
 # if after splitting less than REMAINING_LENGTH_LIMIT nuncleotides are left discard that fragment
 REMAINING_LENGTH_LIMIT = 500
@@ -33,10 +35,10 @@ def calculate_split(lists, result=None):
     the inner list contains IndexToReadlength instances in the order of ``lists``.
     """
     result = result or []
-    aux_lists = defaultdict(list)
+    aux_lists = defaultdict(lambda: SortedKeyList(key=lambda x: neg(x.readlength)))
     for list_index in range(len(lists)):
         # initialize aux lists
-        aux_lists[list_index].append(IndexToReadlength(index=-1, readlength=-1))
+        aux_lists[list_index].add(IndexToReadlength(index=-1, readlength=-1))
     for t in zip_longest(*lists, fillvalue=IndexToReadlength(index=-1, readlength=-1)):
         # when iterator is exhausted index_to_readlength instance will have index and readlength at -1
         # t is a tuple with items at the current iteration
@@ -46,22 +48,21 @@ def calculate_split(lists, result=None):
                 aux_length = aux_lists[list_index].pop()
                 if aux_length.readlength > index_to_readlength.readlength:
                     if index_to_readlength.readlength > 0:
-                        aux_lists[list_index].append(index_to_readlength)
+                        aux_lists[list_index].add(index_to_readlength)
                     lengths.append(aux_length)
                 else:
                     if aux_length.readlength > 0:
-                        aux_lists[list_index].append(aux_length)
+                        aux_lists[list_index].add(aux_length)
                     if index_to_readlength.readlength > 0:
                         lengths.append(index_to_readlength)
             else:
                 lengths.append(index_to_readlength)
-            aux_lists[list_index].sort(key=lambda x: x.readlength, reverse=True)
         min_length = min(lengths, key=lambda x: x.readlength)
         intermediate_result = []
         for list_index, old_length in enumerate(lengths):
             remaining_length = old_length.readlength - min_length.readlength
             if remaining_length > REMAINING_LENGTH_LIMIT:
-                aux_lists[list_index].append(IndexToReadlength(index=old_length.index, readlength=remaining_length))
+                aux_lists[list_index].add(IndexToReadlength(index=old_length.index, readlength=remaining_length))
             intermediate_result.append(IndexToReadlength(index=old_length.index, readlength=min_length.readlength))
         result.append(intermediate_result)
     return result

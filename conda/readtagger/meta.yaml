@@ -36,6 +36,7 @@ requirements:
     - python-edlib
     - scipy
     - six
+    - sortedcontainers
 
 test:
   # Python imports
