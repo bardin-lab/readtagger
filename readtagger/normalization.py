@@ -97,11 +97,13 @@ def split_reads(path, final_sizes, output_path):
     while final_size.index < 0:
         final_size = final_sizes.pop()
     with open_by_suffix(path) as fh_in, open_by_suffix(output_path, 'wt') as fh_out:
-        for i, record in enumerate(SeqIO.parse(fh_in, format='fastq')):
+        for i, (title, sequence, quality) in enumerate(SeqIO.QualityIO.FastqGeneralIterator(fh_in)):
             try:
                 while final_size.index == i:
-                    SeqIO.write(record[:final_size.readlength], handle=fh_out, format='fastq')
-                    record = record[final_size.readlength:]
+                    record = "@%s\n%s\n+\n%s\n" % (title, sequence[:final_size.readlength], quality[:final_size.readlength])
+                    fh_out.write(record)
+                    sequence = sequence[final_size.readlength:]
+                    quality = quality[final_size.readlength:]
                     final_size = final_sizes.pop()
                 if final_size.index < i:
                     # get next final size
