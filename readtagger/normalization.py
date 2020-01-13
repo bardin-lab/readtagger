@@ -7,7 +7,10 @@ from collections import (
     namedtuple,
 )
 from itertools import zip_longest
-from operator import neg
+from operator import (
+    attrgetter,
+    neg,
+)
 
 from Bio import SeqIO
 from sortedcontainers import SortedKeyList
@@ -57,7 +60,7 @@ def calculate_split(lists, result=None):
                         lengths.append(index_to_readlength)
             else:
                 lengths.append(index_to_readlength)
-        min_length = min(lengths, key=lambda x: x.readlength)
+        min_length = min(lengths, key=attrgetter('readlength'))
         intermediate_result = []
         for list_index, old_length in enumerate(lengths):
             remaining_length = old_length.readlength - min_length.readlength
@@ -75,7 +78,7 @@ def flatten_calculated_split_lists(split_result):
         for i, readlength in enumerate(inner_list):
             r[i].append(readlength)
     for k, v in r.items():
-        v.sort(key=lambda x: x.index, reverse=True)  # so pop gives us the first index
+        v.sort(key=attrgetter('index'), reverse=True)  # so pop gives us the first index
     return r
 
 
@@ -83,9 +86,9 @@ def get_read_sizes(path):
     """Create list of IndexToReadlength tuples sorted by readlength."""
     length_index = []
     with open_by_suffix(path) as fh:
-        for i, record in enumerate(SeqIO.parse(fh, format='fastq')):
-            length_index.append(IndexToReadlength(index=i, readlength=len(record.seq)))
-    return sorted(length_index, key=lambda x: x.readlength, reverse=True)
+        for i, (_, sequence, _) in enumerate(SeqIO.QualityIO.FastqGeneralIterator(fh)):
+            length_index.append(IndexToReadlength(index=i, readlength=len(sequence)))
+    return sorted(length_index, key=attrgetter('readlength'), reverse=True)
 
 
 def split_reads(path, final_sizes, output_path):
