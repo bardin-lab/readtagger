@@ -6,6 +6,11 @@ History
 .. to_doc
 
 ---------------------
+0.5.21 (2018-01-12)
+---------------------
+Make normalize_readsizes more efficient (again)
+
+---------------------
 0.5.20 (2018-01-11)
 ---------------------
 Make normalize_readsizes more efficient for large datasets
