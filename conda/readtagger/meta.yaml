@@ -12,7 +12,7 @@ build:
   script: python -m pip install --no-deps --ignore-installed .
 
 requirements:
-  build:
+  host:
     - python >=3
     - pip
     - setuptools
@@ -42,13 +42,6 @@ test:
   # Python imports
   imports:
     - readtagger
-
-  commands:
-    - readtagger --help
-    - allow_dovetailing --help
-    - add_matesequence --help
-    - findcluster --help
-    - plot_coverage --help
 
 about:
   home: https://github.com/bardin-lab/readtagger
