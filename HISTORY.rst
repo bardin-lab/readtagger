@@ -6,6 +6,11 @@ History
 .. to_doc
 
 ---------------------
+0.5.23 (2020-03-23)
+---------------------
+Release a non-broken version, (conda-build problem in 0.5.22)
+
+---------------------
 0.5.22 (2020-03-23)
 ---------------------
 Allow one or more alignment files in plot_coverage tool
