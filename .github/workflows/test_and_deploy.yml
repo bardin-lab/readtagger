@@ -7,6 +7,7 @@ jobs:
       matrix:
         task: ['py37-lint', 'planemo']
     steps:
+    - run: sudo apt-get install libcurl4-nss-dev
     - uses: actions/checkout@v2
     - run: git fetch --prune --unshallow
     - uses: s-weigand/setup-conda@v1
