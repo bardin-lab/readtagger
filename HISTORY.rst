@@ -6,80 +6,85 @@ History
 .. to_doc
 
 ---------------------
-0.5.21 (2018-01-12)
+0.5.22 (2020-03-23)
+---------------------
+Allow one or more alignment files in plot_coverage tool
+
+---------------------
+0.5.21 (2020-01-12)
 ---------------------
 Make normalize_readsizes more efficient (again)
 
 ---------------------
-0.5.20 (2018-01-11)
+0.5.20 (2020-01-11)
 ---------------------
 Make normalize_readsizes more efficient for large datasets
 
 ---------------------
-0.5.19 (2018-01-11)
+0.5.19 (2020-01-11)
 ---------------------
 Fix file opening in normalize_readsizes
 
 ---------------------
-0.5.18 (2018-12-18)
+0.5.18 (2019-12-18)
 ---------------------
 Drop recursion from normalize_readsizes, didn't seem to work
 
 ---------------------
-0.5.17 (2018-11-05)
+0.5.17 (2019-11-05)
 ---------------------
 Add summarize_fragments command
 Normalize length of multiple long read fastq files
 Update dependencies
 
 ---------------------
-0.5.16 (2018-09-05)
+0.5.16 (2019-09-05)
 ---------------------
 Annotate clusters that are composed exclusively of proper pairs
 
 ---------------------
-0.5.15 (2018-09-04)
+0.5.15 (2019-09-04)
 ---------------------
 Relax cluster merging requirement
 
 ---------------------
-0.5.14 (2018-09-03)
+0.5.14 (2019-09-03)
 ---------------------
 Allow 15 instead of 10 nt between split and TE start
 
 ---------------------
-0.5.13 (2018-09-03)
+0.5.13 (2019-09-03)
 ---------------------
 Fix aligned_segment_corresponds_to_transposable_element
 
 ---------------------
-0.5.12 (2018-09-02)
+0.5.12 (2019-09-02)
 ---------------------
 Write fasta and re-align with bwa after last join_clusters
 Test and fix TE overlap annotation
 
 ---------------------
-0.5.11 (2018-09-01)
+0.5.11 (2019-09-01)
 ---------------------
 Annotate overlaps of insertions of the same kind
 
 ---------------------
-0.5.10 (2018-09-01)
+0.5.10 (2019-09-01)
 ---------------------
 Write out matching softclip cluster
 
 ---------------------
-0.5.9 (2018-08-31)
+0.5.9 (2019-08-31)
 ---------------------
 Fix crash when corrected start/end can't be calculated.
 
 ---------------------
-0.5.8 (2018-08-31)
+0.5.8 (2019-08-31)
 ---------------------
 Improve joining of clusters
 
 ---------------------
-0.5.7 (2018-08-29)
+0.5.7 (2019-08-29)
 ---------------------
 Don't mark clusters incompatible after splitting them out from original cluster
 Use corrected or uncorrected start/end when finding reachable clusters
@@ -87,81 +92,81 @@ Also allow joining with downstream reverse cluster
 Detect local maximum proper pair size
 
 ---------------------
-0.5.6 (2018-08-28)
+0.5.6 (2019-08-28)
 ---------------------
 Always produce contig fasta, required for refining cluster positions
 Allow +/- 10 nucleotides between alignment and insert start/end
 
 ---------------------
-0.5.5 (2018-08-27)
+0.5.5 (2019-08-27)
 ---------------------
 * Add timeout to cap3 call
 * Update dependencies
 
 ---------------------
-0.5.4 (2018-07-29)
+0.5.4 (2019-07-29)
 ---------------------
 * Bump pysam dependency to 0.15.3, contains important fixes
 
 ---------------------
-0.5.3 (2018-07-28)
+0.5.3 (2019-07-28)
 ---------------------
 * Sort 'extract_variants' output alignment
 
 ---------------------
-0.5.2 (2018-07-28)
+0.5.2 (2019-07-28)
 ---------------------
 * Add 'extract_variants' tool for extracting insertion evidence from long reads
 
 ---------------------
-0.5.1 (2018-06-13)
+0.5.1 (2019-06-13)
 ---------------------
 * Only associate clipping pattern with insertion if pattern matches breakpoint sequence
 
 ---------------------
-0.5.0 (2018-06-12)
+0.5.0 (2019-06-12)
 ---------------------
 * Drop support for Python 2
 
 ---------------------
-0.4.20 (2018-06-12)
+0.4.20 (2019-06-12)
 ---------------------
 * Keep all associated softclip patterns when merging adjacent read clusters
 
 ---------------------
-0.4.19 (2018-02-15)
+0.4.19 (2019-02-15)
 ---------------------
 * Fix findcluster crash when reference contains colon.
 
 ---------------------
-0.4.18 (2018-02-14)
+0.4.18 (2019-02-14)
 ---------------------
 * Use logger.warning instead of deprecated logger.warn
 * Drop now unused qname_cmp_func
 * Fix alignment splitting, fixes untagged reads and speed issues
 
 ---------------------
-0.4.17 (2018-02-10)
+0.4.17 (2019-02-10)
 ---------------------
 * Fix a bug that would lead to wrong chunk sizes
 
 ---------------------
-0.4.16 (2018-01-28)
+0.4.16 (2019-01-28)
 ---------------------
 * Drop samtools, do everything via pysam
 
 ---------------------
-0.4.15 (2018-01-15)
+0.4.15 (2019-01-15)
 ---------------------
 * Add missing samtools dependency
 
 ---------------------
-0.4.14 (2018-01-15)
+0.4.14 (2019-01-15)
 ---------------------
 * Build Conda package for python 3 only
 
 ---------------------
-0.4.13 (2018-01-14)
+0.4.13 (2019-01-14)
 ---------------------
 * Update pinned dependencies
 * Fix travis deployment
