@@ -1,5 +1,5 @@
 name: Test and deploy readtagger
-on: [push, pull-request]
+on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -9,6 +9,8 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: s-weigand/setup-conda@v1
+    - name: Install conda-build
+      run: conda install conda-build
     - name: Build and install readtagger
       run: |
         conda build conda/multiprocessing-logging
@@ -20,4 +22,4 @@ jobs:
       run: curl -L https://github.com/bardin-lab/dmel-transposon-reference-data/raw/master/fasta_sequences/dm6_TE_annotations_sequences.fasta -o ~/ref.fa
     - name: Test with tox
       run: |
-      tox -e ${{ matrix.task }}
+        tox -e '${{ matrix.task }}'
