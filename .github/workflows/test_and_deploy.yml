@@ -8,6 +8,7 @@ jobs:
         task: ['py37-lint', 'planemo']
     steps:
     - uses: actions/checkout@v2
+    - run: git fetch --prune --unshallow
     - uses: s-weigand/setup-conda@v1
     - name: Install conda-build
       run: conda install conda-build
