@@ -5,10 +5,11 @@ from readtagger import VERSION
 
 
 @click.command('Plot relative coverage for alignment files.')
-@click.argument('file1')
-@click.argument('label1')
-@click.argument('file2')
-@click.argument('label2')
+@click.option('-f',
+              '--file',
+              type=(str, str, int),
+              multiple=True,
+              help="File, label and number of total reads in file.")
 @click.argument('output_path')
 @click.option('-c',
               '--cores',
@@ -20,9 +21,11 @@ from readtagger import VERSION
 @click.version_option(version=VERSION)
 def plot_coverage(**kwargs):
     """Plot coverage differences between file1 and file2."""
-    files = [kwargs.pop('file1'), kwargs.pop('file2')]
-    labels = [kwargs.pop('label1'), kwargs.pop('label2')]
+    file_tuples = kwargs.pop('file')
+    kwargs['files'] = [_[0] for _ in file_tuples]
+    kwargs['labels'] = [_[1] for _ in file_tuples]
+    kwargs['total_reads'] = [_[2] for _ in file_tuples]
     regions = kwargs.get('regions')
     if regions:
         kwargs['regions'] = regions.split(',')
-    plot_coverage_in_regions(files, labels, **kwargs)
+    plot_coverage_in_regions(**kwargs)

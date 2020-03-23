@@ -4,14 +4,19 @@
         <requirement type="package" version="0.5.21">readtagger</requirement>
     </requirements>
     <command detect_errors="aggressive"><![CDATA[
-        #import re
-        #set identifier1 = re.sub('[^\w\-_\.\,]', '_', str( $input1.element_identifier))
-        #set identifier2 = re.sub('[^\w\-_\.\,]', '_', str( $input2.element_identifier))
-        plot_coverage '$input1' '$identifier1' '$input2' '$identifier2' output.pdf --cores \${GALAXY_SLOTS:-4} --regions '$regions'
+#import re
+plot_coverage
+#for $r in $input_files
+    #set identifier = re.sub('[^\w\-_\.\,]', '_', str( $r.input.element_identifier))
+    --file '$r.input' '$identifier' $r.total_reads
+#end for
+output.pdf --cores \${GALAXY_SLOTS:-4} --regions '$regions'
     ]]></command>
     <inputs>
-        <param name="input1" type="data" format="bam,cram" label="Select a BAM file to plot"/>
-        <param name="input2" type="data" format="bam,cram" label="Select a second BAM file to plot" optional="true"/>
+        <repeat name="input_files" title="Add input files to coverage plot" min="1">
+            <param name="input" type="data" format="bam,cram" label="Select a BAM file to plot"/>
+            <param name="total_reads" type="integer" value="0" min="0" label="Total number of (mapped) reads. If given plot scale will be reads per million"/>
+        </repeat>
         <param name="regions" type="text" label="Select regions to plot" optional="true" help="e.g X:1200000-1250000,X1250000-1300000. If left blank will plot all contigs/chromosomes.">
             <sanitizer>
                 <valid initial="string.letters,string.digits">
@@ -27,8 +32,10 @@
     </outputs>
     <tests>
         <test>
-            <param name="input1" value="three_cluster_out.bam" ftype="bam"/>
-            <param name="input2" value="three_cluster_out.bam" ftype="bam"/>
+            <param name="input_files_0|input" value="three_cluster_out.bam" ftype="bam"/>
+            <param name="input_files_1|input" value="three_cluster_out.bam" ftype="bam"/>
+            <param name="input_files_0|total_reads" value="1000000" ftype="bam"/>
+            <param name="input_files_1|total_reads" value="1000000" ftype="bam"/>
             <param name="regions" value="3R:13373525-13373615"/>
             <output name="output" file="three_cluster_plot.pdf" ftype="pdf" compare="sim_size"/>
         </test>

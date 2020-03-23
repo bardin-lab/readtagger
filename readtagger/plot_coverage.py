@@ -13,13 +13,6 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.backends.backend_pdf import PdfPages  # noqa: E402
 
-REGIONS = "I-element rover roo 297 mdg3 blood copia gypsy".split(" ")
-FILES = [
-    'HUM4.bam',
-    'HUM6.bam',
-]
-LABELS = ['H4', 'H6']
-
 
 # from https://gist.github.com/angstwad/bf22d1822c38a92ec0a9
 def dict_merge(dct, merge_dct):
@@ -57,7 +50,7 @@ def get_coverage(file, label, regions=None, nth=1, readcount=-1):
             for pileup_pos in f.pileup(region=region, max_depth=20000):
                 if pileup_pos.pos % nth == 0:
                     reference_name = f.get_reference_name(pileup_pos.tid)  # Seems to have broken in pysam 0.1.14
-                    contigs_coverage[reference_name][label][pileup_pos.reference_pos] = pileup_pos.nsegments / (readcount / 10**6)
+                    contigs_coverage[reference_name][label][pileup_pos.reference_pos] = pileup_pos.nsegments / (readcount / 10**6) if readcount else 0
     return contigs_coverage
 
 
@@ -95,7 +88,7 @@ def get_total_coverage(file, cores=1):
     return int(pysam.view('-c', "-@%d" % cores, file).strip())
 
 
-def plot_coverage_in_regions(files, labels, output_path, regions=None, cores=1):
+def plot_coverage_in_regions(files, labels, output_path, regions=None, cores=1, total_reads=None):
     """
     Plot coverage for `files`, where files are multiple BAM files.
 
@@ -107,7 +100,8 @@ def plot_coverage_in_regions(files, labels, output_path, regions=None, cores=1):
     for f in files:
         if not os.path.exists("%s.bai" % f):
             pysam.index(f)
-    total_reads = [get_total_coverage(file, cores=cores) for file in files]
+    if not total_reads:
+        total_reads = [get_total_coverage(file, cores=cores) for file in files]
     starmap_args = [(file, label, region, 10, reads) for (file, label, reads), region in itertools.product(zip(files, labels, total_reads), regions)]
     if cores == 1:
         r = itertools.starmap(get_coverage, starmap_args)
