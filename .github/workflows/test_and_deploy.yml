@@ -1,0 +1,23 @@
+name: Test and deploy readtagger
+on: [push, pull-request]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        task: ['py37-lint', 'planemo']
+    steps:
+    - uses: actions/checkout@v2
+    - uses: s-weigand/setup-conda@v1
+    - name: Build and install readtagger
+      run: |
+        conda build conda/multiprocessing-logging
+        conda build conda/readtagger
+        conda install --use-local readtagger
+    - name: Install test dependencies
+      run: conda install tox virtualenv
+    - name: Cache test data
+      run: curl -L https://github.com/bardin-lab/dmel-transposon-reference-data/raw/master/fasta_sequences/dm6_TE_annotations_sequences.fasta -o ~/ref.fa
+    - name: Test with tox
+      run: |
+      tox -e ${{ matrix.task }}
