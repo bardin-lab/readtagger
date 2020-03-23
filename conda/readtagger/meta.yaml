@@ -9,7 +9,7 @@ build:
   number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0)}}
   skip: True  # [py2k]
   noarch: python
-  script: python -m pip install --no-deps --ignore-installed .
+  script: "{{ PYTHON }} -m pip install --no-deps --ignore-installed ."
 
 requirements:
   host:
