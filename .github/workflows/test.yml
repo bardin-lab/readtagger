@@ -14,7 +14,7 @@ jobs:
       with:
         conda-channels: conda-forge,bioconda
     - name: Install conda-build
-      run: conda install conda-build
+      run: conda install conda-build=3.18.12
     - name: Build and install readtagger
       run: |
         conda build conda/multiprocessing-logging

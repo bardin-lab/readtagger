@@ -22,7 +22,7 @@ install:
 - conda config --add channels mvdbeek
 - conda config --add channels bioconda
 - conda config --add channels conda-forge
-- conda install bwa cap3 samtools conda-build -c conda-forge -c bioconda
+- conda install bwa cap3 samtools conda-build=3.18.12 -c conda-forge -c bioconda
 - samtools --version
 - conda build conda/multiprocessing-logging
 - conda build conda/readtagger

@@ -42,6 +42,12 @@ test:
   # Python imports
   imports:
     - readtagger
+  commands:
+    - readtagger --help
+    - allow_dovetailing --help
+    - add_matesequence --help
+    - findcluster --help
+    - plot_coverage --help
 
 about:
   home: https://github.com/bardin-lab/readtagger
