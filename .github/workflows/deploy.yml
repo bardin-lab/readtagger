@@ -1,4 +1,4 @@
-name: Test readtagger
+name: Deploy
 on:
   release:
     types: [created]
