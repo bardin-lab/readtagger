@@ -1,4 +1,4 @@
-name: Test and deploy readtagger
+name: Test readtagger
 on: [push, pull_request]
 jobs:
   build:

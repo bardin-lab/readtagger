@@ -1,0 +1,41 @@
+name: Test readtagger
+on:
+  release:
+    types: [created]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - run: sudo apt-get install libcurl4-nss-dev
+    - uses: actions/checkout@v2
+    - run: git fetch --prune --unshallow
+    - uses: s-weigand/setup-conda@v1
+      with:
+        conda-channels: conda-forge,bioconda
+    - name: Install conda-build
+      run: conda install conda-build
+    - name: Build and install readtagger
+      run: |
+        conda build conda/multiprocessing-logging
+        conda build conda/readtagger
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install setuptools wheel twine
+    - name: Publish to PyPI
+      env:
+        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      run: |
+        python setup.py sdist bdist_wheel
+        twine upload dist/*
+    - name: Publish to conda
+      env:
+        ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
+        CONDA_PREFIX: '/usr/share/miniconda'
+      run: ./conda/deploy.sh
+    - name: Publish to tool shed
+      env:
+        TS_KEY: ${{ secrets.TS_KEY }}
+        TTS_KEY: ${{ secrets.TTS_KEY }}
+      run: ./conda/deploy.sh
