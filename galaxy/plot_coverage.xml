@@ -23,6 +23,7 @@ output.pdf --cores \${GALAXY_SLOTS:-4} --regions '$regions'
                     <add value="-" />
                     <add value="," />
                     <add value=":" />
+                    <add value="." />
                 </valid>
             </sanitizer>
         </param>
