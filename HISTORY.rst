@@ -6,6 +6,11 @@ History
 .. to_doc
 
 ---------------------
+0.5.25 (2020-04-07)
+---------------------
+Expose different style, transform Nan to 0
+
+---------------------
 0.5.24 (2020-04-07)
 ---------------------
 Various updates to plot_coverage tool
