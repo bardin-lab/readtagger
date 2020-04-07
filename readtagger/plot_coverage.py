@@ -85,7 +85,9 @@ def plot_coverage(contigs_coverage, style='ggplot', plot_kind='area', nrows=8):
             figs.append(fig)
         i += 1
         nrow = i - (int(i / nrows) * nrows)
-        ax = pd.DataFrame.from_dict(data).reset_index().plot(
+        df = pd.DataFrame.from_dict(data).reset_index()
+        df = df.sort_values('index').fillna(0)
+        ax = df.plot(
             x='index',
             kind=plot_kind,
             title=title,

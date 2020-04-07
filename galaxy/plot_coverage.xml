@@ -10,7 +10,7 @@ plot_coverage
     #set identifier = re.sub('[^\w\-_\.\,]', '_', str( $r.input.element_identifier))
     --file '$r.input' '$identifier' $r.total_reads
 #end for
-output.pdf --cores \${GALAXY_SLOTS:-4} --regions '$regions' --plot_kind $plot_kind
+output.pdf --cores \${GALAXY_SLOTS:-4} --regions '$regions' --plot_kind $plot_kind --style $style
     ]]></command>
     <inputs>
         <repeat name="input_files" title="Add input files to coverage plot" min="1">
@@ -31,6 +31,29 @@ output.pdf --cores \${GALAXY_SLOTS:-4} --regions '$regions' --plot_kind $plot_ki
             <option value="area">Area plot</option>
             <option value="line">Line plot</option>
         </param>
+       <param name="style" type="select" label="Select a plotting style">
+           <option value="ggplot">ggplot</option>
+           <option value="classic">classic</option>
+           <option value="greyscale">greyscale</option>
+           <option value="dark_background">dark_background</option>
+           <option value="seaborn">seaborn</option>
+           <option value="seaborn-bright">seaborn-bright</option>
+           <option value="seaborn-colorblind">seaborn-colorblind</option>
+           <option value="seaborn-dark">seaborn-dark</option>
+           <option value="seaborn-dark-palette">seaborn-dark-palette</option>
+           <option value="seaborn-darkgrid">seaborn-darkgrid</option>
+           <option value="seaborn-deep">seaborn-deep</option>
+           <option value="seaborn-muted">seaborn-muted</option>
+           <option value="seaborn-notebook">seaborn-notebook</option>
+           <option value="seaborn-paper">seaborn-paper</option>
+           <option value="seaborn-pastel">seaborn-pastel</option>
+           <option value="seaborn-poster">seaborn-poster</option>
+           <option value="seaborn-talk">seaborn-talk</option>
+           <option value="seaborn-ticks">seaborn-ticks</option>
+           <option value="seaborn-white">seaborn-white</option>
+           <option value="seaborn-whitegrid">seaborn-whitegrid</option>
+           <option value="tableau-colorblind10">tableau-colorblind10</option>
+       </param>
     </inputs>
     <outputs>
         <data name="output" format="pdf" label="Coverage plot on $on_string" from_work_dir="output.pdf"/>

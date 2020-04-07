@@ -1,5 +1,6 @@
 import click
 
+from matplotlib.style import available
 from readtagger.plot_coverage import plot_coverage_in_regions
 from readtagger import VERSION
 
@@ -23,6 +24,10 @@ from readtagger import VERSION
               default='area',
               type=click.Choice(['area', 'line']),
               help='Kind of plot.')
+@click.option('-s',
+              '--style',
+              type=click.Choice(available),
+              default='ggplot')
 @click.version_option(version=VERSION)
 def plot_coverage(**kwargs):
     """Plot coverage differences between file1 and file2."""
