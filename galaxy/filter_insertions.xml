@@ -1,7 +1,7 @@
-<tool id="confirm_insertions" name="Confirm or discard insertions" version="0.5.24">
+<tool id="confirm_insertions" name="Confirm or discard insertions" version="0.5.25">
     <description>based on softclips in control files</description>
     <requirements>
-        <requirement type="package" version="0.5.24">readtagger</requirement>
+        <requirement type="package" version="0.5.25">readtagger</requirement>
     </requirements>
     <version_command>confirm_insertions --version</version_command>
     <command detect_errors="aggressive"><![CDATA[
