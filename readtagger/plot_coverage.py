@@ -47,14 +47,24 @@ def get_coverage(file, label, regions=None, nth=1, readcount=-1):
         if isinstance(regions, str):
             regions = [regions]
         for region in regions:
+            chrom = region.rsplit(':', 1)[0]
+            if ':' in region:
+                start_stop = region.rsplit(':', 1)[1]
+                start, stop = start_stop.split('-')
+                start = int(start.strip())
+                stop = int(stop.strip())
+            else:
+                start = 0
+                stop = f.header.get_reference_length(chrom)
+            for i in range(start, stop):
+                contigs_coverage[chrom][label][i] = 0
             for pileup_pos in f.pileup(region=region, max_depth=20000):
                 if pileup_pos.pos % nth == 0:
-                    reference_name = f.get_reference_name(pileup_pos.tid)  # Seems to have broken in pysam 0.1.14
-                    contigs_coverage[reference_name][label][pileup_pos.reference_pos] = pileup_pos.nsegments / (readcount / 10**6) if readcount else 0
+                    contigs_coverage[chrom][label][pileup_pos.reference_pos] = pileup_pos.nsegments / (readcount / 10**6) if readcount else 0
     return contigs_coverage
 
 
-def plot_coverage(contigs_coverage, style='ggplot', nrows=8):
+def plot_coverage(contigs_coverage, style='ggplot', plot_kind='area', nrows=8):
     """Plot coverage in contigs_coverage."""
     plt.style.use(style)
     figs = []
@@ -68,12 +78,15 @@ def plot_coverage(contigs_coverage, style='ggplot', nrows=8):
             figs.append(fig)
         i += 1
         nrow = i - (int(i / nrows) * nrows)
-        ax = pd.DataFrame.from_dict(data).plot(kind='area',
-                                               title=title,
-                                               stacked=False,
-                                               alpha=0.5,
-                                               fig=fig,
-                                               ax=axes[0][nrow])
+        ax = pd.DataFrame.from_dict(data).reset_index().plot(
+            x='index',
+            kind=plot_kind,
+            title=title,
+            stacked=False,
+            alpha=0.5,
+            fig=fig,
+            ax=axes[0][nrow]
+        )
         ax.legend(bbox_to_anchor=(1.1, 1), loc="upper right")
     return figs
 
@@ -88,7 +101,7 @@ def get_total_coverage(file, cores=1):
     return int(pysam.view('-c', "-@%d" % cores, file).strip())
 
 
-def plot_coverage_in_regions(files, labels, output_path, regions=None, cores=1, total_reads=None):
+def plot_coverage_in_regions(files, labels, output_path, regions=None, cores=1, total_reads=None, style='ggplot', plot_kind='area'):
     """
     Plot coverage for `files`, where files are multiple BAM files.
 
@@ -102,7 +115,7 @@ def plot_coverage_in_regions(files, labels, output_path, regions=None, cores=1, 
             pysam.index(f)
     if not total_reads:
         total_reads = [get_total_coverage(file, cores=cores) for file in files]
-    starmap_args = [(file, label, region, 10, reads) for (file, label, reads), region in itertools.product(zip(files, labels, total_reads), regions)]
+    starmap_args = [(file, label, region, 1, reads) for (file, label, reads), region in itertools.product(zip(files, labels, total_reads), regions)]
     if cores == 1:
         r = itertools.starmap(get_coverage, starmap_args)
     else:
@@ -112,7 +125,7 @@ def plot_coverage_in_regions(files, labels, output_path, regions=None, cores=1, 
     contigs_coverage = next(r)
     for d in r:
         dict_merge(contigs_coverage, d)
-    figs = plot_coverage(contigs_coverage)
+    figs = plot_coverage(contigs_coverage, style=style, plot_kind=plot_kind)
     if output_path:
         with PdfPages(output_path) as pdf:
             for f in figs:

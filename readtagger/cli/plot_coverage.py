@@ -18,6 +18,11 @@ from readtagger import VERSION
 @click.option('-r',
               '--regions',
               help='Regions to plot. If not specified plots all contigs.')
+@click.option('-k',
+              '--plot_kind',
+              default='area',
+              type=click.Choice(['area', 'line']),
+              help='Kind of plot.')
 @click.version_option(version=VERSION)
 def plot_coverage(**kwargs):
     """Plot coverage differences between file1 and file2."""
