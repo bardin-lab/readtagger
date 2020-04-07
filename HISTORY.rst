@@ -6,6 +6,11 @@ History
 .. to_doc
 
 ---------------------
+0.5.24 (2020-04-07)
+---------------------
+Various updates to plot_coverage tool
+
+---------------------
 0.5.23 (2020-03-23)
 ---------------------
 Release a non-broken version, (conda-build problem in 0.5.22)
