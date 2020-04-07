@@ -10,20 +10,23 @@ jobs:
     - run: sudo apt-get install libcurl4-nss-dev
     - uses: actions/checkout@v2
     - run: git fetch --prune --unshallow
-    - uses: s-weigand/setup-conda@v1
+    - uses: goanpeca/setup-miniconda@master
       with:
-        conda-channels: conda-forge,bioconda
+        channels: conda-forge,bioconda
     - name: Install conda-build
       run: conda install conda-build=3.18.12
     - name: Build and install readtagger
+      shell: bash -l {0}
       run: |
         conda build conda/multiprocessing-logging
         conda build conda/readtagger
         conda install --use-local readtagger
     - name: Install test dependencies
+      shell: bash -l {0}
       run: conda install tox virtualenv
     - name: Cache test data
       run: curl -L https://github.com/bardin-lab/dmel-transposon-reference-data/raw/master/fasta_sequences/dm6_TE_annotations_sequences.fasta -o ~/ref.fa
     - name: Test with tox
+      shell: bash -l {0}
       run: |
         tox -e '${{ matrix.task }}'
