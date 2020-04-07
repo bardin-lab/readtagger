@@ -116,7 +116,7 @@ def plot_coverage_in_regions(files, labels, output_path, regions=None, cores=1, 
     for f in files:
         if not os.path.exists("%s.bai" % f):
             pysam.index(f)
-    if not total_reads:
+    if not total_reads or sum(total_reads) == 0:
         total_reads = [get_total_coverage(file, cores=cores) for file in files]
     starmap_args = [(file, label, region, 1, reads) for (file, label, reads), region in itertools.product(zip(files, labels, total_reads), regions)]
     if cores == 1:
