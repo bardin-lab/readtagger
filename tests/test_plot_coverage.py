@@ -10,16 +10,10 @@ def test_plot_coverage(datadir_copy, tmpdir):  # noqa: D103
     plot_coverage_in_regions(files=[bam, bam], labels=['a', 'b'], output_path=pdf, regions=['3L'])
 
 
-def test_plot_coverage_no_region(datadir_copy, tmpdir):  # noqa: D103
+def test_plot_coverage_region_multicore(datadir_copy, tmpdir):  # noqa: D103
     bam = str(datadir_copy[BAM_FILE])
     pdf = tmpdir.join('plot_test.pdf').strpath
-    plot_coverage_in_regions(files=[bam, bam], labels=['a', 'b'], output_path=pdf)
-
-
-def test_plot_coverage_no_region_multicore(datadir_copy, tmpdir):  # noqa: D103
-    bam = str(datadir_copy[BAM_FILE])
-    pdf = tmpdir.join('plot_test.pdf').strpath
-    plot_coverage_in_regions(files=[bam, bam], labels=['a', 'b'], output_path=pdf, cores=2)
+    plot_coverage_in_regions(files=[bam, bam], labels=['a', 'b'], regions=["3L:3280261-3281790"], output_path=pdf, cores=2)
 
 
 def test_main(datadir_copy, tmpdir, mocker):  # noqa: D103

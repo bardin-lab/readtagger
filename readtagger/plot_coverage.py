@@ -57,11 +57,17 @@ def get_coverage(file, label, regions=None, nth=1, readcount=-1):
             else:
                 start = 0
                 stop = f.header.get_reference_length(chrom)
-            for i in range(start, stop):
-                contigs_coverage[chrom][label][i] = 0
+            contigs_coverage[chrom][label][start] = 0
+            contigs_coverage[chrom][label][stop] = 0
             for pileup_pos in f.pileup(contig=chrom, start=start, stop=stop, max_depth=20000):
+                pos = pileup_pos.pos
                 if pileup_pos.pos % nth == 0:
-                    contigs_coverage[chrom][label][pileup_pos.reference_pos] = pileup_pos.nsegments / (readcount / 10**6) if readcount else 0
+                    before = pos - nth
+                    after = pos + nth
+                    if before not in contigs_coverage[chrom][label]:
+                        contigs_coverage[chrom][label][before] = 0
+                    contigs_coverage[chrom][label][after] = 0
+                    contigs_coverage[chrom][label][pos] = pileup_pos.nsegments / (readcount / 10**6) if readcount else 0
     return contigs_coverage
 
 
