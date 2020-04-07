@@ -47,8 +47,9 @@ def get_coverage(file, label, regions=None, nth=1, readcount=-1):
         if isinstance(regions, str):
             regions = [regions]
         for region in regions:
-            chrom = region.rsplit(':', 1)[0]
-            if ':' in region:
+            chrom = region
+            if ':' in region and '-' in region:
+                chrom = region.rsplit(':', 1)[0]
                 start_stop = region.rsplit(':', 1)[1]
                 start, stop = start_stop.split('-')
                 start = int(start.strip())
@@ -58,7 +59,7 @@ def get_coverage(file, label, regions=None, nth=1, readcount=-1):
                 stop = f.header.get_reference_length(chrom)
             for i in range(start, stop):
                 contigs_coverage[chrom][label][i] = 0
-            for pileup_pos in f.pileup(region=region, max_depth=20000):
+            for pileup_pos in f.pileup(contig=chrom, start=start, stop=stop, max_depth=20000):
                 if pileup_pos.pos % nth == 0:
                     contigs_coverage[chrom][label][pileup_pos.reference_pos] = pileup_pos.nsegments / (readcount / 10**6) if readcount else 0
     return contigs_coverage
@@ -87,7 +88,9 @@ def plot_coverage(contigs_coverage, style='ggplot', plot_kind='area', nrows=8):
             fig=fig,
             ax=axes[0][nrow]
         )
+        ax.set_xlabel("nt")
         ax.legend(bbox_to_anchor=(1.1, 1), loc="upper right")
+        plt.tight_layout()
     return figs
 
 
