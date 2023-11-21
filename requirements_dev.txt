@@ -1,5 +1,5 @@
 bumpversion==0.5.3
-cookiecutter==1.6.0
+cookiecutter==2.5.0
 pydocstyle==4.0.1
 flake8_docstrings==1.5.0
 planemo==0.62.1
