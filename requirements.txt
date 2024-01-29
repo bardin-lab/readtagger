@@ -1,4 +1,4 @@
-bcbio-gff==0.6.6
+bcbio-gff==0.7.1
 biopython==1.74
 cached_property==1.5.1
 click==7.0
