@@ -1,5 +1,5 @@
 bcbio-gff==0.6.6
-biopython==1.74
+biopython==1.84
 cached_property==1.5.1
 click==7.0
 compare-reads==0.0.1
